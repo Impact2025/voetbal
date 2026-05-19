@@ -17,8 +17,9 @@ export default function Skillkaart() {
     let cancelled = false;
 
     const init = async () => {
-      // Recovery link: hash contains type=recovery — show reset form immediately, no network needed
+      // Recovery link: exchange token so Supabase has an active session, then show reset form
       if (window.location.hash.includes('type=recovery')) {
+        try { await supabase.auth.getSession(); } catch { /* ignore */ }
         setIsRecovering(true);
         setLoading(false);
         return;
