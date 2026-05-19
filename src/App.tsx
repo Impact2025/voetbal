@@ -14,62 +14,78 @@ export default function Skillkaart() {
   const lastKnownUserId = useRef(null);
 
   useEffect(() => {
-    // Safety: force out of loading after 6s if auth never fires
-    const timeout = setTimeout(() => setLoading(false), 6000);
+    let cancelled = false;
+
+    const init = async () => {
+      // Player session: local only, no network needed
+      const raw = localStorage.getItem('playerSession');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.role === 'player' && parsed.uid) {
+            if (!cancelled) {
+              setSession({ user: { id: parsed.uid } });
+              setUserData(parsed);
+              lastKnownUserId.current = parsed.uid;
+              setLoading(false);
+            }
+            return;
+          }
+        } catch {
+          localStorage.removeItem('playerSession');
+        }
+      }
+
+      // Coach session: single getSession() call, much faster than waiting for the event
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (session?.user) {
+          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+          if (!cancelled) {
+            setSession(session);
+            setUserData(data);
+            lastKnownUserId.current = session.user.id;
+          }
+        } else {
+          if (!cancelled) { setSession(null); setUserData(null); }
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+        if (!cancelled) { setSession(null); setUserData(null); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (_event === 'PASSWORD_RECOVERY') {
         setIsRecovering(true);
-        clearTimeout(timeout);
         setLoading(false);
         return;
       }
-      try {
-        if (session?.user) {
-          if (lastKnownUserId.current === session.user.id) {
-            setSession(session);
-            return;
-          }
+      // INITIAL_SESSION is handled by init() above
+      if (_event === 'INITIAL_SESSION') return;
+
+      if (session?.user) {
+        if (lastKnownUserId.current === session.user.id) { setSession(session); return; }
+        try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           setSession(session);
           setUserData(data);
           lastKnownUserId.current = session.user.id;
-        } else {
-          const playerSession = localStorage.getItem('playerSession');
-          if (playerSession) {
-            try {
-              const parsed = JSON.parse(playerSession);
-              if (parsed.role === 'player' && parsed.uid) {
-                setSession({ user: { id: parsed.uid } });
-                setUserData(parsed);
-                lastKnownUserId.current = parsed.uid;
-              } else {
-                setSession(null);
-                setUserData(null);
-              }
-            } catch {
-              localStorage.removeItem('playerSession');
-              setSession(null);
-              setUserData(null);
-            }
-          } else {
-            setSession(null);
-            setUserData(null);
-            lastKnownUserId.current = null;
-          }
-        }
-      } catch (err) {
-        console.error('Auth state error:', err);
+        } catch { setSession(null); setUserData(null); }
+      } else if (_event === 'SIGNED_OUT') {
         setSession(null);
         setUserData(null);
-      } finally {
-        clearTimeout(timeout);
-        setLoading(false);
+        lastKnownUserId.current = null;
       }
     });
 
     return () => {
-      clearTimeout(timeout);
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
