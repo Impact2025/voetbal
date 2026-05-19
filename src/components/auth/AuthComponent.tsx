@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, User, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
@@ -206,13 +206,44 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4">
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-        <Card className="w-full max-w-sm">
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
+        <h1 className="text-4xl font-black tracking-widest" style={{ color: NEON_COLOR, textShadow: `0 0 30px ${NEON_COLOR}50` }}>SKILLKAART</h1>
+        <p className="text-gray-500 text-sm mt-1">Voetbal ontwikkeling voor jongeren</p>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
+        <Card>
           {view !== 'forgotPassword' && view !== 'resetPassword' && (
-            <div className="flex border-b border-gray-700 mb-6">
-              <button onClick={() => { setView('playerLogin'); setError(''); }} className={`w-full py-3 font-medium ${view === 'playerLogin' ? 'text-[--neon-color]' : 'text-gray-400'}`}>Speler</button>
-              <button onClick={() => { setView('coachLogin'); setError(''); }} className={`w-full py-3 font-medium ${view.startsWith('coach') ? 'text-[--neon-color]' : 'text-gray-400'}`}>Coach</button>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => { setView('playerLogin'); setError(''); }}
+                className={`flex flex-col items-center gap-2.5 py-4 px-3 rounded-xl border-2 transition-all ${
+                  view === 'playerLogin'
+                    ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white'
+                    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                }`}
+              >
+                <User size={24} style={{ color: view === 'playerLogin' ? NEON_COLOR : '#6b7280' }} />
+                <div className="text-center">
+                  <div className="font-bold text-sm leading-none">Speler</div>
+                  <div className="text-[10px] text-gray-500 mt-1">Team ID + PIN</div>
+                </div>
+              </button>
+              <button
+                onClick={() => { setView('coachLogin'); setError(''); }}
+                className={`flex flex-col items-center gap-2.5 py-4 px-3 rounded-xl border-2 transition-all ${
+                  view.startsWith('coach')
+                    ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white'
+                    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                }`}
+              >
+                <ShieldCheck size={24} style={{ color: view.startsWith('coach') ? NEON_COLOR : '#6b7280' }} />
+                <div className="text-center">
+                  <div className="font-bold text-sm leading-none">Coach</div>
+                  <div className="text-[10px] text-gray-500 mt-1">Email + wachtwoord</div>
+                </div>
+              </button>
             </div>
           )}
           {renderForm()}
