@@ -15,6 +15,12 @@ interface AuthComponentProps {
 
 type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'forgotPassword' | 'resetPassword';
 
+const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+
 const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated }: AuthComponentProps) => {
   const [view, setView] = useState<View>(() => isRecovering ? 'resetPassword' : 'playerLogin');
   const [email, setEmail] = useState('');
@@ -52,14 +58,20 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
         if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
         const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
         if (teamData) throw new Error('Deze Team ID is al in gebruik. Kies een andere.');
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await withTimeout(
+          supabase.auth.signUp({ email, password }),
+          8000, 'Registratie duurt te lang. Controleer je verbinding.'
+        );
         if (error) throw error;
         await supabase.from('teams').insert({ id: newTeamId, coach_id: data.user!.id, team_name: `${email.split('@')[0]}'s Team` });
         await supabase.from('profiles').insert({ id: data.user!.id, role: 'coach', team_id: newTeamId });
       } else {
         if (rememberCoach) localStorage.setItem('rememberedCoachEmail', email);
         else localStorage.removeItem('rememberedCoachEmail');
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          8000, 'Inloggen duurt te lang. Controleer je internetverbinding en probeer opnieuw.'
+        );
         if (error) throw error;
       }
     } catch (err) {
@@ -79,8 +91,10 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     setLoading(true); setError('');
     try {
       if (!teamId.trim() || !pin.trim()) throw new Error('Team ID en Pincode zijn beide verplicht.');
-      const { data: playerData, error } = await supabase
-        .from('players').select('*').eq('team_id', teamId).eq('pin', pin).single();
+      const { data: playerData, error } = await withTimeout(
+        supabase.from('players').select('*').eq('team_id', teamId).eq('pin', pin).single(),
+        8000, 'Inloggen duurt te lang. Controleer je internetverbinding en probeer opnieuw.'
+      );
       if (error || !playerData) throw new Error('Speler niet gevonden. Controleer de Team ID en Pincode.');
       if (rememberMe) { localStorage.setItem('rememberedTeamId', teamId); localStorage.setItem('rememberedPin', pin); }
       else { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); }
