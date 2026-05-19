@@ -52,7 +52,7 @@ export default function Skillkaart() {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (!cancelled) {
             setSession(session);
-            setUserData(data);
+            setUserData(data ? { ...data, teamId: data.team_id } : data);
             lastKnownUserId.current = session.user.id;
           }
         } else {
@@ -82,7 +82,7 @@ export default function Skillkaart() {
         try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           setSession(session);
-          setUserData(data);
+          setUserData(data ? { ...data, teamId: data.team_id } : data);
           lastKnownUserId.current = session.user.id;
         } catch { setSession(null); setUserData(null); }
       } else if (_event === 'SIGNED_OUT') {
