@@ -23,6 +23,7 @@ import PlayerHomeworkCard from '../players/PlayerHomeworkCard';
 import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
 import PlayerOverview from './PlayerOverview';
+import OnboardingTour from '../OnboardingTour';
 
 interface DashboardProps {
   user: SessionUser;
@@ -351,6 +352,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   return (
     <div className="min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+      <OnboardingTour role={userData.role as 'coach' | 'player'} />
       <Toaster position="bottom-center" toastOptions={{ style: { background: '#1A1A1A', color: '#fff', border: '1px solid #333' }, success: { iconTheme: { primary: '#00FF9D', secondary: '#000' } } }} />
       <Suspense fallback={null}>
         <HomeworkCreatorModal isVisible={isHomeworkVisible} onClose={() => setIsHomeworkVisible(false)} onSave={handleSaveHomework} onAssign={handleAssignHomework} customHomework={customHomework} />
