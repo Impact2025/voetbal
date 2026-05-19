@@ -10,6 +10,7 @@ export default function Skillkaart() {
   const [session, setSession] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRecovering, setIsRecovering] = useState(false);
   const lastKnownUserId = useRef(null);
 
   useEffect(() => {
@@ -17,6 +18,12 @@ export default function Skillkaart() {
     const timeout = setTimeout(() => setLoading(false), 6000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (_event === 'PASSWORD_RECOVERY') {
+        setIsRecovering(true);
+        clearTimeout(timeout);
+        setLoading(false);
+        return;
+      }
       try {
         if (session?.user) {
           if (lastKnownUserId.current === session.user.id) {
@@ -94,8 +101,15 @@ export default function Skillkaart() {
     <div className="bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
       <style>{`body { scrollbar-width: thin; scrollbar-color: ${NEON_COLOR} #0D0D0D; } body::-webkit-scrollbar { width: 8px; } body::-webkit-scrollbar-track { background: #0D0D0D; } body::-webkit-scrollbar-thumb { background-color: ${NEON_COLOR}; border-radius: 20px; border: 3px solid #0D0D0D; }`}</style>
       <ErrorBoundary>
-        {!(session && userData) ? (
-          <AuthComponent onPlayerLogin={handlePlayerLogin} />
+        {!(session && userData) || isRecovering ? (
+          <AuthComponent
+            onPlayerLogin={handlePlayerLogin}
+            isRecovering={isRecovering}
+            onPasswordUpdated={() => {
+              setIsRecovering(false);
+              void supabase.auth.signOut();
+            }}
+          />
         ) : (
           <Dashboard user={session.user} userData={userData} onPlayerLogout={handlePlayerLogout} />
         )}
