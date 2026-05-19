@@ -6,6 +6,16 @@ import AuthComponent from './components/auth/AuthComponent';
 import Dashboard from './components/dashboard/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// getSession() can hang indefinitely when Supabase tries to refresh an expired token.
+// This wrapper races it against a timeout and resolves with null on timeout.
+const getSessionSafe = () =>
+  Promise.race([
+    supabase.auth.getSession(),
+    new Promise<{ data: { session: null }; error: null }>(resolve =>
+      setTimeout(() => resolve({ data: { session: null }, error: null }), 3000)
+    ),
+  ]);
+
 export default function Skillkaart() {
   const [session, setSession] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -16,16 +26,20 @@ export default function Skillkaart() {
   useEffect(() => {
     let cancelled = false;
 
+    // Hard fallback: if init somehow never finishes, unblock after 5s
+    const hardFallback = setTimeout(() => {
+      if (!cancelled) { setSession(null); setUserData(null); setLoading(false); }
+    }, 5000);
+
     const init = async () => {
-      // Recovery link: exchange token so Supabase has an active session, then show reset form
+      // Recovery link: exchange token so Supabase has a valid session, then show reset form
       if (window.location.hash.includes('type=recovery')) {
-        try { await supabase.auth.getSession(); } catch { /* ignore */ }
-        setIsRecovering(true);
-        setLoading(false);
+        try { await getSessionSafe(); } catch { /* ignore */ }
+        if (!cancelled) { setIsRecovering(true); setLoading(false); }
         return;
       }
 
-      // Player session: local only, no network needed
+      // Player session: local only, zero network
       const raw = localStorage.getItem('playerSession');
       if (raw) {
         try {
@@ -44,19 +58,25 @@ export default function Skillkaart() {
         }
       }
 
-      // Coach session: single getSession() call, much faster than waiting for the event
+      // Coach session via getSession() — times out after 3s instead of hanging forever
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getSessionSafe();
         if (cancelled) return;
+
         if (session?.user) {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (!cancelled) {
             setSession(session);
-            setUserData(data ? { ...data, teamId: data.team_id } : data);
+            setUserData(data ? { ...data, teamId: data.team_id } : null);
             lastKnownUserId.current = session.user.id;
           }
         } else {
-          if (!cancelled) { setSession(null); setUserData(null); }
+          // No session or timeout — clear any stale Supabase auth storage silently
+          if (!cancelled) {
+            try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* ignore */ }
+            setSession(null);
+            setUserData(null);
+          }
         }
       } catch (err) {
         console.error('Auth init error:', err);
@@ -66,7 +86,7 @@ export default function Skillkaart() {
       }
     };
 
-    void init();
+    void init().finally(() => clearTimeout(hardFallback));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (_event === 'PASSWORD_RECOVERY') {
@@ -74,7 +94,6 @@ export default function Skillkaart() {
         setLoading(false);
         return;
       }
-      // INITIAL_SESSION is handled by init() above
       if (_event === 'INITIAL_SESSION') return;
 
       if (session?.user) {
@@ -82,7 +101,7 @@ export default function Skillkaart() {
         try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           setSession(session);
-          setUserData(data ? { ...data, teamId: data.team_id } : data);
+          setUserData(data ? { ...data, teamId: data.team_id } : null);
           lastKnownUserId.current = session.user.id;
         } catch { setSession(null); setUserData(null); }
       } else if (_event === 'SIGNED_OUT') {
@@ -94,6 +113,7 @@ export default function Skillkaart() {
 
     return () => {
       cancelled = true;
+      clearTimeout(hardFallback);
       subscription.unsubscribe();
     };
   }, []);
