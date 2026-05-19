@@ -17,6 +17,13 @@ export default function Skillkaart() {
     let cancelled = false;
 
     const init = async () => {
+      // Recovery link: hash contains type=recovery — show reset form immediately, no network needed
+      if (window.location.hash.includes('type=recovery')) {
+        setIsRecovering(true);
+        setLoading(false);
+        return;
+      }
+
       // Player session: local only, no network needed
       const raw = localStorage.getItem('playerSession');
       if (raw) {
