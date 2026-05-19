@@ -98,12 +98,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       .subscribe();
 
     return () => supabase.removeAllChannels();
-  }, [userData, user.uid]);
+  }, [userData, user.id]);
 
   const activePlayer = useMemo(() => {
     if (userData.role === 'player') return players.find(p => p.id === user.id);
     return players.find(p => p.id === activePlayerId);
-  }, [players, activePlayerId, user.uid, userData.role]);
+  }, [players, activePlayerId, user.id, userData.role]);
 
   const normalizedQuestions = useMemo(
     () => Array.from({ length: 3 }, (_, idx) => teamData?.weekly_questions?.[idx] || ''),
@@ -238,7 +238,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     const newCompletedIds = isCompleted
       ? activePlayer.completed_homework_ids.filter(id => id !== homeworkId)
       : [...activePlayer.completed_homework_ids, homeworkId];
-    await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.uid);
+    await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.id);
   };
 
   const handleRemovePlayer = (id) => setConfirmRemove({ isVisible: true, playerId: id });
@@ -430,7 +430,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         const updated = [...questionDrafts];
                         updated[idx] = e.target.value;
                         setQuestionDrafts(updated);
-                        setQuestionFeedback('');
                       }}
                       placeholder="Typ de vraag die je wilt stellen..."
                     />
@@ -489,7 +488,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             const updated = [...responseDrafts];
                             updated[idx] = e.target.value;
                             setResponseDrafts(updated);
-                            setResponseFeedback('');
                           }}
                           placeholder="Schrijf hier je antwoord..."
                         />
