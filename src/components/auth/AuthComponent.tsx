@@ -35,6 +35,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [rememberCoach, setRememberCoach] = useState(false);
+  const [slowHint, setSlowHint] = useState(false);
 
   useEffect(() => {
     if (isRecovering) setView('resetPassword');
@@ -52,57 +53,94 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
   }, [view]);
 
   const handleCoachAuth = async (isRegistering: boolean) => {
-    setLoading(true); setError('');
-    try {
-      if (isRegistering) {
-        if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
-        const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
-        if (teamData) throw new Error('Deze Team ID is al in gebruik. Kies een andere.');
-        const { data, error } = await withTimeout(
-          supabase.auth.signUp({ email, password }),
-          8000, 'Registratie duurt te lang. Controleer je verbinding.'
-        );
-        if (error) throw error;
-        await supabase.from('teams').insert({ id: newTeamId, coach_id: data.user!.id, team_name: `${email.split('@')[0]}'s Team` });
-        await supabase.from('profiles').insert({ id: data.user!.id, role: 'coach', team_id: newTeamId });
-      } else {
-        if (rememberCoach) localStorage.setItem('rememberedCoachEmail', email);
-        else localStorage.removeItem('rememberedCoachEmail');
-        const { error } = await withTimeout(
-          supabase.auth.signInWithPassword({ email, password }),
-          8000, 'Inloggen duurt te lang. Controleer je internetverbinding en probeer opnieuw.'
-        );
-        if (error) throw error;
+    const attemptCoach = async () => {
+      setLoading(true); setSlowHint(false);
+      const t = setTimeout(() => setSlowHint(true), 5000);
+      try {
+        if (isRegistering) {
+          if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
+          const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
+          if (teamData) throw new Error('Deze Team ID is al in gebruik. Kies een andere.');
+          const { data, error } = await withTimeout(
+            supabase.auth.signUp({ email, password }),
+            20000, 'Registratie duurt te lang. Controleer je verbinding.'
+          );
+          if (error) throw error;
+          await supabase.from('teams').insert({ id: newTeamId, coach_id: data.user!.id, team_name: `${email.split('@')[0]}'s Team` });
+          await supabase.from('profiles').insert({ id: data.user!.id, role: 'coach', team_id: newTeamId });
+        } else {
+          if (rememberCoach) localStorage.setItem('rememberedCoachEmail', email);
+          else localStorage.removeItem('rememberedCoachEmail');
+          const { error } = await withTimeout(
+            supabase.auth.signInWithPassword({ email, password }),
+            20000, '__timeout__'
+          );
+          if (error) throw error;
+        }
+        return 'ok';
+      } catch (err) {
+        return (err as Error).message;
+      } finally {
+        clearTimeout(t); setLoading(false); setSlowHint(false);
       }
-    } catch (err) {
-      const messages: Record<string, string> = {
-        'Invalid login credentials': 'Ongeldige inloggegevens. Controleer uw e-mail en wachtwoord.',
-        'User already registered': 'Dit e-mailadres is al in gebruik door een ander account.',
-        'Password should be at least 6 characters': 'Het wachtwoord moet uit minstens 6 tekens bestaan.',
-      };
-      setError(messages[(err as Error).message] ?? (err as Error).message);
-    } finally {
-      setLoading(false);
+    };
+
+    const messages: Record<string, string> = {
+      'Invalid login credentials': 'Ongeldige inloggegevens. Controleer uw e-mail en wachtwoord.',
+      'User already registered': 'Dit e-mailadres is al in gebruik door een ander account.',
+      'Password should be at least 6 characters': 'Het wachtwoord moet uit minstens 6 tekens bestaan.',
+    };
+
+    setError('');
+    const r1 = await attemptCoach();
+    if (r1 === 'ok') return;
+    if (r1 === '__timeout__' && !isRegistering) {
+      setError('Server opgestart. Opnieuw verbinden...');
+      await new Promise(res => setTimeout(res, 800));
+      setError('');
+      const r2 = await attemptCoach();
+      if (r2 !== 'ok') setError(r2 === '__timeout__' ? 'Verbinding mislukt. Controleer je internet.' : (messages[r2] ?? r2));
+    } else {
+      setError(messages[r1] ?? r1);
     }
   };
 
   const handlePlayerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); setError('');
-    try {
-      if (!teamId.trim() || !pin.trim()) throw new Error('Team ID en Pincode zijn beide verplicht.');
-      const { data: playerData, error } = await withTimeout(
-        supabase.from('players').select('*').eq('team_id', teamId).eq('pin', pin).single(),
-        8000, 'Inloggen duurt te lang. Controleer je internetverbinding en probeer opnieuw.'
-      );
-      if (error || !playerData) throw new Error('Speler niet gevonden. Controleer de Team ID en Pincode.');
-      if (rememberMe) { localStorage.setItem('rememberedTeamId', teamId); localStorage.setItem('rememberedPin', pin); }
-      else { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); }
-      onPlayerLogin({ role: 'player', teamId, uid: playerData.id, ...playerData });
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
+    if (!teamId.trim() || !pin.trim()) { setError('Team ID en Pincode zijn beide verplicht.'); return; }
+
+    const attempt = async () => {
+      setLoading(true); setSlowHint(false);
+      const t = setTimeout(() => setSlowHint(true), 5000);
+      try {
+        const { data, error } = await withTimeout(
+          supabase.from('players').select('*').eq('team_id', teamId).eq('pin', pin).single(),
+          20000, '__timeout__'
+        );
+        if (error || !data) throw new Error('Speler niet gevonden. Controleer de Team ID en Pincode.');
+        if (rememberMe) { localStorage.setItem('rememberedTeamId', teamId); localStorage.setItem('rememberedPin', pin); }
+        else { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); }
+        onPlayerLogin({ role: 'player', teamId, uid: data.id, ...data });
+        return 'ok';
+      } catch (err) {
+        return (err as Error).message;
+      } finally {
+        clearTimeout(t); setLoading(false); setSlowHint(false);
+      }
+    };
+
+    setError('');
+    const r1 = await attempt();
+    if (r1 === 'ok') return;
+    if (r1 === '__timeout__') {
+      // Database was cold — it's warm now, retry immediately
+      setError('Server opgestart. Opnieuw verbinden...');
+      await new Promise(res => setTimeout(res, 800));
+      setError('');
+      const r2 = await attempt();
+      if (r2 !== 'ok') setError(r2 === '__timeout__' ? 'Verbinding mislukt. Controleer je internet.' : r2);
+    } else {
+      setError(r1);
     }
   };
 
@@ -188,6 +226,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
         </button>
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Even geduld, eerste verbinding kan wat langer duren...</p>}
       </form>
     );
 
@@ -215,6 +254,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : view === 'coachLogin' ? 'Inloggen' : 'Registreren'}
         </button>
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Even geduld, eerste verbinding kan wat langer duren...</p>}
       </form>
     );
   };

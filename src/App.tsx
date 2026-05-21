@@ -6,15 +6,20 @@ import AuthComponent from './components/auth/AuthComponent';
 import Dashboard from './components/dashboard/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// getSession() can hang indefinitely when Supabase tries to refresh an expired token.
-// This wrapper races it against a timeout and resolves with null on timeout.
-const getSessionSafe = () =>
-  Promise.race([
+// getSession() can hang when Supabase tries to refresh an expired token.
+// Only call it if there's actually a stored session — otherwise return null immediately.
+const getSessionSafe = () => {
+  const hasStoredSession = Object.keys(localStorage).some(
+    k => k.startsWith('sb-') && k.endsWith('-auth-token')
+  );
+  if (!hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
+  return Promise.race([
     supabase.auth.getSession(),
     new Promise<{ data: { session: null }; error: null }>(resolve =>
       setTimeout(() => resolve({ data: { session: null }, error: null }), 3000)
     ),
   ]);
+};
 
 export default function Skillkaart() {
   const [session, setSession] = useState(null);
@@ -23,13 +28,20 @@ export default function Skillkaart() {
   const [isRecovering, setIsRecovering] = useState(false);
   const lastKnownUserId = useRef(null);
 
+  // Warm up the PostgREST database connection in the background so the first
+  // login query doesn't hit a cold-start delay on Supabase free tier.
+  useEffect(() => {
+    const ping = async () => { try { await supabase.from('players').select('id').limit(1); } catch { /* ignore */ } };
+    void ping();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
-    // Hard fallback: if init somehow never finishes, unblock after 5s
+    // Hard fallback: if init somehow never finishes, unblock after 4s
     const hardFallback = setTimeout(() => {
       if (!cancelled) { setSession(null); setUserData(null); setLoading(false); }
-    }, 5000);
+    }, 4000);
 
     const init = async () => {
       // Recovery link: exchange token so Supabase has a valid session, then show reset form

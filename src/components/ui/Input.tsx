@@ -8,9 +8,10 @@ interface InputProps {
   type?: string;
   disabled?: boolean;
   className?: string;
+  autoComplete?: string;
 }
 
-const Input = ({ label, value, onChange, placeholder, type = 'text', disabled = false, className = '' }: InputProps) => (
+const Input = ({ label, value, onChange, placeholder, type = 'text', disabled = false, className = '', autoComplete }: InputProps) => (
   <div className={className}>
     {label && <label className="block text-sm font-medium text-gray-400 mb-2">{label}</label>}
     <input
@@ -19,6 +20,7 @@ const Input = ({ label, value, onChange, placeholder, type = 'text', disabled = 
       onChange={onChange}
       placeholder={placeholder}
       disabled={disabled}
+      autoComplete={autoComplete ?? (type === 'password' ? 'current-password' : type === 'email' ? 'email' : 'off')}
       className={`w-full bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[--neon-color] ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     />
   </div>
