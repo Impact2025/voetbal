@@ -189,10 +189,8 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
   const [direction, setDirection] = useState(1);
 
   useEffect(() => {
-    if (!localStorage.getItem(storageKey)) {
-      const t = setTimeout(() => setVisible(true), 900);
-      return () => clearTimeout(t);
-    }
+    const t = setTimeout(() => setVisible(true), 900);
+    return () => clearTimeout(t);
   }, [storageKey]);
 
   const go = useCallback((next: number) => {
@@ -201,10 +199,9 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
   }, [step]);
 
   const dismiss = useCallback(() => {
-    localStorage.setItem(storageKey, '1');
     setVisible(false);
     setTimeout(() => setStep(0), 350);
-  }, [storageKey]);
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
