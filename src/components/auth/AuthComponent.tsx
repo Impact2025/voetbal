@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, CheckCircle2, User, ShieldCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, User, ShieldCheck, Building2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
 import { NEON_COLOR } from '../../utils/constants';
 import type { UserData } from '../../types';
+import { hashPin } from '../../utils/crypto';
+import { checkRateLimit, recordFailedAttempt, clearAttempts } from '../../utils/rateLimit';
 
 interface AuthComponentProps {
   onPlayerLogin: (playerData: UserData & Record<string, unknown>) => void;
@@ -13,7 +15,7 @@ interface AuthComponentProps {
   onPasswordUpdated?: () => void;
 }
 
-type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'forgotPassword' | 'resetPassword';
+type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
   Promise.race([
@@ -29,6 +31,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [teamId, setTeamId] = useState('');
   const [newTeamId, setNewTeamId] = useState('');
+  const [clubIdInput, setClubIdInput] = useState('');
+  const [newClubId, setNewClubId] = useState('');
+  const [clubName, setClubName] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -37,9 +42,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
   const [rememberCoach, setRememberCoach] = useState(false);
   const [slowHint, setSlowHint] = useState(false);
 
-  useEffect(() => {
-    if (isRecovering) setView('resetPassword');
-  }, [isRecovering]);
+  useEffect(() => { if (isRecovering) setView('resetPassword'); }, [isRecovering]);
 
   useEffect(() => {
     if (view === 'playerLogin') {
@@ -61,13 +64,32 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
           if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
           const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
           if (teamData) throw new Error('Deze Team ID is al in gebruik. Kies een andere.');
+
+          if (clubIdInput.trim()) {
+            const { data: clubData } = await supabase.from('clubs').select('id').eq('id', clubIdInput.trim()).single();
+            if (!clubData) throw new Error('Club ID niet gevonden. Controleer het ID bij je club admin.');
+          }
+
           const { data, error } = await withTimeout(
             supabase.auth.signUp({ email, password }),
             20000, 'Registratie duurt te lang. Controleer je verbinding.'
           );
           if (error) throw error;
-          await supabase.from('teams').insert({ id: newTeamId, coach_id: data.user!.id, team_name: `${email.split('@')[0]}'s Team` });
-          await supabase.from('profiles').insert({ id: data.user!.id, role: 'coach', team_id: newTeamId });
+
+          const teamPayload: Record<string, unknown> = {
+            id: newTeamId,
+            coach_id: data.user!.id,
+            team_name: `${email.split('@')[0]}'s Team`,
+          };
+          if (clubIdInput.trim()) teamPayload.club_id = clubIdInput.trim();
+
+          await supabase.from('teams').insert(teamPayload);
+          await supabase.from('profiles').insert({
+            id: data.user!.id,
+            role: 'coach',
+            team_id: newTeamId,
+            ...(clubIdInput.trim() ? { club_id: clubIdInput.trim() } : {}),
+          });
         } else {
           if (rememberCoach) localStorage.setItem('rememberedCoachEmail', email);
           else localStorage.removeItem('rememberedCoachEmail');
@@ -105,22 +127,66 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     }
   };
 
+  const handleClubAdminRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClubId.trim()) { setError('Kies een unieke Club ID.'); return; }
+    if (!clubName.trim()) { setError('Vul een clubnaam in.'); return; }
+    if (password.length < 6) { setError('Wachtwoord moet minimaal 6 tekens zijn.'); return; }
+
+    setLoading(true); setError('');
+    try {
+      const { data: existing } = await supabase.from('clubs').select('id').eq('id', newClubId).single();
+      if (existing) throw new Error('Deze Club ID is al in gebruik. Kies een andere.');
+
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+
+      await supabase.from('clubs').insert({ id: newClubId, name: clubName.trim() });
+      await supabase.from('profiles').insert({ id: data.user!.id, role: 'club_admin', club_id: newClubId });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlayerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamId.trim() || !pin.trim()) { setError('Team ID en Pincode zijn beide verplicht.'); return; }
+
+    try {
+      checkRateLimit(teamId);
+    } catch (err) {
+      setError((err as Error).message);
+      return;
+    }
 
     const attempt = async () => {
       setLoading(true); setSlowHint(false);
       const t = setTimeout(() => setSlowHint(true), 5000);
       try {
+        // Fetch candidates by team, then verify PIN hash client-side
         const { data, error } = await withTimeout(
-          supabase.from('players').select('*').eq('team_id', teamId).eq('pin', pin).single(),
+          supabase.from('players').select('*').eq('team_id', teamId),
           20000, '__timeout__'
         );
-        if (error || !data) throw new Error('Speler niet gevonden. Controleer de Team ID en Pincode.');
+        if (error) throw new Error('Verbindingsfout. Probeer het opnieuw.');
+        if (!data || data.length === 0) throw new Error('Team ID niet gevonden. Controleer de code bij je coach.');
+
+        // Find player where pin_hash matches SHA-256(pin + player.id)
+        let matched = null;
+        for (const player of data) {
+          const expectedHash = await hashPin(pin, player.id);
+          if (player.pin_hash === expectedHash) { matched = player; break; }
+        }
+
+        if (!matched) throw new Error('Pincode onjuist. Controleer de code bij je coach.');
+
         if (rememberMe) { localStorage.setItem('rememberedTeamId', teamId); localStorage.setItem('rememberedPin', pin); }
         else { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); }
-        onPlayerLogin({ role: 'player', teamId, uid: data.id, ...data });
+
+        clearAttempts(teamId);
+        onPlayerLogin({ role: 'player', teamId, uid: matched.id, ...matched });
         return 'ok';
       } catch (err) {
         return (err as Error).message;
@@ -133,13 +199,16 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     const r1 = await attempt();
     if (r1 === 'ok') return;
     if (r1 === '__timeout__') {
-      // Database was cold — it's warm now, retry immediately
       setError('Server opgestart. Opnieuw verbinden...');
       await new Promise(res => setTimeout(res, 800));
       setError('');
       const r2 = await attempt();
-      if (r2 !== 'ok') setError(r2 === '__timeout__' ? 'Verbinding mislukt. Controleer je internet.' : r2);
+      if (r2 !== 'ok') {
+        recordFailedAttempt(teamId);
+        setError(r2 === '__timeout__' ? 'Verbinding mislukt. Controleer je internet.' : r2);
+      }
     } else {
+      recordFailedAttempt(teamId);
       setError(r1);
     }
   };
@@ -149,9 +218,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     setLoading(true); setError(''); setSuccess('');
     try {
       if (!email.trim()) throw new Error('Vul je e-mailadres in.');
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: window.location.origin,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
       if (error) throw error;
       setSuccess('Reset-link verstuurd! Controleer je inbox (en spammap).');
     } catch (err) {
@@ -178,7 +245,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     }
   };
 
-  const btnClass = "w-full py-3 font-bold text-black rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center disabled:opacity-50";
+  const btnClass = 'w-full py-3 font-bold text-black rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center disabled:opacity-50';
 
   const renderForm = () => {
     if (view === 'resetPassword') return (
@@ -230,6 +297,23 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
       </form>
     );
 
+    if (view === 'clubAdminRegister') return (
+      <form onSubmit={handleClubAdminRegister} className="space-y-4">
+        <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-2">
+          <ArrowLeft size={14} /> Terug
+        </button>
+        <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB REGISTRATIE</h2>
+        <Input label="Clubnaam" value={clubName} onChange={e => setClubName(e.target.value)} placeholder="bv. VV Sportlust" />
+        <Input label="Kies een unieke Club ID" value={newClubId} onChange={e => setNewClubId(e.target.value)} placeholder="bv. VVS-CLUB" />
+        <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
+        <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimaal 6 tekens" />
+        <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
+          {loading ? <Loader2 className="animate-spin" /> : 'Club Registreren'}
+        </button>
+      </form>
+    );
+
+    // Coach login / register
     return (
       <form onSubmit={e => { e.preventDefault(); void handleCoachAuth(view === 'coachRegister'); }} className="space-y-4">
         <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>
@@ -238,7 +322,10 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
         <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" />
         <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
         {view === 'coachRegister' && (
-          <Input label="Kies een unieke Team ID" value={newTeamId} onChange={e => setNewTeamId(e.target.value)} placeholder="bv. VVC11-1" />
+          <>
+            <Input label="Kies een unieke Team ID" value={newTeamId} onChange={e => setNewTeamId(e.target.value)} placeholder="bv. VVC11-1" />
+            <Input label="Club ID (optioneel)" value={clubIdInput} onChange={e => setClubIdInput(e.target.value)} placeholder="Vraag je club admin" />
+          </>
         )}
         {view === 'coachLogin' && (
           <div className="flex items-center justify-between">
@@ -259,6 +346,8 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     );
   };
 
+  const isCoachView = view === 'coachLogin' || view === 'coachRegister' || view === 'clubAdminRegister';
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
@@ -269,33 +358,41 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
         <Card>
           {view !== 'forgotPassword' && view !== 'resetPassword' && (
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-2 mb-6">
               <button
                 onClick={() => { setView('playerLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2.5 py-4 px-3 rounded-xl border-2 transition-all ${
-                  view === 'playerLogin'
-                    ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white'
-                    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
+                  view === 'playerLogin' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
                 }`}
               >
-                <User size={24} style={{ color: view === 'playerLogin' ? NEON_COLOR : '#6b7280' }} />
+                <User size={20} style={{ color: view === 'playerLogin' ? NEON_COLOR : '#6b7280' }} />
                 <div className="text-center">
-                  <div className="font-bold text-sm leading-none">Speler</div>
-                  <div className="text-[10px] text-gray-500 mt-1">Team ID + PIN</div>
+                  <div className="font-bold text-xs leading-none">Speler</div>
+                  <div className="text-[9px] text-gray-500 mt-0.5">Team + PIN</div>
                 </div>
               </button>
               <button
                 onClick={() => { setView('coachLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2.5 py-4 px-3 rounded-xl border-2 transition-all ${
-                  view.startsWith('coach')
-                    ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white'
-                    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
+                  isCoachView && view !== 'clubAdminRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
                 }`}
               >
-                <ShieldCheck size={24} style={{ color: view.startsWith('coach') ? NEON_COLOR : '#6b7280' }} />
+                <ShieldCheck size={20} style={{ color: (isCoachView && view !== 'clubAdminRegister') ? NEON_COLOR : '#6b7280' }} />
                 <div className="text-center">
-                  <div className="font-bold text-sm leading-none">Coach</div>
-                  <div className="text-[10px] text-gray-500 mt-1">Email + wachtwoord</div>
+                  <div className="font-bold text-xs leading-none">Coach</div>
+                  <div className="text-[9px] text-gray-500 mt-0.5">Email + ww</div>
+                </div>
+              </button>
+              <button
+                onClick={() => { setView('clubAdminRegister'); setError(''); }}
+                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
+                  view === 'clubAdminRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                }`}
+              >
+                <Building2 size={20} style={{ color: view === 'clubAdminRegister' ? NEON_COLOR : '#6b7280' }} />
+                <div className="text-center">
+                  <div className="font-bold text-xs leading-none">Club</div>
+                  <div className="text-[9px] text-gray-500 mt-0.5">Admin</div>
                 </div>
               </button>
             </div>
@@ -308,8 +405,16 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
               <p className="text-sm text-green-300">{success}</p>
             </div>
           )}
-          {view === 'coachLogin' && <p className="text-center text-sm mt-4 text-gray-400">Nog geen account? <button onClick={() => setView('coachRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Registreer hier</button></p>}
-          {view === 'coachRegister' && <p className="text-center text-sm mt-4 text-gray-400">Al een account? <button onClick={() => setView('coachLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button></p>}
+          {view === 'coachLogin' && (
+            <p className="text-center text-sm mt-4 text-gray-400">
+              Nog geen account? <button onClick={() => setView('coachRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Registreer hier</button>
+            </p>
+          )}
+          {view === 'coachRegister' && (
+            <p className="text-center text-sm mt-4 text-gray-400">
+              Al een account? <button onClick={() => setView('coachLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
+            </p>
+          )}
         </Card>
       </motion.div>
     </div>

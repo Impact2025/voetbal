@@ -4,6 +4,7 @@ export const NEON_COLOR = '#00FF9D';
 
 export const skillKeys: string[] = ['snelheid', 'passing', 'techniek', 'schot', 'verdedigen', 'inzicht', 'mentaliteit'];
 export const evaluationPeriods: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
+export const DEFAULT_EVALUATION_PERIODS: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
 
 export const DEFAULT_WEEKLY_QUESTIONS: string[] = [
   'Wat maakt een team goed?',
@@ -42,6 +43,25 @@ export const homeworkSuggestions: HomeworkSuggestion[] = [
   { title: 'Balafpak Spel', description: 'Iemand dribbelt, de ander probeert de bal af te pakken zonder te duwen. Wie houdt de bal het langst?' },
   { title: 'Obstacle Course', description: 'Maak een parcours (stoel, bank, emmer) en dribbel erdoorheen op tijd.' },
 ];
+
+export const AGE_GROUPS = ['U8', 'U10', 'U12', 'U14', 'U16'] as const;
+
+export const SESSION_DURATIONS = [60, 75, 90] as const;
+
+export const TRAINING_THEMES = [
+  { id: 'Balbezit & Positiespel', label: 'Balbezit', emoji: '⚽' },
+  { id: 'Afwerking & Schieten', label: 'Afwerking', emoji: '🥅' },
+  { id: 'Verdedigen & Duels', label: 'Verdediging', emoji: '🛡️' },
+  { id: '1 tegen 1 acties', label: '1 tegen 1', emoji: '⚡' },
+  { id: 'Passing & Samenspel', label: 'Passing', emoji: '🎯' },
+  { id: 'Druk Zetten & Pressing', label: 'Pressing', emoji: '🔥' },
+  { id: 'Omschakelen Aanval-Verdediging', label: 'Omschakelen', emoji: '↔️' },
+  { id: 'Snelheid & Explosiviteit', label: 'Snelheid', emoji: '💨' },
+  { id: 'Dribbelen & Trucjes', label: 'Dribbelen', emoji: '🌀' },
+  { id: 'Standaardsituaties', label: 'Standards', emoji: '📐' },
+  { id: 'Keeperstraining', label: 'Keeper', emoji: '🧤' },
+  { id: 'Kleine Partijvorm 4v4', label: 'Partijvorm', emoji: '🏟️' },
+] as const;
 
 const makeEvaluation = (): Evaluation => ({
   skills: { snelheid: 5, passing: 5, techniek: 5, schot: 5, verdedigen: 5, inzicht: 5, mentaliteit: 5 },

@@ -21,19 +21,27 @@ const AddPlayerModal = ({ isVisible, onClose, onAdd, teamId }: AddPlayerModalPro
   const [playerName, setPlayerName] = useState('');
   const [newPlayerInfo, setNewPlayerInfo] = useState<NewPlayerInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setPlayerName('');
     setNewPlayerInfo(null);
     setLoading(false);
+    setError('');
   }, [isVisible]);
 
   const handleAdd = async () => {
     if (!playerName.trim()) return;
     setLoading(true);
-    const newPlayerData = await onAdd(playerName);
-    setNewPlayerInfo({ name: playerName, id: newPlayerData.id, pin: newPlayerData.pin });
-    setLoading(false);
+    setError('');
+    try {
+      const newPlayerData = await onAdd(playerName.trim());
+      setNewPlayerInfo({ name: playerName.trim(), id: newPlayerData.id, pin: newPlayerData.pin });
+    } catch (err) {
+      setError((err as Error).message || 'Er is een fout opgetreden.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,10 +60,20 @@ const AddPlayerModal = ({ isVisible, onClose, onAdd, teamId }: AddPlayerModalPro
             {!newPlayerInfo ? (
               <>
                 <h3 className="text-lg font-bold text-white mb-4">Nieuwe Speler Toevoegen</h3>
-                <Input label="Naam van de speler" value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="bv. Johan Cruijff" />
+                <Input
+                  label="Naam van de speler"
+                  value={playerName}
+                  onChange={e => setPlayerName(e.target.value)}
+                  placeholder="bv. Johan Cruijff"
+                />
+                {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
                 <div className="flex justify-end gap-4 mt-6">
                   <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 hover:bg-gray-600 transition-colors">Annuleren</button>
-                  <button onClick={handleAdd} disabled={loading} className="px-4 py-2 rounded-lg bg-[--neon-color] text-black font-semibold hover:opacity-90 transition-opacity flex items-center disabled:opacity-50">
+                  <button
+                    onClick={handleAdd}
+                    disabled={loading || !playerName.trim()}
+                    className="px-4 py-2 rounded-lg bg-[--neon-color] text-black font-semibold hover:opacity-90 transition-opacity flex items-center disabled:opacity-50"
+                  >
                     {loading ? <Loader2 className="animate-spin mr-2" /> : <Plus className="mr-2" size={16} />}
                     Aanmaken
                   </button>
@@ -63,25 +81,30 @@ const AddPlayerModal = ({ isVisible, onClose, onAdd, teamId }: AddPlayerModalPro
               </>
             ) : (
               <>
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><CheckCircle2 className="text-green-400" />Speler Aangemaakt!</h3>
-                <p className="text-gray-400 mb-4">Deel de volgende inloggegevens met <strong className="text-white">{newPlayerInfo.name}</strong>:</p>
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <CheckCircle2 className="text-green-400" />Speler Aangemaakt!
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  Deel de volgende inloggegevens met <strong className="text-white">{newPlayerInfo.name}</strong>:
+                </p>
                 <div className="space-y-3">
                   <div className="p-3 bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-400">Team ID</p>
                     <div className="flex justify-between items-center">
                       <strong className="text-white font-mono">{teamId}</strong>
-                      <button onClick={() => copyToClipboard(teamId)} className="p-1 hover:bg-gray-700 rounded-md"><Copy size={16} /></button>
+                      <button onClick={() => void copyToClipboard(teamId)} className="p-1 hover:bg-gray-700 rounded-md"><Copy size={16} /></button>
                     </div>
                   </div>
                   <div className="p-3 bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-400">Pincode</p>
                     <div className="flex justify-between items-center">
-                      <strong className="text-white font-mono">{newPlayerInfo.pin}</strong>
-                      <button onClick={() => copyToClipboard(newPlayerInfo.pin)} className="p-1 hover:bg-gray-700 rounded-md"><Copy size={16} /></button>
+                      <strong className="text-white font-mono text-2xl tracking-widest">{newPlayerInfo.pin}</strong>
+                      <button onClick={() => void copyToClipboard(newPlayerInfo.pin)} className="p-1 hover:bg-gray-700 rounded-md"><Copy size={16} /></button>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end mt-6">
+                <p className="text-xs text-gray-600 mt-3">De pincode wordt eenmalig getoond. Sla hem op voor de speler.</p>
+                <div className="flex justify-end mt-5">
                   <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[--neon-color] text-black font-semibold hover:opacity-90 transition-opacity">Sluiten</button>
                 </div>
               </>

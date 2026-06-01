@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { NEON_COLOR } from './utils/constants';
 import AuthComponent from './components/auth/AuthComponent';
 import Dashboard from './components/dashboard/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
+import ConsentModal, { hasConsented } from './components/modals/ConsentModal';
+import PrivacyPolicy from './components/PrivacyPolicy';
+
+const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
 
 // getSession() can hang when Supabase tries to refresh an expired token.
 // Only call it if there's actually a stored session — otherwise return null immediately.
@@ -26,6 +30,8 @@ export default function Skillkaart() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(hasConsented);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const lastKnownUserId = useRef(null);
 
   // Warm up the PostgREST database connection in the background so the first
@@ -38,20 +44,17 @@ export default function Skillkaart() {
   useEffect(() => {
     let cancelled = false;
 
-    // Hard fallback: if init somehow never finishes, unblock after 4s
     const hardFallback = setTimeout(() => {
       if (!cancelled) { setSession(null); setUserData(null); setLoading(false); }
     }, 4000);
 
     const init = async () => {
-      // Recovery link: exchange token so Supabase has a valid session, then show reset form
       if (window.location.hash.includes('type=recovery')) {
         try { await getSessionSafe(); } catch { /* ignore */ }
         if (!cancelled) { setIsRecovering(true); setLoading(false); }
         return;
       }
 
-      // Player session: local only, zero network
       const raw = localStorage.getItem('playerSession');
       if (raw) {
         try {
@@ -70,7 +73,6 @@ export default function Skillkaart() {
         }
       }
 
-      // Coach session via getSession() — times out after 3s instead of hanging forever
       try {
         const { data: { session } } = await getSessionSafe();
         if (cancelled) return;
@@ -79,11 +81,10 @@ export default function Skillkaart() {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (!cancelled) {
             setSession(session);
-            setUserData(data ? { ...data, teamId: data.team_id } : null);
+            setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
             lastKnownUserId.current = session.user.id;
           }
         } else {
-          // No session or timeout — clear any stale Supabase auth storage silently
           if (!cancelled) {
             try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* ignore */ }
             setSession(null);
@@ -113,7 +114,7 @@ export default function Skillkaart() {
         try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           setSession(session);
-          setUserData(data ? { ...data, teamId: data.team_id } : null);
+          setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
           lastKnownUserId.current = session.user.id;
         } catch { setSession(null); setUserData(null); }
       } else if (_event === 'SIGNED_OUT') {
@@ -144,6 +145,14 @@ export default function Skillkaart() {
     lastKnownUserId.current = null;
   };
 
+  if (showPrivacy) {
+    return (
+      <div style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+        <PrivacyPolicy onBack={() => setShowPrivacy(false)} />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white min-h-screen flex flex-col items-center justify-center text-center" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
@@ -156,6 +165,14 @@ export default function Skillkaart() {
   return (
     <div className="bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
       <style>{`body { scrollbar-width: thin; scrollbar-color: ${NEON_COLOR} #0D0D0D; } body::-webkit-scrollbar { width: 8px; } body::-webkit-scrollbar-track { background: #0D0D0D; } body::-webkit-scrollbar-thumb { background-color: ${NEON_COLOR}; border-radius: 20px; border: 3px solid #0D0D0D; }`}</style>
+
+      {!consentGiven && (
+        <ConsentModal
+          onAccept={() => setConsentGiven(true)}
+          onShowPrivacy={() => setShowPrivacy(true)}
+        />
+      )}
+
       <ErrorBoundary>
         {!(session && userData) || isRecovering ? (
           <AuthComponent
@@ -166,6 +183,14 @@ export default function Skillkaart() {
               void supabase.auth.signOut();
             }}
           />
+        ) : userData.role === 'club_admin' ? (
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" />
+            </div>
+          }>
+            <ClubAdminDashboard userData={userData} onLogout={handlePlayerLogout} />
+          </Suspense>
         ) : (
           <Dashboard user={session.user} userData={userData} onPlayerLogout={handlePlayerLogout} />
         )}

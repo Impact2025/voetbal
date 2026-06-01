@@ -1,24 +1,32 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import type { Player, Team, CustomHomework, UserData, SessionUser } from '../../types';
+import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission } from '../../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, BarChart2, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target } from 'lucide-react';
+import { Plus, Trash2, User, BarChart2, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
-import { NEON_COLOR, skillKeys, evaluationPeriods, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
+import { generateIndividualPlan } from '../../lib/trainingAI';
+import { NEON_COLOR, skillKeys, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
+import { hashPin } from '../../utils/crypto';
+import { exportPlayerPdf } from '../../utils/pdfExport';
+import type { TeamSession } from '../../types';
 import Card from '../ui/Card';
 import ToolButton from '../ui/ToolButton';
 import Slider from '../ui/Slider';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import ConfirmModal from '../modals/ConfirmModal';
+import AttendanceCard from '../attendance/AttendanceCard';
+import TrainingPlanCard from '../training/TrainingPlanCard';
 const HomeworkCreatorModal = lazy(() => import('../modals/HomeworkCreatorModal'));
 const AddPlayerModal = lazy(() => import('../modals/AddPlayerModal'));
 const PlayerProfileModal = lazy(() => import('../modals/PlayerProfileModal'));
 const CoachProfileModal = lazy(() => import('../modals/CoachProfileModal'));
 const TestsModal = lazy(() => import('../modals/TestsModal'));
+const AttendanceModal = lazy(() => import('../modals/AttendanceModal'));
+const TeamSessionModal = lazy(() => import('../training/TeamSessionModal'));
 import PlayerHomeworkCard from '../players/PlayerHomeworkCard';
 import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
@@ -32,11 +40,12 @@ interface DashboardProps {
 }
 
 const COACH_SECTIONS = [
-  { id: 'overzicht',   label: 'Overzicht',   icon: LayoutDashboard },
-  { id: 'spelers',     label: 'Spelers',      icon: UserSquare },
-  { id: 'huiswerk',    label: 'Huiswerk',     icon: ClipboardList },
-  { id: 'trainingen',  label: 'Trainingen',   icon: Target },
-  { id: 'vragen',      label: 'Vragen',       icon: ListPlus },
+  { id: 'overzicht',    label: 'Overzicht',    icon: LayoutDashboard },
+  { id: 'spelers',      label: 'Spelers',       icon: UserSquare },
+  { id: 'huiswerk',     label: 'Huiswerk',      icon: ClipboardList },
+  { id: 'trainingen',   label: 'Trainingen',    icon: Target },
+  { id: 'aanwezigheid', label: 'Aanwezigheid',  icon: CalendarCheck },
+  { id: 'vragen',       label: 'Vragen',        icon: ListPlus },
 ] as const;
 
 const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
@@ -44,7 +53,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [customHomework, setCustomHomework] = useState<CustomHomework[]>([]);
   const [teamData, setTeamData] = useState<Partial<Team>>({});
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>(evaluationPeriods[0]);
+  const [activeTab, setActiveTab] = useState<string>(DEFAULT_EVALUATION_PERIODS[0]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [isAttendanceVisible, setIsAttendanceVisible] = useState(false);
   const [isHomeworkVisible, setIsHomeworkVisible] = useState(false);
   const [isTestsVisible, setIsTestsVisible] = useState(false);
   const [confirmAssign, setConfirmAssign] = useState<{ isVisible: boolean; homeworkIds: string[] | null }>({ isVisible: false, homeworkIds: null });
@@ -55,10 +66,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [isAddPlayerVisible, setIsAddPlayerVisible] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isCoachProfileVisible, setIsCoachProfileVisible] = useState(false);
+  const [isTeamSessionModalVisible, setIsTeamSessionModalVisible] = useState(false);
+  const [teamSessions, setTeamSessions] = useState<TeamSession[]>(() => {
+    try {
+      const raw = localStorage.getItem(`team_sessions_${userData.teamId}`);
+      return raw ? (JSON.parse(raw) as TeamSession[]) : [];
+    } catch { return []; }
+  });
   const [questionDrafts, setQuestionDrafts] = useState(['', '', '']);
   const [responseDrafts, setResponseDrafts] = useState(['', '', '']);
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [savingResponses, setSavingResponses] = useState(false);
+  const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'dashboard');
 
   useEffect(() => {
@@ -68,6 +87,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       const { data: playersData } = await supabase.from('players').select('*').eq('team_id', userData.teamId);
       const { data: teamRecord } = await supabase.from('teams').select('*').eq('id', userData.teamId).single();
       const { data: homeworkData } = await supabase.from('custom_homework').select('*').eq('team_id', userData.teamId);
+      const { data: attendanceData } = await supabase.from('attendance').select('*').eq('team_id', userData.teamId);
+      const { data: submissionsData } = await supabase.from('homework_submissions').select('*').eq('team_id', userData.teamId).order('created_at', { ascending: false });
+      setSubmissions((submissionsData || []) as HomeworkSubmission[]);
 
       const normalizedPlayers = (playersData || []).map(player => ({
         ...player,
@@ -77,13 +99,23 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       const baseQuestions = Array.isArray(teamRecord?.weekly_questions) && teamRecord.weekly_questions.length > 0
         ? teamRecord.weekly_questions
         : DEFAULT_WEEKLY_QUESTIONS;
+      const basePeriods = Array.isArray(teamRecord?.evaluation_periods) && teamRecord.evaluation_periods.length > 0
+        ? teamRecord.evaluation_periods
+        : DEFAULT_EVALUATION_PERIODS;
       const normalizedTeam = teamRecord
-        ? { ...teamRecord, weekly_questions: Array.from({ length: 3 }, (_, idx) => baseQuestions[idx] || '') }
-        : { weekly_questions: DEFAULT_WEEKLY_QUESTIONS.slice() };
+        ? { ...teamRecord, weekly_questions: Array.from({ length: 3 }, (_, idx) => baseQuestions[idx] || ''), evaluation_periods: basePeriods }
+        : { weekly_questions: DEFAULT_WEEKLY_QUESTIONS.slice(), evaluation_periods: DEFAULT_EVALUATION_PERIODS.slice() };
 
       setPlayers(normalizedPlayers);
       setTeamData(normalizedTeam);
       setCustomHomework(homeworkData || []);
+      setAttendanceRecords((attendanceData || []) as AttendanceRecord[]);
+
+      // Set default activeTab from team's periods
+      const periods = Array.isArray(teamRecord?.evaluation_periods) && teamRecord.evaluation_periods.length > 0
+        ? teamRecord.evaluation_periods
+        : DEFAULT_EVALUATION_PERIODS;
+      setActiveTab(prev => (periods.includes(prev) ? prev : periods[0]));
 
       if (userData.role === 'coach' && normalizedPlayers.length > 0) {
         setActivePlayerId(prev => prev || normalizedPlayers[0].id);
@@ -106,8 +138,29 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_homework' }, () => fetchData())
       .subscribe();
 
+    supabase.channel(`public:attendance:team_id=eq.${userData.teamId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => fetchData())
+      .subscribe();
+
+    supabase.channel(`public:homework_submissions:team_id=eq.${userData.teamId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'homework_submissions' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          setSubmissions(prev => [payload.new as HomeworkSubmission, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setSubmissions(prev => prev.map(s => s.id === (payload.new as HomeworkSubmission).id ? payload.new as HomeworkSubmission : s));
+        }
+      })
+      .subscribe();
+
     return () => supabase.removeAllChannels();
   }, [userData, user.id]);
+
+  const teamPeriods = useMemo(
+    () => Array.isArray(teamData.evaluation_periods) && teamData.evaluation_periods.length > 0
+      ? teamData.evaluation_periods
+      : DEFAULT_EVALUATION_PERIODS,
+    [teamData.evaluation_periods]
+  );
 
   const activePlayer = useMemo(() => {
     if (userData.role === 'player') return players.find(p => p.id === user.id);
@@ -132,13 +185,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   useEffect(() => { setResponseDrafts(normalizedResponses); }, [normalizedResponses]);
 
   const handleAddPlayer = async (playerName) => {
-    let newPin;
-    let isUnique = false;
-    while (!isUnique) {
-      newPin = Math.floor(100000 + Math.random() * 900000).toString();
-      const { data } = await supabase.from('players').select('id').eq('team_id', userData.teamId).eq('pin', newPin);
-      isUnique = !data || data.length === 0;
-    }
+    const plainPin = Math.floor(100000 + Math.random() * 900000).toString();
 
     const newPlayer = {
       name: playerName,
@@ -146,7 +193,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       age: '',
       preferred_foot: 'Rechts',
       position: '',
-      pin: newPin,
+      pin_hash: 'pending', // placeholder; replaced immediately after insert
       avatar_url: `https://placehold.co/128x128/1A1A1A/FFFFFF?text=${playerName.substring(0, 2).toUpperCase()}`,
       evaluations: createInitialEvaluations(),
       completed_homework_ids: [],
@@ -155,7 +202,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
     const { data, error } = await supabase.from('players').insert(newPlayer).select().single();
     if (error) throw error;
-    return { id: data.id, pin: newPin };
+
+    // Hash PIN with player ID as salt now that we have the ID
+    const pinHash = await hashPin(plainPin, data.id);
+    await supabase.from('players').update({ pin_hash: pinHash }).eq('id', data.id);
+
+    return { id: data.id, pin: plainPin };
   };
 
   const handleSaveProfile = async (playerId, profileData) => {
@@ -164,6 +216,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   const handleSaveCoachProfile = async (coachProfileData) => {
     await supabase.from('teams').update(coachProfileData).eq('id', userData.teamId);
+    if (coachProfileData.evaluation_periods) {
+      setTeamData(prev => ({ ...prev, evaluation_periods: coachProfileData.evaluation_periods }));
+    }
   };
 
   const handleSaveTeamQuestions = async () => {
@@ -261,6 +316,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.id);
   };
 
+  const handleSubmissionComplete = (submission: HomeworkSubmission) => {
+    setSubmissions(prev => {
+      const idx = prev.findIndex(s => s.id === submission.id);
+      if (idx !== -1) return prev.map(s => s.id === submission.id ? submission : s);
+      return [submission, ...prev];
+    });
+  };
+
   const handleRemovePlayer = (id) => setConfirmRemove({ isVisible: true, playerId: id });
 
   const executeRemovePlayer = async () => {
@@ -271,7 +334,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   };
 
   const handleCopyTeamId = () => {
-    copyToClipboard(userData.teamId);
+    void copyToClipboard(userData.teamId ?? '');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -307,13 +370,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     if (!currentEval) return;
     setGeneratingPlanForPlayer(player.id);
     try {
-      const sortedSkills = Object.entries(currentEval.skills).sort(([, a], [, b]) => (b as number) - (a as number));
-      const topSkills = sortedSkills.slice(0, 2).map(s => s[0]).join(', ');
-      const bottomSkills = sortedSkills.slice(-2).map(s => s[0]).join(', ');
-      const prompt = `Genereer een beknopt, positief en motiverend persoonlijk trainingsplan in het Nederlands voor een jonge voetballer (7-12 jaar). Focus op het verbeteren van zwakke punten en benutten van sterke punten. Sterke punten: ${topSkills}. Zwakke punten: ${bottomSkills}. Coach opmerkingen: "${currentEval.comments}". Het plan moet bestaan uit 2-3 leuke, uitvoerbare oefeningen voor thuis. Formatteer het als een lijst met koppeltekens.`;
-      const result = await callAI(prompt);
-      const newEvaluations = JSON.parse(JSON.stringify(player.evaluations));
-      newEvaluations[activeTab].trainingPlan = result;
+      const structuredPlan = await generateIndividualPlan(player, activeTab);
+      const newEvaluations = JSON.parse(JSON.stringify(player.evaluations)) as typeof player.evaluations;
+      if (structuredPlan) {
+        newEvaluations[activeTab].structuredPlan = structuredPlan;
+      } else {
+        // Fallback to basic plan if structured generation fails
+        const sortedSkills = Object.entries(currentEval.skills).sort(([, a], [, b]) => (b as number) - (a as number));
+        const topSkills = sortedSkills.slice(0, 2).map(s => s[0]).join(', ');
+        const bottomSkills = sortedSkills.slice(-2).map(s => s[0]).join(', ');
+        const prompt = `Genereer een beknopt trainingsplan voor een jonge voetballer. Sterke punten: ${topSkills}. Verbeterpunten: ${bottomSkills}. Coach opmerkingen: "${currentEval.comments}". Geef 2-3 oefeningen met koppeltekens.`;
+        newEvaluations[activeTab].trainingPlan = await callAI(prompt);
+      }
       await supabase.from('players').update({ evaluations: newEvaluations }).eq('id', player.id);
       setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, evaluations: newEvaluations } : p));
       toast.success(`Plan voor ${player.name} gegenereerd.`);
@@ -325,6 +393,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
   };
 
+  const handleSaveTeamSession = (session: TeamSession) => {
+    const updated = [session, ...teamSessions].slice(0, 15);
+    setTeamSessions(updated);
+    localStorage.setItem(`team_sessions_${userData.teamId}`, JSON.stringify(updated));
+    toast.success('Teamsessie opgeslagen.');
+  };
+
   const radarChartData = useMemo(() => {
     if (!activePlayer) return [];
     const currentSkills = activePlayer.evaluations[activeTab].skills;
@@ -333,12 +408,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   const lineChartData = useMemo(() => {
     if (!activePlayer) return [];
-    return evaluationPeriods.map(period => {
-      const evalData = activePlayer.evaluations[period];
+    return teamPeriods.map(period => {
+      const evalData = activePlayer.evaluations?.[period];
+      if (!evalData) return { name: period, 'Gem. Skill': 0, 'Wedstrijdcijfer': 0 };
       const skillAverage = skillKeys.reduce((sum, key) => sum + (evalData.skills[key] || 0), 0) / skillKeys.length;
       return { name: period, 'Gem. Skill': parseFloat(skillAverage.toFixed(1)), 'Wedstrijdcijfer': evalData.matchRating };
     });
-  }, [activePlayer]);
+  }, [activePlayer, teamPeriods]);
 
   if (!activePlayer && userData.role === 'player') {
     return (
@@ -356,10 +432,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       <Toaster position="bottom-center" toastOptions={{ style: { background: '#1A1A1A', color: '#fff', border: '1px solid #333' }, success: { iconTheme: { primary: '#00FF9D', secondary: '#000' } } }} />
       <Suspense fallback={null}>
         <HomeworkCreatorModal isVisible={isHomeworkVisible} onClose={() => setIsHomeworkVisible(false)} onSave={handleSaveHomework} onAssign={handleAssignHomework} customHomework={customHomework} />
-        <AddPlayerModal isVisible={isAddPlayerVisible} onClose={() => setIsAddPlayerVisible(false)} onAdd={handleAddPlayer} teamId={userData.teamId} />
-        <PlayerProfileModal isVisible={!!editingPlayer} onClose={() => setEditingPlayer(null)} player={editingPlayer} teamId={userData.teamId} onSave={handleSaveProfile} />
+        <AddPlayerModal isVisible={isAddPlayerVisible} onClose={() => setIsAddPlayerVisible(false)} onAdd={handleAddPlayer} teamId={userData.teamId ?? ''} />
+        <PlayerProfileModal isVisible={!!editingPlayer} onClose={() => setEditingPlayer(null)} player={editingPlayer} teamId={userData.teamId ?? ''} onSave={handleSaveProfile} />
         <CoachProfileModal isVisible={isCoachProfileVisible} onClose={() => setIsCoachProfileVisible(false)} teamData={teamData} onSave={handleSaveCoachProfile} />
         <TestsModal isVisible={isTestsVisible} onClose={() => setIsTestsVisible(false)} player={activePlayer} period={activeTab} onUpdate={handleUpdateEvaluation} />
+        <AttendanceModal isVisible={isAttendanceVisible} onClose={() => setIsAttendanceVisible(false)} players={players} teamId={userData.teamId ?? ''} onSaved={() => {}} />
+        <TeamSessionModal isVisible={isTeamSessionModalVisible} teamId={userData.teamId ?? ''} onClose={() => setIsTeamSessionModalVisible(false)} onSave={handleSaveTeamSession} />
       </Suspense>
 
       <ConfirmModal isVisible={confirmAssign.isVisible} onClose={() => setConfirmAssign({ isVisible: false, homeworkIds: null })} onConfirm={executeAssignHomework} title="Huiswerk Toewijzen">
@@ -513,12 +591,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                       {/* Period tabs */}
                       <div className="flex items-center justify-between mt-5 border-b border-gray-800">
-                        <div className="flex">
-                          {evaluationPeriods.map(period => (
+                        <div className="flex overflow-x-auto">
+                          {teamPeriods.map(period => (
                             <button
                               key={period}
                               onClick={() => setActiveTab(period)}
-                              className={`px-4 py-2.5 text-sm font-semibold relative transition-colors ${activeTab === period ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                              className={`px-4 py-2.5 text-sm font-semibold relative transition-colors shrink-0 ${activeTab === period ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                               {period}
                               {activeTab === period && (
@@ -527,9 +605,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             </button>
                           ))}
                         </div>
-                        <ToolButton onClick={() => setIsTestsVisible(true)}>
-                          <FileText size={14} /> Testen
-                        </ToolButton>
+                        <div className="flex gap-2 shrink-0">
+                          <ToolButton onClick={() => setIsTestsVisible(true)}>
+                            <FileText size={14} /> Testen
+                          </ToolButton>
+                          <ToolButton onClick={() => exportPlayerPdf(activePlayer, teamData.team_name || 'Team', teamPeriods)}>
+                            <Download size={14} /> PDF
+                          </ToolButton>
+                        </div>
                       </div>
 
                       {/* Skills */}
@@ -709,33 +792,98 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     })}
                   </div>
                 )}
+
+                {/* ── VIDEO INZENDINGEN (coach) ── */}
+                {submissions.length > 0 && (
+                  <Card>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
+                      <span style={{ color: NEON_COLOR }}>●</span> Video Inzendingen
+                    </p>
+                    <div className="space-y-3">
+                      {submissions.slice(0, 20).map(sub => {
+                        const submPlayer = players.find(p => p.id === sub.player_id);
+                        const hw = customHomework.find(h => h.id === sub.homework_id);
+                        if (!submPlayer || !hw) return null;
+
+                        const statusColor = sub.feedback_status === 'done' ? '#4ade80'
+                          : sub.feedback_status === 'error' ? '#f87171'
+                          : NEON_COLOR;
+                        const statusLabel = sub.feedback_status === 'done' ? 'Feedback klaar'
+                          : sub.feedback_status === 'error' ? 'Mislukt'
+                          : 'Bezig…';
+
+                        return (
+                          <details key={sub.id} className="group rounded-xl bg-gray-800/40 border border-gray-700/40 overflow-hidden">
+                            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-800/60 transition-colors">
+                              <img src={submPlayer.avatar_url} alt={submPlayer.name} className="w-8 h-8 rounded-full shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-white truncate">{submPlayer.name}</p>
+                                <p className="text-xs text-gray-500 truncate">{hw.title}</p>
+                              </div>
+                              <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>
+                                {statusLabel}
+                              </span>
+                            </summary>
+
+                            <div className="px-3 pb-3 border-t border-gray-700/40 pt-3 space-y-2">
+                              {sub.video_url && (
+                                <video src={sub.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />
+                              )}
+                              {sub.ai_feedback ? (
+                                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{sub.ai_feedback}</p>
+                              ) : (
+                                <p className="text-xs text-gray-600 italic">
+                                  {sub.feedback_status === 'processing' ? 'Feedback wordt gegenereerd…' : 'Geen feedback beschikbaar.'}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-gray-700">
+                                {new Date(sub.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </details>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
               </motion.div>
             )}
 
             {/* ── TRAININGEN ── */}
             {mobileSection === 'trainingen' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
-                <div className="flex items-center justify-between gap-3">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
                     <h2 className="text-xl font-black">Trainingen</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Persoonlijke plannen per speler</p>
+                    <p className="text-sm text-gray-500 mt-0.5">Individuele plannen + teamsessies</p>
                   </div>
-                  {/* Period selector */}
-                  <div className="flex gap-1 bg-gray-800/80 rounded-xl p-1 border border-gray-700/60 shrink-0">
-                    {evaluationPeriods.map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setActiveTab(p)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          activeTab === p ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
-                        }`}
-                      >
-                        {p.replace('Check-in ', 'CI')}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex gap-1 bg-gray-800/80 rounded-xl p-1 border border-gray-700/60">
+                      {teamPeriods.map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setActiveTab(p)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            activeTab === p ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          {p.length > 8 ? p.substring(0, 8) + '…' : p}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setIsTeamSessionModalVisible(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-black hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: NEON_COLOR }}
+                    >
+                      <Wand2 size={13} /> Teamsessie
+                    </button>
                   </div>
                 </div>
 
+                {/* Individual player plans */}
                 {players.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-gray-800 rounded-2xl">
                     <Target size={40} className="mx-auto mb-3 text-gray-700" />
@@ -744,15 +892,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {players.map(player => {
-                      const plan = player.evaluations?.[activeTab]?.trainingPlan;
+                      const structuredPlan = player.evaluations?.[activeTab]?.structuredPlan;
+                      const legacyPlan = player.evaluations?.[activeTab]?.trainingPlan;
                       const isGeneratingThis = generatingPlanForPlayer === player.id;
                       return (
                         <Card key={player.id}>
+                          {/* Player header */}
                           <div className="flex items-center gap-3 mb-4">
                             <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full border border-gray-700 shrink-0" />
                             <div className="flex-1 min-w-0">
                               <h4 className="font-bold truncate">{player.name}</h4>
-                              <p className="text-[10px] text-gray-600 uppercase tracking-wide">{activeTab}</p>
+                              <p className="text-[10px] text-gray-600 uppercase tracking-wide">
+                                {player.position || 'positie onbekend'} · {player.age ? `${player.age}jr` : ''}
+                              </p>
                             </div>
                             <button
                               onClick={() => handleGeneratePlanForPlayer(player)}
@@ -761,23 +913,73 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               style={{ backgroundColor: NEON_COLOR }}
                             >
                               {isGeneratingThis ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                              {isGeneratingThis ? 'Laden...' : 'Genereer'}
+                              {isGeneratingThis ? 'Genereren...' : structuredPlan ? 'Vernieuwen' : 'Genereer'}
                             </button>
                           </div>
-                          {plan ? (
+
+                          {/* Plan display */}
+                          {structuredPlan ? (
+                            <TrainingPlanCard plan={structuredPlan} playerName={player.name} period={activeTab} />
+                          ) : legacyPlan ? (
                             <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-gray-800/40 rounded-xl p-4 border border-gray-700/40">
-                              {plan}
+                              {legacyPlan}
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-700 italic text-center py-4">
-                              Nog geen trainingsplan — klik Genereer.
-                            </p>
+                            <div className="text-center py-6 border border-dashed border-gray-800 rounded-xl">
+                              <Wand2 size={22} className="mx-auto mb-2 text-gray-700" />
+                              <p className="text-xs text-gray-600">Klik Genereer voor een persoonlijk plan</p>
+                            </div>
                           )}
                         </Card>
                       );
                     })}
                   </div>
                 )}
+
+                {/* Saved team sessions */}
+                {teamSessions.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-gray-800" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-2">Opgeslagen Teamsessies</p>
+                      <div className="h-px flex-1 bg-gray-800" />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {teamSessions.map(session => (
+                        <Card key={session.id}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Target size={13} style={{ color: NEON_COLOR }} />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Teamsessie</span>
+                            <span className="text-[10px] text-gray-700 ml-auto">
+                              {new Date(session.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          <TrainingPlanCard plan={session.plan} />
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── AANWEZIGHEID ── */}
+            {mobileSection === 'aanwezigheid' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-black">Aanwezigheid</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Registreer trainingen en wedstrijden</p>
+                  </div>
+                  <button
+                    onClick={() => setIsAttendanceVisible(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: NEON_COLOR }}
+                  >
+                    <Plus size={15} /> Sessie
+                  </button>
+                </div>
+                <AttendanceCard players={players} records={attendanceRecords} />
               </motion.div>
             )}
 
@@ -948,7 +1150,15 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           <div className={((['huiswerk', 'skills', 'stats'].includes(mobileSection)) ? '' : 'hidden sm:block')}>
             <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <motion.div className={`lg:col-span-3${mobileSection !== 'huiswerk' ? ' hidden sm:block' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <PlayerHomeworkCard player={activePlayer} customHomework={customHomework} assignedHomeworkIds={teamData.assigned_homework_ids || []} onToggleStatus={handleToggleHomeworkStatus} />
+                <PlayerHomeworkCard
+                  player={activePlayer}
+                  teamId={userData.teamId ?? ''}
+                  customHomework={customHomework}
+                  assignedHomeworkIds={teamData.assigned_homework_ids || []}
+                  submissions={submissions}
+                  onToggleStatus={handleToggleHomeworkStatus}
+                  onSubmissionComplete={handleSubmissionComplete}
+                />
               </motion.div>
               <div className="lg:col-span-1 flex flex-col gap-6">
                 <motion.div className={mobileSection !== 'skills' ? 'hidden sm:block' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -1001,7 +1211,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 <Card>
                   <div className="flex justify-between items-center border-b border-gray-700 mb-4">
                     <div className="flex">
-                      {evaluationPeriods.map(period => (
+                      {teamPeriods.map(period => (
                         <button key={period} onClick={() => setActiveTab(period)} className={`px-4 py-3 text-sm sm:text-base font-medium transition-colors duration-200 relative ${activeTab === period ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
                           {period}
                           {activeTab === period && (<motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--neon-color]" layoutId="underline" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />)}
@@ -1024,6 +1234,28 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </motion.div>
                   </AnimatePresence>
                 </Card>
+
+                {/* Training plan for player */}
+                {(activePlayer.evaluations[activeTab]?.structuredPlan || activePlayer.evaluations[activeTab]?.trainingPlan) && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+                    <Card>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
+                        <Target size={11} style={{ color: NEON_COLOR }} /> Jouw Trainingsplan
+                      </p>
+                      {activePlayer.evaluations[activeTab]?.structuredPlan ? (
+                        <TrainingPlanCard
+                          plan={activePlayer.evaluations[activeTab].structuredPlan!}
+                          playerName={activePlayer.name}
+                          period={activeTab}
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-gray-800/40 rounded-xl p-4 border border-gray-700/40">
+                          {activePlayer.evaluations[activeTab]?.trainingPlan}
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                )}
               </motion.div>
             </main>
           </div>
