@@ -49,7 +49,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
       const savedTeamId = localStorage.getItem('rememberedTeamId');
       const savedPin = localStorage.getItem('rememberedPin');
       if (savedTeamId && savedPin) { setTeamId(savedTeamId); setPin(savedPin); setRememberMe(true); }
-    } else if (view === 'coachLogin') {
+    } else if (view === 'coachLogin' || view === 'clubAdminLogin') {
       const savedEmail = localStorage.getItem('rememberedCoachEmail');
       if (savedEmail) { setEmail(savedEmail); setRememberCoach(true); }
     }
@@ -395,10 +395,10 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
               <button
                 onClick={() => { setView('coachLogin'); setError(''); }}
                 className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
-                  isCoachView && view !== 'clubAdminRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                  view === 'coachLogin' || view === 'coachRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
                 }`}
               >
-                <ShieldCheck size={20} style={{ color: (isCoachView && view !== 'clubAdminRegister') ? NEON_COLOR : '#6b7280' }} />
+                <ShieldCheck size={20} style={{ color: view === 'coachLogin' || view === 'coachRegister' ? NEON_COLOR : '#6b7280' }} />
                 <div className="text-center">
                   <div className="font-bold text-xs leading-none">Coach</div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Email + ww</div>
@@ -453,7 +453,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => { setView('coachLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
+                  onClick={() => { setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
                   className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
                 >
                   <Building2 size={15} style={{ color: NEON_COLOR }} />
