@@ -453,7 +453,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => { setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
+                  onClick={() => { localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false); setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
                   className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
                 >
                   <Building2 size={15} style={{ color: NEON_COLOR }} />
@@ -465,7 +465,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233'); setError(''); }}
+                  onClick={() => { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); setRememberMe(false); setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233'); setError(''); }}
                   className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
                 >
                   <User size={15} style={{ color: NEON_COLOR }} />
