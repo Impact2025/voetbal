@@ -415,6 +415,38 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
               Al een account? <button onClick={() => setView('coachLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
             </p>
           )}
+
+          {(view === 'playerLogin' || view === 'coachLogin') && (
+            <div className="mt-6 border-t border-gray-800 pt-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">Demo Account</p>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => { setView('coachLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
+                >
+                  <Building2 size={15} style={{ color: NEON_COLOR }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white">Club Admin — Impact FC</p>
+                    <p className="text-[10px] text-gray-500 truncate">chat@weareimpact.nl · Skillkaart2026!</p>
+                  </div>
+                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">invullen →</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233'); setError(''); }}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
+                >
+                  <User size={15} style={{ color: NEON_COLOR }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white">Speler — Luca van den Berg</p>
+                    <p className="text-[10px] text-gray-500">IMPACT-JO10-1 · PIN 112233</p>
+                  </div>
+                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">invullen →</span>
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       </motion.div>
     </div>
