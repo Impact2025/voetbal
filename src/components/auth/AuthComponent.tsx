@@ -15,7 +15,7 @@ interface AuthComponentProps {
   onPasswordUpdated?: () => void;
 }
 
-type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
+type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'clubAdminLogin' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
   Promise.race([
@@ -297,6 +297,27 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
       </form>
     );
 
+    if (view === 'clubAdminLogin') return (
+      <form onSubmit={e => { e.preventDefault(); void handleCoachAuth(false); }} className="space-y-4">
+        <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB LOGIN</h2>
+        <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
+        <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input id="remember-club" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800" />
+            <label htmlFor="remember-club" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
+          </div>
+          <button type="button" onClick={() => { setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
+            Vergeten?
+          </button>
+        </div>
+        <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
+          {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
+        </button>
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Even geduld, eerste verbinding kan wat langer duren...</p>}
+      </form>
+    );
+
     if (view === 'clubAdminRegister') return (
       <form onSubmit={handleClubAdminRegister} className="space-y-4">
         <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-2">
@@ -346,7 +367,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
     );
   };
 
-  const isCoachView = view === 'coachLogin' || view === 'coachRegister' || view === 'clubAdminRegister';
+  const isCoachView = view === 'coachLogin' || view === 'coachRegister' || view === 'clubAdminLogin' || view === 'clubAdminRegister';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6">
@@ -384,12 +405,12 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
                 </div>
               </button>
               <button
-                onClick={() => { setView('clubAdminRegister'); setError(''); }}
+                onClick={() => { setView('clubAdminLogin'); setError(''); }}
                 className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
-                  view === 'clubAdminRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                  view === 'clubAdminLogin' || view === 'clubAdminRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
                 }`}
               >
-                <Building2 size={20} style={{ color: view === 'clubAdminRegister' ? NEON_COLOR : '#6b7280' }} />
+                <Building2 size={20} style={{ color: view === 'clubAdminLogin' || view === 'clubAdminRegister' ? NEON_COLOR : '#6b7280' }} />
                 <div className="text-center">
                   <div className="font-bold text-xs leading-none">Club</div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Admin</div>
@@ -415,8 +436,18 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
               Al een account? <button onClick={() => setView('coachLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
             </p>
           )}
+          {view === 'clubAdminLogin' && (
+            <p className="text-center text-sm mt-4 text-gray-400">
+              Nog geen account? <button onClick={() => setView('clubAdminRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Club registreren</button>
+            </p>
+          )}
+          {view === 'clubAdminRegister' && (
+            <p className="text-center text-sm mt-4 text-gray-400">
+              Al een account? <button onClick={() => setView('clubAdminLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
+            </p>
+          )}
 
-          {(view === 'playerLogin' || view === 'coachLogin') && (
+          {(view === 'playerLogin' || view === 'coachLogin' || view === 'clubAdminLogin') && (
             <div className="mt-6 border-t border-gray-800 pt-5">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">Demo Account</p>
               <div className="space-y-2">
