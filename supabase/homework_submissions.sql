@@ -9,7 +9,7 @@ create table if not exists homework_submissions (
   id                uuid primary key default gen_random_uuid(),
   player_id         uuid not null,
   homework_id       text not null,
-  team_id           uuid not null,
+  team_id           text not null,
   video_url         text,
   ai_feedback       text,
   feedback_status   text not null default 'pending'

@@ -78,17 +78,27 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [savingResponses, setSavingResponses] = useState(false);
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
+  const [fetchError, setFetchError] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'dashboard');
 
   useEffect(() => {
     if (!userData.teamId) return;
 
     const fetchData = async () => {
-      const { data: playersData } = await supabase.from('players').select('*').eq('team_id', userData.teamId);
-      const { data: teamRecord } = await supabase.from('teams').select('*').eq('id', userData.teamId).single();
-      const { data: homeworkData } = await supabase.from('custom_homework').select('*').eq('team_id', userData.teamId);
-      const { data: attendanceData } = await supabase.from('attendance').select('*').eq('team_id', userData.teamId);
-      const { data: submissionsData } = await supabase.from('homework_submissions').select('*').eq('team_id', userData.teamId).order('created_at', { ascending: false });
+      const [
+        { data: playersData },
+        { data: teamRecord },
+        { data: homeworkData },
+        { data: attendanceData },
+        { data: submissionsData },
+      ] = await Promise.all([
+        supabase.from('players').select('*').eq('team_id', userData.teamId),
+        supabase.from('teams').select('*').eq('id', userData.teamId).single(),
+        supabase.from('custom_homework').select('*').eq('team_id', userData.teamId),
+        supabase.from('attendance').select('*').eq('team_id', userData.teamId),
+        supabase.from('homework_submissions').select('*').eq('team_id', userData.teamId).order('created_at', { ascending: false }),
+      ]);
+
       setSubmissions((submissionsData || []) as HomeworkSubmission[]);
 
       const normalizedPlayers = (playersData || []).map(player => ({
@@ -124,7 +134,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       }
     };
 
-    fetchData();
+    setFetchError(false);
+    fetchData().catch(err => { console.error('fetchData fout:', err); setFetchError(true); });
 
     supabase.channel(`public:players:team_id=eq.${userData.teamId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => fetchData())
@@ -212,6 +223,15 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   const handleSaveProfile = async (playerId, profileData) => {
     await supabase.from('players').update(profileData).eq('id', playerId);
+  };
+
+  const handleResetPin = async (playerId: string): Promise<string> => {
+    const plainPin = Math.floor(100000 + Math.random() * 900000).toString();
+    const pinHash = await hashPin(plainPin, playerId);
+    const { error } = await supabase.from('players').update({ pin_hash: pinHash }).eq('id', playerId);
+    if (error) throw error;
+    localStorage.removeItem('rememberedPin');
+    return plainPin;
   };
 
   const handleSaveCoachProfile = async (coachProfileData) => {
@@ -418,10 +438,26 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   if (!activePlayer && userData.role === 'player') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center">
-        <Loader2 className="animate-spin h-12 w-12 text-[--neon-color] mb-4" />
-        <h2 className="text-2xl font-bold">Laden van spelerdata...</h2>
-        <p className="text-gray-400">Een ogenblik geduld.</p>
+      <div className="flex flex-col items-center justify-center min-h-screen text-center px-6" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+        {fetchError ? (
+          <>
+            <h2 className="text-2xl font-bold text-red-400 mb-2">Verbinding mislukt</h2>
+            <p className="text-gray-400 mb-6">Kan geen verbinding maken met de server. Controleer je internet en probeer opnieuw.</p>
+            <button
+              onClick={() => { setFetchError(false); window.location.reload(); }}
+              className="px-6 py-2 rounded-xl font-bold text-black hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: NEON_COLOR }}
+            >
+              Opnieuw proberen
+            </button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="animate-spin h-12 w-12 text-[--neon-color] mb-4" />
+            <h2 className="text-2xl font-bold">Laden van spelerdata...</h2>
+            <p className="text-gray-400">Een ogenblik geduld.</p>
+          </>
+        )}
       </div>
     );
   }
@@ -433,7 +469,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       <Suspense fallback={null}>
         <HomeworkCreatorModal isVisible={isHomeworkVisible} onClose={() => setIsHomeworkVisible(false)} onSave={handleSaveHomework} onAssign={handleAssignHomework} customHomework={customHomework} />
         <AddPlayerModal isVisible={isAddPlayerVisible} onClose={() => setIsAddPlayerVisible(false)} onAdd={handleAddPlayer} teamId={userData.teamId ?? ''} />
-        <PlayerProfileModal isVisible={!!editingPlayer} onClose={() => setEditingPlayer(null)} player={editingPlayer} teamId={userData.teamId ?? ''} onSave={handleSaveProfile} />
+        <PlayerProfileModal isVisible={!!editingPlayer} onClose={() => setEditingPlayer(null)} player={editingPlayer} teamId={userData.teamId ?? ''} onSave={handleSaveProfile} onResetPin={handleResetPin} />
         <CoachProfileModal isVisible={isCoachProfileVisible} onClose={() => setIsCoachProfileVisible(false)} teamData={teamData} onSave={handleSaveCoachProfile} />
         <TestsModal isVisible={isTestsVisible} onClose={() => setIsTestsVisible(false)} player={activePlayer} period={activeTab} onUpdate={handleUpdateEvaluation} />
         <AttendanceModal isVisible={isAttendanceVisible} onClose={() => setIsAttendanceVisible(false)} players={players} teamId={userData.teamId ?? ''} onSaved={() => {}} />

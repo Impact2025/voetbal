@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Copy, Camera } from 'lucide-react';
+import { Loader2, Copy, Camera, RefreshCw } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -15,15 +15,18 @@ interface PlayerProfileModalProps {
   player: Player | null;
   teamId: string;
   onSave: (playerId: string, data: { age: string; preferred_foot: string; position: string; avatar_url?: string }) => Promise<void>;
+  onResetPin?: (playerId: string) => Promise<string>;
 }
 
-const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave }: PlayerProfileModalProps) => {
+const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onResetPin }: PlayerProfileModalProps) => {
   const [age, setAge] = useState('');
   const [preferredFoot, setPreferredFoot] = useState('Rechts');
   const [position, setPosition] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resettingPin, setResettingPin] = useState(false);
+  const [newPin, setNewPin] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,6 +36,7 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave }: Play
       setPosition(player.position || '');
       setAvatarPreview(null);
       setAvatarFile(null);
+      setNewPin(null);
     }
   }, [player]);
 
@@ -128,7 +132,41 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave }: Play
               </div>
               <div className="p-3 bg-gray-800 rounded-lg border border-yellow-900/40">
                 <p className="text-sm text-gray-400">Pincode</p>
-                <p className="text-xs text-yellow-600 mt-0.5">De pincode wordt versleuteld opgeslagen en is hier niet zichtbaar. Gebruik "Pincode Resetten" om een nieuwe aan te maken.</p>
+                {newPin ? (
+                  <div className="mt-2">
+                    <p className="text-xs text-green-400 mb-1">Nieuwe pincode aangemaakt:</p>
+                    <div className="flex justify-between items-center">
+                      <strong className="text-white font-mono text-2xl tracking-widest">{newPin}</strong>
+                      <button onClick={() => void copyToClipboard(newPin)} className="p-1 hover:bg-gray-700 rounded-md"><Copy size={16} /></button>
+                    </div>
+                    <p className="text-xs text-yellow-600 mt-1">Sla de code op voor de speler. Deze wordt eenmalig getoond.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-yellow-600 mt-0.5">Versleuteld opgeslagen en niet zichtbaar.</p>
+                    {onResetPin && (
+                      <button
+                        onClick={async () => {
+                          setResettingPin(true);
+                          try {
+                            const pin = await onResetPin(player.id);
+                            setNewPin(pin);
+                          } catch {
+                            toast.error('Pincode resetten mislukt.');
+                          } finally {
+                            setResettingPin(false);
+                          }
+                        }}
+                        disabled={resettingPin}
+                        className="mt-2 flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50 hover:underline"
+                        style={{ color: NEON_COLOR }}
+                      >
+                        {resettingPin ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                        Pincode Resetten
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
