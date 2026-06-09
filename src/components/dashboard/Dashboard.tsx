@@ -48,6 +48,14 @@ const COACH_SECTIONS = [
   { id: 'vragen',       label: 'Vragen',        icon: ListPlus },
 ] as const;
 
+const PLAYER_SECTIONS = [
+  { id: 'dashboard',  label: 'Dashboard',     icon: LayoutDashboard },
+  { id: 'huiswerk',   label: 'Huiswerk',      icon: ClipboardList },
+  { id: 'skills',     label: 'Skills',        icon: User },
+  { id: 'stats',      label: 'Statistieken',  icon: TrendingUp },
+  { id: 'vragen',     label: 'Vragen',        icon: ShieldCheck },
+] as const;
+
 const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [customHomework, setCustomHomework] = useState<CustomHomework[]>([]);
@@ -1131,20 +1139,46 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
       {/* ── PLAYER DASHBOARD ── */}
       {userData.role === 'player' && activePlayer && (
-        <div className="min-h-screen p-4 sm:p-6 lg:p-8 pb-24 sm:pb-0">
-          <header className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-wider" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>{teamData.team_name || 'Skillkaart'}</h1>
-            <div className="flex items-center gap-2">
-              <ToolButton className="hidden sm:flex" onClick={onPlayerLogout}><LogOut size={16} /> Uitloggen</ToolButton>
-              <button onClick={onPlayerLogout} className="sm:hidden p-2.5 rounded-xl bg-gray-800/80 border border-gray-700 active:scale-95 transition-transform text-gray-300">
-                <LogOut size={22} />
+        <div className="flex flex-col min-h-screen">
+
+          {/* Sticky header */}
+          <header className="sticky top-0 z-20 bg-[#090B0F]/90 backdrop-blur-xl border-b border-white/[0.06] px-4 py-3">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+              <h1 className="text-xl font-black tracking-wide truncate" style={{ color: NEON_COLOR, textShadow: `0 0 20px ${NEON_COLOR}40` }}>
+                {teamData.team_name || 'Skillkaart'}
+              </h1>
+              <button onClick={onPlayerLogout} className="p-2 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-red-900/40 transition-colors text-red-400">
+                <LogOut size={16} />
               </button>
             </div>
           </header>
 
+          {/* Desktop section tabs */}
+          <nav className="hidden sm:block border-b border-white/[0.06] bg-[#090B0F]/60 px-4">
+            <div className="max-w-6xl mx-auto flex">
+              {PLAYER_SECTIONS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setMobileSection(id)}
+                  className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all relative ${
+                    mobileSection === id
+                      ? 'border-[--neon-color] text-white'
+                      : 'border-transparent text-gray-500 hover:text-gray-200'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Main content */}
+          <main className="flex-1 px-4 py-5 max-w-6xl mx-auto w-full pb-28 sm:pb-10">
+
           {/* Reflectievragen speler */}
           {visibleQuestions.length > 0 && (
-            <motion.div className={`mb-6 ${mobileSection === 'vragen' ? '' : 'hidden'} sm:block`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <motion.div className={`mb-6 ${mobileSection === 'vragen' ? '' : 'hidden'}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
               <Card>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="text-xl font-bold flex items-center gap-2"><ShieldCheck size={20} className="text-[--neon-color]" /> Coach Vragen</h3>
@@ -1183,9 +1217,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             <PlayerOverview player={activePlayer} players={players} teamData={teamData} activeTab={activeTab} />
           </div>
 
-          <div className={((['huiswerk', 'skills', 'stats'].includes(mobileSection)) ? '' : 'hidden sm:block')}>
-            <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <motion.div className={`lg:col-span-3${mobileSection !== 'huiswerk' ? ' hidden sm:block' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div className={((['huiswerk', 'skills', 'stats'].includes(mobileSection)) ? '' : 'hidden')}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <motion.div className={`lg:col-span-3${mobileSection !== 'huiswerk' ? ' hidden' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <PlayerHomeworkCard
                   player={activePlayer}
                   teamId={userData.teamId ?? ''}
@@ -1197,7 +1231,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 />
               </motion.div>
               <div className="lg:col-span-1 flex flex-col gap-6">
-                <motion.div className={mobileSection !== 'skills' ? 'hidden sm:block' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                <motion.div className={mobileSection !== 'skills' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                   <Card className="h-full">
                     <div className="flex flex-col items-center text-center">
                       <div className="relative mb-4">
@@ -1220,10 +1254,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </div>
                   </Card>
                 </motion.div>
-                <motion.div className={mobileSection !== 'stats' ? 'hidden sm:block' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+                <motion.div className={mobileSection !== 'stats' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
                   <TestResultsCard player={activePlayer} period={activeTab} />
                 </motion.div>
-                <motion.div className={mobileSection !== 'stats' ? 'hidden sm:block' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                <motion.div className={mobileSection !== 'stats' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
                   <Card>
                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><BarChart2 size={20} className="text-[--neon-color]" />Prestatie Trend</h3>
                     <div className="h-64">
@@ -1243,7 +1277,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 </motion.div>
               </div>
 
-              <motion.div className={`lg:col-span-2${mobileSection !== 'skills' ? ' hidden sm:block' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+              <motion.div className={`lg:col-span-2${mobileSection !== 'skills' ? ' hidden' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
                 <Card>
                   <div className="flex justify-between items-center border-b border-gray-700 mb-4">
                     <div className="flex">
@@ -1293,8 +1327,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   </motion.div>
                 )}
               </motion.div>
-            </main>
+            </div>
           </div>
+
+          </main>
 
           {/* Player bottom nav */}
           <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(9,11,15,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
