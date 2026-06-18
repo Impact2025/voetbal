@@ -13,6 +13,7 @@ interface AuthComponentProps {
   onPlayerLogin: (playerData: UserData & Record<string, unknown>) => void;
   isRecovering?: boolean;
   onPasswordUpdated?: () => void;
+  onBack?: () => void;
 }
 
 type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'clubAdminLogin' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
@@ -23,7 +24,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
   ]);
 
-const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated }: AuthComponentProps) => {
+const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated, onBack }: AuthComponentProps) => {
   const [view, setView] = useState<View>(() => isRecovering ? 'resetPassword' : 'playerLogin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -372,6 +373,16 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6">
+      {onBack && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={onBack}
+          className="absolute top-5 left-5 flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={14} /> Terug naar home
+        </motion.button>
+      )}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
         <h1 className="text-4xl font-black tracking-widest" style={{ color: NEON_COLOR, textShadow: `0 0 30px ${NEON_COLOR}50` }}>SKILLKAART</h1>
         <p className="text-gray-500 text-sm mt-1">Voetbal ontwikkeling voor jongeren</p>

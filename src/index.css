@@ -42,6 +42,66 @@ button, [role="button"], a {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── Landing page utilities ───────────────────────────────────────────────── */
+
+.neon-text {
+  color: #00FF9D;
+  text-shadow: 0 0 20px #00FF9D66;
+}
+
+.neon-border {
+  border-color: #00FF9D;
+  box-shadow: 0 0 20px #00FF9D22, inset 0 0 20px #00FF9D0a;
+}
+
+.neon-glow {
+  box-shadow: 0 0 30px #00FF9D44, 0 0 60px #00FF9D1a;
+}
+
+.neon-btn {
+  background: #00FF9D;
+  color: #06060e;
+  box-shadow: 0 0 20px #00FF9D55;
+  transition: all 0.2s ease;
+}
+
+.neon-btn:hover {
+  background: #00cc7a;
+  box-shadow: 0 0 40px #00FF9D88;
+  transform: translateY(-1px);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.gradient-border {
+  background: linear-gradient(#0f0f1e, #0f0f1e) padding-box,
+    linear-gradient(135deg, #00FF9D33, #00FF9D05, #00FF9D22) border-box;
+  border: 1px solid transparent;
+}
+
+.phone-mockup {
+  background: linear-gradient(145deg, #1a1a35, #0f0f1e);
+  border: 2px solid #2a2a50;
+  box-shadow:
+    0 0 0 1px #0a0a20,
+    0 40px 80px #00000088,
+    0 0 60px #00FF9D22;
+}
+
+.fade-up {
+  animation: fadeUp 0.6s ease forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Safe area padding utility */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);

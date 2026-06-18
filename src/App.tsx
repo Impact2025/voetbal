@@ -7,6 +7,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConsentModal, { hasConsented } from './components/modals/ConsentModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import LandingPage from './components/landing/LandingPage';
 
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
 
@@ -32,6 +33,7 @@ export default function Skillkaart() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [consentGiven, setConsentGiven] = useState(hasConsented);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const lastKnownUserId = useRef(null);
 
   // Warm up the PostgREST database connection in the background so the first
@@ -175,14 +177,19 @@ export default function Skillkaart() {
 
       <ErrorBoundary>
         {!(session && userData) || isRecovering ? (
-          <AuthComponent
-            onPlayerLogin={handlePlayerLogin}
-            isRecovering={isRecovering}
-            onPasswordUpdated={() => {
-              setIsRecovering(false);
-              void supabase.auth.signOut();
-            }}
-          />
+          showAuth || isRecovering ? (
+            <AuthComponent
+              onPlayerLogin={handlePlayerLogin}
+              isRecovering={isRecovering}
+              onBack={isRecovering ? undefined : () => setShowAuth(false)}
+              onPasswordUpdated={() => {
+                setIsRecovering(false);
+                void supabase.auth.signOut();
+              }}
+            />
+          ) : (
+            <LandingPage onLogin={() => setShowAuth(true)} />
+          )
         ) : userData.role === 'club_admin' ? (
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center">
