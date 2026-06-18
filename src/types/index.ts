@@ -126,6 +126,31 @@ export interface SessionUser {
   id: string;
 }
 
+export interface TeamEnriched {
+  id: string;
+  team_name: string;
+  team_class: string;
+  evaluation_periods: string[];
+  assigned_homework_ids: string[];
+  players: { id: string; evaluations?: Record<string, unknown>; completed_homework_ids: string[] }[];
+  avgScore: number;
+  firstScore: number;
+  attendanceRate: number | null;
+  hwRate: number | null;
+  trend: 'up' | 'down' | 'stable' | 'new';
+  trendDelta: number;
+}
+
+export interface SentMessage {
+  id: string;
+  club_id: string;
+  to_emails: string[];
+  to_names: string[];
+  subject: string;
+  body: string;
+  sent_at: string;
+}
+
 export interface HomeworkSuggestion {
   title: string;
   description: string;

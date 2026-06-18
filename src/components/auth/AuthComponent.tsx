@@ -88,6 +88,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated 
             id: data.user!.id,
             role: 'coach',
             team_id: newTeamId,
+            email: email.trim().toLowerCase(),
             ...(clubIdInput.trim() ? { club_id: clubIdInput.trim() } : {}),
           });
         } else {

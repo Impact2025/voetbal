@@ -4,7 +4,7 @@ import {
   Users, Trophy, Copy, CheckCircle2, LogOut, Building2, Shield,
   TrendingUp, TrendingDown, Minus, ChevronLeft, CalendarCheck,
   ClipboardList, BarChart2, AlertTriangle, Star, Loader2,
-  LayoutDashboard, UserSquare, Bell,
+  LayoutDashboard, UserSquare, Bell, UserCog,
 } from 'lucide-react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { NEON_COLOR, skillKeys } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import Card from '../ui/Card';
+import TrainersTab from './TrainersTab';
 import type { UserData } from '../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,12 +46,14 @@ interface TeamEnriched {
   trendDelta: number;
 }
 
+export type { TeamEnriched };
+
 interface ClubAdminDashboardProps {
   userData: UserData;
   onLogout: () => void;
 }
 
-type SectionId = 'overzicht' | 'spelers' | 'signalen';
+type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -106,12 +109,19 @@ const TrendBadge = ({ trend, delta }: { trend: TeamEnriched['trend']; delta: num
 
 const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => {
   const [clubName, setClubName] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
   const [teams, setTeams] = useState<TeamEnriched[]>([]);
   const [allPlayers, setAllPlayers] = useState<PlayerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>('overzicht');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) setSenderEmail(user.email);
+    });
+  }, []);
 
   useEffect(() => {
     if (!userData.clubId) return;
@@ -247,6 +257,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const SECTIONS: { id: SectionId; label: string; icon: React.ElementType; badge?: number }[] = [
     { id: 'overzicht', label: 'Overzicht', icon: LayoutDashboard },
     { id: 'spelers',   label: 'Spelers',   icon: UserSquare },
+    { id: 'trainers',  label: 'Trainers',  icon: UserCog },
     { id: 'signalen',  label: 'Signalen',  icon: Bell, badge: signals.length || undefined },
   ];
 
@@ -651,6 +662,21 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                 </div>
               </Card>
             )}
+          </motion.div>
+
+        ) : section === 'trainers' ? (
+          /* ── Trainers ── */
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="mb-5">
+              <h2 className="text-lg font-black">Trainers</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Overzicht en communicatie met gekoppelde coaches.</p>
+            </div>
+            <TrainersTab
+              clubId={userData.clubId!}
+              clubName={clubName}
+              senderEmail={senderEmail}
+              teams={teams}
+            />
           </motion.div>
 
         ) : (
