@@ -88,6 +88,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
   const [fetchError, setFetchError] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'dashboard');
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
     if (!userData.teamId) return;
@@ -1147,9 +1148,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
               <h1 className="text-xl font-black tracking-wide truncate" style={{ color: NEON_COLOR, textShadow: `0 0 20px ${NEON_COLOR}40` }}>
                 {teamData.team_name || 'Skillkaart'}
               </h1>
-              <button onClick={onPlayerLogout} className="p-2 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-red-900/40 transition-colors text-red-400">
-                <LogOut size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowInstallModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
+                  style={{ borderColor: `${NEON_COLOR}40`, color: NEON_COLOR, backgroundColor: `${NEON_COLOR}10` }}
+                >
+                  <Download size={14} /> App
+                </button>
+                <button onClick={onPlayerLogout} className="p-2 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-red-900/40 transition-colors text-red-400">
+                  <LogOut size={16} />
+                </button>
+              </div>
             </div>
           </header>
 
@@ -1331,6 +1341,76 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           </div>
 
           </main>
+
+          {/* Install modal */}
+          <AnimatePresence>
+            {showInstallModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+                style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+                onClick={() => setShowInstallModal(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 40 }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                  className="w-full max-w-sm rounded-3xl p-6 space-y-5"
+                  style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-[#00FF9D]/10 border border-[#00FF9D]/20 flex items-center justify-center">
+                        <Download size={22} style={{ color: NEON_COLOR }} />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-black text-white">Download de app</h2>
+                        <p className="text-xs text-gray-500">Skillkaart op je telefoon</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setShowInstallModal(false)} className="text-gray-600 hover:text-gray-300 p-1 transition-colors text-xl leading-none">✕</button>
+                  </div>
+
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    Installeer de Skillkaart speler-app op je telefoon voor de beste ervaring — ook offline beschikbaar.
+                  </p>
+
+                  <div className="space-y-3">
+                    <div className="rounded-2xl bg-white/4 border border-white/8 p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">iPhone (Safari)</p>
+                      <ol className="text-sm text-gray-300 space-y-1.5 list-none">
+                        <li><span className="text-[--neon-color] font-bold">1.</span> Open de link in Safari</li>
+                        <li><span className="text-[--neon-color] font-bold">2.</span> Tik op <span className="font-semibold text-white">Delen</span> (vak-icoon onderaan)</li>
+                        <li><span className="text-[--neon-color] font-bold">3.</span> Kies <span className="font-semibold text-white">Zet op beginscherm</span></li>
+                      </ol>
+                    </div>
+                    <div className="rounded-2xl bg-white/4 border border-white/8 p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Android (Chrome)</p>
+                      <ol className="text-sm text-gray-300 space-y-1.5 list-none">
+                        <li><span className="text-[--neon-color] font-bold">1.</span> Open de link in Chrome</li>
+                        <li><span className="text-[--neon-color] font-bold">2.</span> Tik op <span className="font-semibold text-white">⋮</span> rechtsboven</li>
+                        <li><span className="text-[--neon-color] font-bold">3.</span> Kies <span className="font-semibold text-white">App installeren</span></li>
+                      </ol>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://skillkaart-player.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-black text-black transition-opacity hover:opacity-90 active:scale-98"
+                    style={{ backgroundColor: NEON_COLOR }}
+                  >
+                    <Download size={16} /> Open speler-app
+                  </a>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Player bottom nav */}
           <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(9,11,15,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>

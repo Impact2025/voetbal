@@ -1,5 +1,5 @@
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash-preview-05-20';
+const MODEL = 'google/gemini-2.5-flash';
 
 interface AICallOptions {
   max_tokens?: number;
