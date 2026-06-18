@@ -59,7 +59,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
   const handleCoachAuth = async (isRegistering: boolean) => {
     const attemptCoach = async () => {
       setLoading(true); setSlowHint(false);
-      const t = setTimeout(() => setSlowHint(true), 5000);
+      const t = setTimeout(() => setSlowHint(true), 8000);
       try {
         if (isRegistering) {
           if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
@@ -73,7 +73,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
           const { data, error } = await withTimeout(
             supabase.auth.signUp({ email, password }),
-            20000, 'Registratie duurt te lang. Controleer je verbinding.'
+            45000, 'Registratie duurt te lang. Controleer je verbinding.'
           );
           if (error) throw error;
 
@@ -97,7 +97,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
           else localStorage.removeItem('rememberedCoachEmail');
           const { error } = await withTimeout(
             supabase.auth.signInWithPassword({ email, password }),
-            20000, '__timeout__'
+            45000, '__timeout__'
           );
           if (error) throw error;
         }
@@ -119,11 +119,11 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
     const r1 = await attemptCoach();
     if (r1 === 'ok') return;
     if (r1 === '__timeout__' && !isRegistering) {
-      setError('Server opgestart. Opnieuw verbinden...');
-      await new Promise(res => setTimeout(res, 800));
+      setError('Server wordt opgestart, nog even geduld...');
+      await new Promise(res => setTimeout(res, 2000));
       setError('');
       const r2 = await attemptCoach();
-      if (r2 !== 'ok') setError(r2 === '__timeout__' ? 'Verbinding mislukt. Controleer je internet.' : (messages[r2] ?? r2));
+      if (r2 !== 'ok') setError(r2 === '__timeout__' ? 'Server reageert niet. Probeer het over een minuut opnieuw.' : (messages[r2] ?? r2));
     } else {
       setError(messages[r1] ?? r1);
     }
@@ -165,12 +165,12 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
     const attempt = async () => {
       setLoading(true); setSlowHint(false);
-      const t = setTimeout(() => setSlowHint(true), 5000);
+      const t = setTimeout(() => setSlowHint(true), 8000);
       try {
         // Fetch candidates by team, then verify PIN hash client-side
         const { data, error } = await withTimeout(
           supabase.from('players').select('*').eq('team_id', teamId),
-          20000, '__timeout__'
+          45000, '__timeout__'
         );
         if (error) throw new Error('Verbindingsfout. Probeer het opnieuw.');
         if (!data || data.length === 0) throw new Error('Team ID niet gevonden. Controleer de code bij je coach.');
@@ -201,13 +201,13 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
     const r1 = await attempt();
     if (r1 === 'ok') return;
     if (r1 === '__timeout__') {
-      setError('Server opgestart. Opnieuw verbinden...');
-      await new Promise(res => setTimeout(res, 800));
+      setError('Server wordt opgestart, nog even geduld...');
+      await new Promise(res => setTimeout(res, 2000));
       setError('');
       const r2 = await attempt();
       if (r2 !== 'ok') {
         recordFailedAttempt(teamId);
-        setError(r2 === '__timeout__' ? 'Verbinding mislukt. Controleer je internet.' : r2);
+        setError(r2 === '__timeout__' ? 'Server reageert niet. Probeer het over een minuut opnieuw.' : r2);
       }
     } else {
       recordFailedAttempt(teamId);
@@ -295,7 +295,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
         </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Even geduld, eerste verbinding kan wat langer duren...</p>}
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
       </form>
     );
 
@@ -316,7 +316,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
         </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Even geduld, eerste verbinding kan wat langer duren...</p>}
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
       </form>
     );
 
@@ -364,7 +364,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : view === 'coachLogin' ? 'Inloggen' : 'Registreren'}
         </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Even geduld, eerste verbinding kan wat langer duren...</p>}
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
       </form>
     );
   };
