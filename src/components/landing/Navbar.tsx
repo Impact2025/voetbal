@@ -28,9 +28,7 @@ export default function Navbar({ onLogin }: { onLogin: () => void }) {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <a href="#" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-neon flex items-center justify-center text-dark-900 font-black text-sm">
-              SK
-            </div>
+            <img src="/logo.png" alt="Skillkaart" className="w-8 h-8 rounded-lg object-cover" />
             <span className="font-black text-xl tracking-tight text-white group-hover:text-neon transition-colors">
               SKILLKAART
             </span>

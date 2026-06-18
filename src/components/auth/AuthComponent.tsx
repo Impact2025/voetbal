@@ -383,9 +383,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
           <ArrowLeft size={14} /> Terug naar home
         </motion.button>
       )}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
-        <h1 className="text-4xl font-black tracking-widest" style={{ color: NEON_COLOR, textShadow: `0 0 30px ${NEON_COLOR}50` }}>SKILLKAART</h1>
-        <p className="text-gray-500 text-sm mt-1">Voetbal ontwikkeling voor jongeren</p>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col items-center gap-2">
+        <img src="/logo.png" alt="Skillkaart" className="w-20 h-20 rounded-2xl object-cover" style={{ filter: `drop-shadow(0 0 12px ${NEON_COLOR}60)` }} />
+        <p className="text-gray-500 text-sm">Voetbal ontwikkeling voor jongeren</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
