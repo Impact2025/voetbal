@@ -20,7 +20,6 @@ const stats = [
 export default function Stats() {
   return (
     <section className="py-24 bg-dark-900 relative overflow-hidden">
-      {/* Background accent */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-neon/3 blur-3xl rounded-full" />
       </div>
@@ -57,10 +56,14 @@ export default function Stats() {
           ))}
         </div>
 
-        {/* Testimonial */}
         <div className="max-w-3xl mx-auto">
           <div className="gradient-border rounded-2xl p-8 lg:p-10 text-center">
-            <div className="text-4xl mb-4">⚽</div>
+            <div className="w-10 h-10 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center mx-auto mb-6">
+              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-neon" stroke="currentColor" strokeWidth="2">
+                <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" />
+                <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" />
+              </svg>
+            </div>
             <blockquote className="text-lg lg:text-xl text-white/80 leading-relaxed italic mb-6">
               "Met Skillkaart digitaliseren we de bewezen trainingsmethode van Ultimate Football
               Academy. De combinatie van Vincent zijn AI-expertise en onze praktijkervaring op de

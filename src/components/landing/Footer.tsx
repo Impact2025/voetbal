@@ -6,9 +6,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-neon flex items-center justify-center text-dark-900 font-black text-sm">
-                SK
-              </div>
+              <img src="/logo.png" alt="Skillkaart" className="w-8 h-8 rounded-lg object-cover" />
               <span className="font-black text-xl tracking-tight">SKILLKAART</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">

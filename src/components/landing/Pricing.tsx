@@ -82,7 +82,6 @@ export default function Pricing() {
         {/* Monthly calculation */}
         <div className="text-center mb-12">
           <span className="inline-flex items-center gap-2 bg-neon/10 border border-neon/20 rounded-full px-4 py-1.5 text-sm text-neon">
-            <span>💡</span>
             Basis al vanaf €12,50 per maand — betaalbaar voor elke amateurvereniging
           </span>
         </div>

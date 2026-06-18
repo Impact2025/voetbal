@@ -1,16 +1,18 @@
+import { Clock, Archive, TrendingDown } from 'lucide-react'
+
 const problems = [
   {
-    icon: '⏱️',
+    icon: Clock,
     title: 'Te weinig tijd',
     text: 'Trainers hebben geen tijd voor écht persoonlijke feedback naast de wekelijkse training.',
   },
   {
-    icon: '📁',
+    icon: Archive,
     title: 'Evaluaties verdwijnen',
     text: 'Papieren rapportjes verdwijnen aan het einde van het seizoen in een la, nooit meer terug te vinden.',
   },
   {
-    icon: '📉',
+    icon: TrendingDown,
     title: 'Motivatieverlies',
     text: 'Kinderen verliezen hun motivatie omdat ze hun eigen groei niet zien of voelen.',
   },
@@ -35,7 +37,9 @@ export default function Problems() {
               key={p.title}
               className="gradient-border rounded-2xl p-6 hover:border-neon/30 transition-all group"
             >
-              <div className="text-3xl mb-4">{p.icon}</div>
+              <div className="w-10 h-10 rounded-xl bg-neon/10 border border-neon/20 flex items-center justify-center mb-5">
+                <p.icon size={18} className="text-neon" />
+              </div>
               <h3 className="font-bold text-lg mb-2 group-hover:text-neon transition-colors">
                 {p.title}
               </h3>
@@ -44,14 +48,15 @@ export default function Problems() {
           ))}
         </div>
 
-        {/* Solution bridge */}
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-dark-900 px-4 text-neon text-2xl">⚡</span>
+              <span className="bg-dark-900 px-6">
+                <div className="w-2 h-2 rounded-full bg-neon/60" />
+              </span>
             </div>
           </div>
           <p className="text-white/70 text-lg leading-relaxed">

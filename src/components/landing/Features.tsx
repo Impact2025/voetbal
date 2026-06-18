@@ -1,6 +1,8 @@
+import { Target, BrainCircuit, BarChart2, BookOpen } from 'lucide-react'
+
 const features = [
   {
-    icon: '🎯',
+    icon: Target,
     tag: 'Coach Dashboard',
     title: 'Evalueer in minder dan 2 minuten',
     description:
@@ -31,7 +33,7 @@ const features = [
     ),
   },
   {
-    icon: '🤖',
+    icon: BrainCircuit,
     tag: 'AI Feedback Module',
     title: 'Gepersonaliseerde plannen via Google Gemini 2.5 Flash',
     description:
@@ -44,7 +46,7 @@ const features = [
           <span className="text-neon text-xs font-semibold">AI genereert...</span>
         </div>
         <p className="text-white/70 text-xs leading-relaxed">
-          "Thomas, jouw techniek is indrukwekkend voor jouw leeftijd! 🌟 Focus deze week op je
+          "Thomas, jouw techniek is indrukwekkend voor jouw leeftijd! Focus deze week op je
           passing in kleine ruimtes. Oefen de wandpass 10 minuten per dag..."
         </p>
         <div className="mt-2 flex gap-1">
@@ -58,7 +60,7 @@ const features = [
     ),
   },
   {
-    icon: '📊',
+    icon: BarChart2,
     tag: 'Speler Dashboard',
     title: 'Jouw eigen radardiagram en trendgrafiek',
     description:
@@ -95,7 +97,7 @@ const features = [
     ),
   },
   {
-    icon: '📚',
+    icon: BookOpen,
     tag: 'Huiswerk & Reflectie',
     title: 'Verleng de trainingsweek',
     description:
@@ -144,15 +146,17 @@ export default function Features() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {features.map((f, i) => (
+          {features.map((f) => (
             <div
               key={f.tag}
               className="gradient-border rounded-2xl p-6 lg:p-8 hover:shadow-neon transition-all group"
             >
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{f.icon}</span>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-neon/10 border border-neon/20 flex items-center justify-center flex-shrink-0">
+                      <f.icon size={15} className="text-neon" />
+                    </div>
                     <span className="text-neon text-xs font-semibold uppercase tracking-widest bg-neon/10 px-2 py-0.5 rounded-full border border-neon/20">
                       {f.tag}
                     </span>
@@ -161,7 +165,6 @@ export default function Features() {
                 </div>
               </div>
 
-              {/* Visual preview */}
               <div className="bg-dark-700 rounded-xl p-4 mb-6 border border-white/5 min-h-[100px] flex flex-col justify-center">
                 {f.visual}
               </div>
