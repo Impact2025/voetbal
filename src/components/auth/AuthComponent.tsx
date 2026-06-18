@@ -477,6 +477,18 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
                 </button>
                 <button
                   type="button"
+                  onClick={() => { localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false); setView('coachLogin'); setEmail('v.munster@weareimpact.nl'); setPassword('Demo1234'); setError(''); }}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
+                >
+                  <ShieldCheck size={15} style={{ color: NEON_COLOR }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white">Coach — V. Munster</p>
+                    <p className="text-[10px] text-gray-500 truncate">v.munster@weareimpact.nl · Demo1234</p>
+                  </div>
+                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">invullen →</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); setRememberMe(false); setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233'); setError(''); }}
                   className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
                 >
