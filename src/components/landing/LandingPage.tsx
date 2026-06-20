@@ -8,10 +8,10 @@ import Pricing from './Pricing'
 import FAQ from './FAQ'
 import Footer from './Footer'
 
-export default function LandingPage({ onLogin }: { onLogin: () => void }) {
+export default function LandingPage({ onLogin, onParentLogin }: { onLogin: () => void; onParentLogin?: () => void }) {
   return (
     <div className="min-h-screen bg-dark-900 text-white">
-      <Navbar onLogin={onLogin} />
+      <Navbar onLogin={onLogin} onParentLogin={onParentLogin} />
       <main>
         <Hero />
         <Problems />

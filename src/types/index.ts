@@ -115,11 +115,31 @@ export interface AttendanceRecord {
 }
 
 export interface UserData {
-  role: 'club_admin' | 'coach' | 'player';
+  role: 'club_admin' | 'coach' | 'player' | 'parent';
   teamId?: string;
   clubId?: string;
   uid: string;
   id?: string;
+  linkedPlayerId?: string;
+}
+
+export interface ParentLink {
+  id: string;
+  player_id: string;
+  team_id: string;
+  parent_id: string | null;
+  link_code: string;
+  verified: boolean;
+  created_at: string;
+}
+
+export interface NotificationPrefs {
+  parent_id: string;
+  weekly_digest: boolean;
+  critical_alerts: boolean;
+  channel: 'email' | 'push' | 'both';
+  detail_level: 'light' | 'full';
+  updated_at: string;
 }
 
 export interface SessionUser {
@@ -179,5 +199,77 @@ export interface HomeworkSubmission {
   ai_feedback: string | null;
   feedback_status: SubmissionStatus;
   created_at: string;
+  updated_at: string;
+}
+
+// ── Inzet-DNA / Player Card ─────────────────────────────────────────────────
+
+export type StatAxis = 'consistentie' | 'werkethiek' | 'techniek' | 'focus' | 'team_spirit';
+
+export type CardTier = 'brons' | 'zilver' | 'goud' | 'legendary';
+
+export interface PlayerStats {
+  player_id: string;
+  team_id: string;
+  consistentie: number;
+  werkethiek: number;
+  techniek: number;
+  focus: number;
+  team_spirit: number;
+  tier: CardTier;
+  total_xp: number;
+  prev_snapshot: Record<StatAxis, number> | null;
+  snapshot_at: string | null;
+  updated_at: string;
+}
+
+export interface StatEvent {
+  id: string;
+  player_id: string;
+  team_id: string;
+  event_type: 'homework_done' | 'video_submitted' | 'challenge_done' | 'reflection' | 'teamspirit';
+  axis: StatAxis;
+  xp: number;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// ── Challenges ───────────────────────────────────────────────────────────────
+
+export type ChallengeCategory = 'techniek' | 'inzicht' | 'snelheid' | 'mentaliteit';
+
+export interface Challenge {
+  id: string;
+  title: string;
+  category: ChallengeCategory;
+  age_min: number;
+  age_max: number;
+  setup: string;
+  win_condition: string;
+  youtube_url?: string;
+  reflection_prompt?: string;
+  ai_feedback_hint?: string;
+}
+
+export interface ChallengeCompletion {
+  id: string;
+  challenge_id: string;
+  player_id: string;
+  team_id: string;
+  reflection?: string;
+  ai_feedback?: string;
+  completed_at: string;
+}
+
+// ── Streaks ──────────────────────────────────────────────────────────────────
+
+export interface Streak {
+  player_id: string;
+  week_start: string;
+  activities_count: number;
+  week_goal: number;
+  best_week_count: number;
+  recovery_used: boolean;
+  flame_state: 'active' | 'sleep' | 'complete';
   updated_at: string;
 }

@@ -10,6 +10,8 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import LandingPage from './components/landing/LandingPage';
 
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
+const ParentDashboard    = lazy(() => import('./components/parent/ParentDashboard'));
+const ParentAuthFlow     = lazy(() => import('./components/parent/ParentAuthFlow'));
 
 // getSession() can hang when Supabase tries to refresh an expired token.
 // Only call it if there's actually a stored session — otherwise return null immediately.
@@ -34,6 +36,7 @@ export default function Skillkaart() {
   const [consentGiven, setConsentGiven] = useState(hasConsented);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showParentAuth, setShowParentAuth] = useState(false);
   const lastKnownUserId = useRef(null);
 
   // Warm up the PostgREST database connection in the background so the first
@@ -83,7 +86,14 @@ export default function Skillkaart() {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           if (!cancelled) {
             setSession(session);
-            setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
+            if (data?.role === 'parent') {
+              const { data: link } = await supabase
+                .from('parent_links').select('player_id')
+                .eq('parent_id', session.user.id).eq('verified', true).maybeSingle();
+              setUserData({ ...data, teamId: data.team_id, linkedPlayerId: link?.player_id ?? null });
+            } else {
+              setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
+            }
             lastKnownUserId.current = session.user.id;
           }
         } else {
@@ -116,7 +126,14 @@ export default function Skillkaart() {
         try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
           setSession(session);
-          setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
+          if (data?.role === 'parent') {
+            const { data: link } = await supabase
+              .from('parent_links').select('player_id')
+              .eq('parent_id', session.user.id).eq('verified', true).maybeSingle();
+            setUserData({ ...data, teamId: data.team_id, linkedPlayerId: link?.player_id ?? null });
+          } else {
+            setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
+          }
           lastKnownUserId.current = session.user.id;
         } catch { setSession(null); setUserData(null); }
       } else if (_event === 'SIGNED_OUT') {
@@ -177,7 +194,11 @@ export default function Skillkaart() {
 
       <ErrorBoundary>
         {!(session && userData) || isRecovering ? (
-          showAuth || isRecovering ? (
+          showParentAuth ? (
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
+              <ParentAuthFlow onBack={() => setShowParentAuth(false)} />
+            </Suspense>
+          ) : showAuth || isRecovering ? (
             <AuthComponent
               onPlayerLogin={handlePlayerLogin}
               isRecovering={isRecovering}
@@ -188,15 +209,15 @@ export default function Skillkaart() {
               }}
             />
           ) : (
-            <LandingPage onLogin={() => setShowAuth(true)} />
+            <LandingPage onLogin={() => setShowAuth(true)} onParentLogin={() => setShowParentAuth(true)} />
           )
         ) : userData.role === 'club_admin' ? (
-          <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
-              <Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" />
-            </div>
-          }>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
             <ClubAdminDashboard userData={userData} onLogout={handlePlayerLogout} />
+          </Suspense>
+        ) : userData.role === 'parent' ? (
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
+            <ParentDashboard userData={userData} onLogout={handlePlayerLogout} />
           </Suspense>
         ) : (
           <Dashboard user={session.user} userData={userData} onPlayerLogout={handlePlayerLogout} />

@@ -1,9 +1,139 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClipboardList, CheckCircle2 } from 'lucide-react';
 import Card from '../ui/Card';
 import VideoSubmissionCard from '../homework/VideoSubmissionCard';
+import XPFloater from '../feedback/XPFloater';
 import { getYoutubeEmbedUrl } from '../../utils/youtube';
 import type { Player, CustomHomework, HomeworkSubmission } from '../../types';
+
+const CONFETTI_COLORS = ['#4ade80', '#facc15', '#38bdf8', '#f97316', '#c084fc', '#ffffff', '#fb7185'];
+const ANGLES = Array.from({ length: 14 }, (_, i) => (i / 14) * 360);
+
+interface HomeworkItemProps {
+  hw: CustomHomework;
+  player: Player;
+  teamId: string;
+  submissions: HomeworkSubmission[];
+  onToggleStatus: (id: string) => void;
+  onSubmissionComplete: (s: HomeworkSubmission) => void;
+}
+
+const HomeworkItem = ({ hw, player, teamId, submissions, onToggleStatus, onSubmissionComplete }: HomeworkItemProps) => {
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showXP, setShowXP] = useState(false);
+  const isCompleted = player.completed_homework_ids.includes(hw.id);
+  const embedUrl = getYoutubeEmbedUrl(hw.youtube_url);
+  const latestSubmission = submissions
+    .filter(s => s.homework_id === hw.id && s.player_id === player.id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+  const handleToggle = () => {
+    if (!isCompleted) {
+      setShowConfetti(true);
+      setShowXP(true);
+      setTimeout(() => setShowConfetti(false), 750);
+      setTimeout(() => setShowXP(false), 1800);
+    }
+    onToggleStatus(hw.id);
+  };
+
+  return (
+    <div
+      className={`p-4 rounded-xl transition-all ${isCompleted
+        ? 'bg-emerald-950/30 border border-emerald-900/40'
+        : 'bg-gray-800/40 border border-gray-700/30'}`}
+    >
+      <div className="flex justify-between items-start flex-wrap gap-4">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-base text-white leading-snug">
+            {hw.week && <span className="text-gray-500 font-normal">{hw.week}: </span>}
+            {hw.title}
+          </h4>
+          <p className="mt-1.5 text-sm text-gray-300 leading-relaxed">{hw.description}</p>
+        </div>
+
+        {/* 3D button + confetti container */}
+        <div className="relative shrink-0">
+          {/* XP floater */}
+          <XPFloater visible={showXP} eventType="homework_done" />
+
+          {/* Confetti particles */}
+          {showConfetti && ANGLES.map((angle, i) => {
+            const rad = (angle * Math.PI) / 180;
+            return (
+              <motion.div
+                key={i}
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  width: 6 + (i % 3) * 3,
+                  height: 6 + (i % 3) * 3,
+                  backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                  left: '50%',
+                  top: '50%',
+                  marginLeft: -4,
+                  marginTop: -4,
+                  zIndex: 10,
+                }}
+                initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+                animate={{
+                  x: Math.cos(rad) * (55 + i * 2),
+                  y: Math.sin(rad) * (55 + i * 2),
+                  opacity: 0,
+                  scale: 0.3,
+                  rotate: 360,
+                }}
+                transition={{ duration: 0.65, ease: [0.2, 0.9, 0.3, 1] }}
+              />
+            );
+          })}
+
+          {/* The button itself */}
+          <motion.button
+            onClick={handleToggle}
+            whileTap={{ scale: 0.90, y: 3 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="flex items-center gap-2 py-2.5 px-5 rounded-xl text-sm font-bold relative"
+            style={isCompleted
+              ? { backgroundColor: '#065f46', color: '#4ade80', boxShadow: '0 0 0 1px #4ade8030' }
+              : { backgroundColor: '#111827', color: '#e5e7eb', boxShadow: '0 4px 0 #030712, 0 0 0 1px #374151' }
+            }
+          >
+            <AnimatePresence mode="wait">
+              {isCompleted ? (
+                <motion.div key="done" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <CheckCircle2 size={15} />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+            {isCompleted ? 'Voltooid!' : 'Markeer als voltooid'}
+          </motion.button>
+        </div>
+      </div>
+
+      {embedUrl && (
+        <div className="mt-4 aspect-video rounded-lg overflow-hidden">
+          <iframe
+            width="100%" height="100%"
+            src={embedUrl}
+            title={hw.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )}
+
+      <VideoSubmissionCard
+        homework={hw}
+        player={player}
+        teamId={teamId}
+        existingSubmission={latestSubmission}
+        onSubmissionComplete={onSubmissionComplete}
+      />
+    </div>
+  );
+};
 
 interface PlayerHomeworkCardProps {
   player: Player;
@@ -16,13 +146,7 @@ interface PlayerHomeworkCardProps {
 }
 
 const PlayerHomeworkCard = ({
-  player,
-  teamId,
-  customHomework,
-  assignedHomeworkIds,
-  submissions,
-  onToggleStatus,
-  onSubmissionComplete,
+  player, teamId, customHomework, assignedHomeworkIds, submissions, onToggleStatus, onSubmissionComplete,
 }: PlayerHomeworkCardProps) => {
   const assignedTasks = customHomework.filter(hw => assignedHomeworkIds.includes(hw.id));
 
@@ -42,65 +166,18 @@ const PlayerHomeworkCard = ({
       <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
         <ClipboardList size={20} className="text-[--neon-color]" /> Jouw Huiswerk
       </h3>
-      <div className="space-y-4">
-        {assignedTasks.map(hw => {
-          const isCompleted = player.completed_homework_ids.includes(hw.id);
-          const embedUrl = getYoutubeEmbedUrl(hw.youtube_url);
-          const latestSubmission = submissions
-            .filter(s => s.homework_id === hw.id && s.player_id === player.id)
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-
-          return (
-            <div
-              key={hw.id}
-              className={`p-4 rounded-lg transition-all ${isCompleted ? 'bg-green-500/10 border-l-4 border-green-500' : 'bg-gray-800/50'}`}
-            >
-              <div className="flex justify-between items-start flex-wrap gap-4">
-                <div>
-                  <h4 className="font-bold text-lg">{hw.week && `${hw.week}: `}{hw.title}</h4>
-                  <p className="mt-2 text-gray-300 max-w-prose">{hw.description}</p>
-                </div>
-                <button
-                  onClick={() => onToggleStatus(hw.id)}
-                  className={`shrink-0 flex items-center gap-2 py-2 px-4 rounded-lg text-sm font-semibold transition-colors ${
-                    isCompleted ? 'bg-green-500/80 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                  }`}
-                >
-                  <AnimatePresence>
-                    {isCompleted && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                        <CheckCircle2 size={16} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  {isCompleted ? 'Voltooid!' : 'Markeer als voltooid'}
-                </button>
-              </div>
-
-              {embedUrl && (
-                <div className="mt-4 aspect-video rounded-lg overflow-hidden">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={embedUrl}
-                    title={hw.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              )}
-
-              <VideoSubmissionCard
-                homework={hw}
-                player={player}
-                teamId={teamId}
-                existingSubmission={latestSubmission}
-                onSubmissionComplete={onSubmissionComplete}
-              />
-            </div>
-          );
-        })}
+      <div className="space-y-3">
+        {assignedTasks.map(hw => (
+          <HomeworkItem
+            key={hw.id}
+            hw={hw}
+            player={player}
+            teamId={teamId}
+            submissions={submissions}
+            onToggleStatus={onToggleStatus}
+            onSubmissionComplete={onSubmissionComplete}
+          />
+        ))}
       </div>
     </Card>
   );

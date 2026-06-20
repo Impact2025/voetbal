@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Veelgestelde vragen', href: '#faq' },
 ]
 
-export default function Navbar({ onLogin }: { onLogin: () => void }) {
+export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void; onParentLogin?: () => void }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -49,6 +49,14 @@ export default function Navbar({ onLogin }: { onLogin: () => void }) {
 
           {/* CTAs */}
           <div className="hidden md:flex items-center gap-3">
+            {onParentLogin && (
+              <button
+                onClick={onParentLogin}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-white/10 text-white/40 hover:text-white/70 transition-all"
+              >
+                ❤️ Ouder-portaal
+              </button>
+            )}
             <button
               onClick={onLogin}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-white/20 text-white/70 hover:border-neon/50 hover:text-neon transition-all"

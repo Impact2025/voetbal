@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission } from '../../types';
+import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, Streak } from '../../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, BarChart2, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download } from 'lucide-react';
+import { Plus, Trash2, User, BarChart2, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
@@ -31,7 +31,14 @@ import PlayerHomeworkCard from '../players/PlayerHomeworkCard';
 import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
 import PlayerOverview from './PlayerOverview';
+import PlayerCard from '../card/PlayerCard';
+import TierUpModal from '../feedback/TierUpModal';
+import StreakWidget from '../streak/StreakWidget';
+import ChallengeLibrary from '../challenges/ChallengeLibrary';
 import OnboardingTour from '../OnboardingTour';
+import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
+import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
+import type { PlayerStats, CardTier } from '../../types';
 
 interface DashboardProps {
   user: SessionUser;
@@ -50,6 +57,7 @@ const COACH_SECTIONS = [
 
 const PLAYER_SECTIONS = [
   { id: 'dashboard',  label: 'Dashboard',     icon: LayoutDashboard },
+  { id: 'kaart',      label: 'Mijn Kaart',    icon: Trophy },
   { id: 'huiswerk',   label: 'Huiswerk',      icon: ClipboardList },
   { id: 'skills',     label: 'Skills',        icon: User },
   { id: 'stats',      label: 'Statistieken',  icon: TrendingUp },
@@ -86,6 +94,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [savingResponses, setSavingResponses] = useState(false);
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
+  const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+  const [pendingTierUp, setPendingTierUp] = useState<CardTier | null>(null);
+  const [streak, setStreak] = useState<Streak | null>(null);
+  const [challengeCompletions, setChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [fetchError, setFetchError] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'dashboard');
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -174,6 +186,25 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
     return () => supabase.removeAllChannels();
   }, [userData, user.id]);
+
+  // Load player stats, streak and challenge completions for the player role
+  useEffect(() => {
+    if (userData.role !== 'player' || !userData.teamId) return;
+    const pid = user.id;
+    const tid = userData.teamId;
+
+    Promise.allSettled([
+      fetchAndRecomputeStats(pid, tid),
+      getOrCreateStreak(pid),
+      supabase.from('challenge_completions').select('*').eq('player_id', pid),
+    ]).then(([statsResult, streakResult, completionsResult]) => {
+      if (statsResult.status === 'fulfilled' && statsResult.value) setPlayerStats(statsResult.value);
+      if (streakResult.status === 'fulfilled' && streakResult.value) setStreak(streakResult.value);
+      if (completionsResult.status === 'fulfilled' && completionsResult.value.data) {
+        setChallengeCompletions(completionsResult.value.data as ChallengeCompletion[]);
+      }
+    }).catch(() => {/* silently skip if tables not migrated yet */});
+  }, [userData.role, userData.teamId, user.id]);
 
   const teamPeriods = useMemo(
     () => Array.isArray(teamData.evaluation_periods) && teamData.evaluation_periods.length > 0
@@ -343,6 +374,21 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       ? activePlayer.completed_homework_ids.filter(id => id !== homeworkId)
       : [...activePlayer.completed_homework_ids, homeworkId];
     await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.id);
+    setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, completed_homework_ids: newCompletedIds } : p));
+
+    // Award XP + streak when marking done (not when toggling off)
+    if (!isCompleted && userData.teamId) {
+      const oldTier = playerStats?.tier ?? 'brons';
+      await Promise.all([
+        insertStatEvents(user.id, userData.teamId, 'homework_done', { homework_id: homeworkId }),
+        incrementStreak(user.id).then(s => { if (s) setStreak(s); }),
+      ]);
+      const updated = await fetchAndRecomputeStats(user.id, userData.teamId);
+      if (updated) {
+        setPlayerStats(updated);
+        if (updated.tier !== oldTier) setPendingTierUp(updated.tier);
+      }
+    }
   };
 
   const handleSubmissionComplete = (submission: HomeworkSubmission) => {
@@ -351,6 +397,59 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       if (idx !== -1) return prev.map(s => s.id === submission.id ? submission : s);
       return [submission, ...prev];
     });
+    // Award XP for new video submission
+    if (userData.role === 'player' && userData.teamId) {
+      insertStatEvents(user.id, userData.teamId, 'video_submitted', { homework_id: submission.homework_id })
+        .then(() => fetchAndRecomputeStats(user.id, userData.teamId!))
+        .then(updated => { if (updated) setPlayerStats(updated); })
+        .catch(() => {/* silently skip if table not migrated yet */});
+    }
+  };
+
+  const handleChallengeComplete = async (challengeId: string, reflection: string): Promise<string | null> => {
+    if (!userData.teamId || !activePlayer) return null;
+
+    // Zoek de challenge op voor de category
+    const { CHALLENGES } = await import('../../data/challenges');
+    const challenge = CHALLENGES.find(c => c.id === challengeId);
+    if (!challenge) return null;
+
+    const oldTier = playerStats?.tier ?? 'brons';
+
+    // Sla completion op in DB
+    const { data: completion } = await supabase
+      .from('challenge_completions')
+      .insert({ challenge_id: challengeId, player_id: user.id, team_id: userData.teamId, reflection: reflection || null })
+      .select()
+      .single();
+
+    if (completion) {
+      setChallengeCompletions(prev => [...prev, completion as ChallengeCompletion]);
+    }
+
+    await Promise.all([
+      insertChallengeEvents(user.id, userData.teamId, challenge.category, challengeId),
+      incrementStreak(user.id).then(s => { if (s) setStreak(s); }),
+    ]);
+
+    const updated = await fetchAndRecomputeStats(user.id, userData.teamId);
+    if (updated) {
+      setPlayerStats(updated);
+      if (updated.tier !== oldTier) setPendingTierUp(updated.tier);
+    }
+
+    return completion?.id ?? null;
+  };
+
+  const handleGenerateLinkCode = async (playerId: string) => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    await supabase.from('parent_links').insert({
+      player_id: playerId,
+      team_id: userData.teamId ?? '',
+      link_code: code,
+    });
+    await copyToClipboard(code);
+    toast.success(`Koppelcode: ${code} — gekopieerd naar klembord!`, { duration: 5000 });
   };
 
   const handleRemovePlayer = (id) => setConfirmRemove({ isVisible: true, playerId: id });
@@ -475,6 +574,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     <div className="min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
       <OnboardingTour role={userData.role as 'coach' | 'player'} />
       <Toaster position="bottom-center" toastOptions={{ style: { background: '#1A1A1A', color: '#fff', border: '1px solid #333' }, success: { iconTheme: { primary: '#00FF9D', secondary: '#000' } } }} />
+      <AnimatePresence>
+        {pendingTierUp && (
+          <TierUpModal tier={pendingTierUp} onClose={() => setPendingTierUp(null)} />
+        )}
+      </AnimatePresence>
       <Suspense fallback={null}>
         <HomeworkCreatorModal isVisible={isHomeworkVisible} onClose={() => setIsHomeworkVisible(false)} onSave={handleSaveHomework} onAssign={handleAssignHomework} customHomework={customHomework} />
         <AddPlayerModal isVisible={isAddPlayerVisible} onClose={() => setIsAddPlayerVisible(false)} onAdd={handleAddPlayer} teamId={userData.teamId ?? ''} />
@@ -593,6 +697,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         </button>
                         <button onClick={e => { e.stopPropagation(); handleRemovePlayer(player.id); }} className="absolute -top-2 -right-2 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 transition-colors" aria-label="Verwijder speler">
                           <Trash2 size={11} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); handleGenerateLinkCode(player.id); }} className="absolute -bottom-2 -right-2 p-1 bg-purple-600 rounded-full text-white hover:bg-purple-500 transition-colors" aria-label="Genereer ouder-koppelcode" title="Ouder koppelen">
+                          <Link2 size={11} />
                         </button>
                       </motion.div>
                     );
@@ -1227,9 +1334,15 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             <PlayerOverview player={activePlayer} players={players} teamData={teamData} activeTab={activeTab} />
           </div>
 
+          {/* Mijn Kaart — Inzet-DNA */}
+          <div className={`mb-6 space-y-3 ${mobileSection === 'kaart' ? '' : 'hidden'}`}>
+            <StreakWidget streak={streak} />
+            <PlayerCard player={activePlayer} stats={playerStats} />
+          </div>
+
           <div className={((['huiswerk', 'skills', 'stats'].includes(mobileSection)) ? '' : 'hidden')}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <motion.div className={`lg:col-span-3${mobileSection !== 'huiswerk' ? ' hidden' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              <motion.div className={`lg:col-span-3 space-y-4${mobileSection !== 'huiswerk' ? ' hidden' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <PlayerHomeworkCard
                   player={activePlayer}
                   teamId={userData.teamId ?? ''}
@@ -1239,6 +1352,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   onToggleStatus={handleToggleHomeworkStatus}
                   onSubmissionComplete={handleSubmissionComplete}
                 />
+                <div className="rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4">
+                  <ChallengeLibrary
+                    player={activePlayer}
+                    completions={challengeCompletions}
+                    onComplete={handleChallengeComplete}
+                  />
+                </div>
               </motion.div>
               <div className="lg:col-span-1 flex flex-col gap-6">
                 <motion.div className={mobileSection !== 'skills' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -1415,25 +1535,29 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           {/* Player bottom nav */}
           <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(9,11,15,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex">
+              <button onClick={() => setMobileSection('dashboard')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'dashboard' ? NEON_COLOR : '#6b7280' }}>
+                <LayoutDashboard size={18} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Pro</span>
+              </button>
+              <button onClick={() => setMobileSection('kaart')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'kaart' ? NEON_COLOR : '#6b7280' }}>
+                <Trophy size={18} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Kaart</span>
+              </button>
               <button onClick={() => setMobileSection('huiswerk')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'huiswerk' ? NEON_COLOR : '#6b7280' }}>
-                <ClipboardList size={20} />
-                <span className="text-[10px] font-semibold tracking-wider uppercase">Huiswerk</span>
+                <ClipboardList size={18} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Huiswerk</span>
               </button>
               <button onClick={() => setMobileSection('skills')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'skills' ? NEON_COLOR : '#6b7280' }}>
-                <User size={20} />
-                <span className="text-[10px] font-semibold tracking-wider uppercase">Skills</span>
-              </button>
-              <button onClick={() => setMobileSection('dashboard')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'dashboard' ? NEON_COLOR : '#6b7280' }}>
-                <LayoutDashboard size={20} />
-                <span className="text-[10px] font-semibold tracking-wider uppercase">Pro</span>
+                <User size={18} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Skills</span>
               </button>
               <button onClick={() => setMobileSection('stats')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'stats' ? NEON_COLOR : '#6b7280' }}>
-                <TrendingUp size={20} />
-                <span className="text-[10px] font-semibold tracking-wider uppercase">Stats</span>
+                <TrendingUp size={18} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Stats</span>
               </button>
               <button onClick={() => setMobileSection('vragen')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'vragen' ? NEON_COLOR : '#6b7280' }}>
-                <ShieldCheck size={20} />
-                <span className="text-[10px] font-semibold tracking-wider uppercase">Vragen</span>
+                <ShieldCheck size={18} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Vragen</span>
               </button>
             </div>
           </nav>

@@ -115,6 +115,40 @@ interface MovementAnalysisOptions {
   frames: string[];
 }
 
+interface ChallengeAIOptions {
+  challengeTitle: string;
+  reflection: string;
+  playerName: string;
+  playerAge: string;
+  hint?: string;
+}
+
+export const getChallengeAIFeedback = async ({
+  challengeTitle, reflection, playerName, playerAge, hint,
+}: ChallengeAIOptions): Promise<string> => {
+  const prompt = `Je bent een enthousiaste jeugdvoetbalcoach die feedback geeft aan een kind na een zelfstandige uitdaging.
+
+SPELER: ${playerName}, ${playerAge} jaar
+UITDAGING: "${challengeTitle}"
+REFLECTIE VAN DE SPELER: "${reflection}"
+${hint ? `COACH TIP: ${hint}` : ''}
+
+Geef persoonlijke feedback in dit formaat:
+
+⭐ WAT IK ZIE
+[1 zin over wat de reflectie zegt over de speler als voetballer]
+
+🔥 WAAROM DIT TELT
+[1 zin waarom deze actie bijdraagt aan echte groei]
+
+💪 VOLGENDE STAP
+[1 concrete tip voor de volgende keer]
+
+Schrijf in eenvoudig, enthousiast Nederlands. Max 60 woorden totaal. NOOIT negatief of beschamend.`;
+
+  return callAI(prompt, 2, 1000, { max_tokens: 200, temperature: 0.65 });
+};
+
 export const analyzeMovementVideo = async (
   { homework, player, frames }: MovementAnalysisOptions
 ): Promise<string> => {
