@@ -41,6 +41,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [rememberCoach, setRememberCoach] = useState(false);
+  const [forgotPasswordOrigin, setForgotPasswordOrigin] = useState<'coachLogin' | 'clubAdminLogin'>('coachLogin');
   const [slowHint, setSlowHint] = useState(false);
 
   useEffect(() => { if (isRecovering) setView('resetPassword'); }, [isRecovering]);
@@ -264,7 +265,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
     if (view === 'forgotPassword') return (
       <form onSubmit={handleForgotPassword} className="space-y-4">
-        <button type="button" onClick={() => { setView('coachLogin'); setError(''); setSuccess(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-2">
+        <button type="button" onClick={() => { setView(forgotPasswordOrigin); setError(''); setSuccess(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-2">
           <ArrowLeft size={14} /> Terug
         </button>
         <h2 className="text-2xl font-bold text-center mb-1" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>WACHTWOORD VERGETEN</h2>
@@ -309,7 +310,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
             <input id="remember-club" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800" />
             <label htmlFor="remember-club" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
           </div>
-          <button type="button" onClick={() => { setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
+          <button type="button" onClick={() => { setForgotPasswordOrigin('clubAdminLogin'); setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
             Vergeten?
           </button>
         </div>
@@ -356,7 +357,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
               <input id="remember-coach" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800" />
               <label htmlFor="remember-coach" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
             </div>
-            <button type="button" onClick={() => { setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
+            <button type="button" onClick={() => { setForgotPasswordOrigin('coachLogin'); setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
               Vergeten?
             </button>
           </div>

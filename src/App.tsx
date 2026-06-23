@@ -12,18 +12,28 @@ import LandingPage from './components/landing/LandingPage';
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
 const ParentDashboard    = lazy(() => import('./components/parent/ParentDashboard'));
 const ParentAuthFlow     = lazy(() => import('./components/parent/ParentAuthFlow'));
+const AdminApp           = lazy(() => import('./components/admin/AdminApp'));
+const AdminLogin         = lazy(() => import('./components/admin/AdminLogin'));
+
+// True wanneer de gebruiker /admin bezoekt — rol-gated platform-admin.
+const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
 // getSession() can hang when Supabase tries to refresh an expired token.
-// Only call it if there's actually a stored session — otherwise return null immediately.
+// Always call it for recovery URLs (implicit: #type=recovery, PKCE: ?code=…).
+// For normal navigations, skip if there's no stored session to avoid cold-start delay.
+const hasRecoveryCode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('code');
 const getSessionSafe = () => {
+  const isRecoveryUrl = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
   const hasStoredSession = Object.keys(localStorage).some(
     k => k.startsWith('sb-') && k.endsWith('-auth-token')
   );
-  if (!hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
+  if (!isRecoveryUrl && !hasRecoveryCode && !hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
+  // Give PKCE code exchange more time than a normal session refresh.
+  const timeout = hasRecoveryCode ? 10000 : 3000;
   return Promise.race([
     supabase.auth.getSession(),
     new Promise<{ data: { session: null }; error: null }>(resolve =>
-      setTimeout(() => resolve({ data: { session: null }, error: null }), 3000)
+      setTimeout(() => resolve({ data: { session: null }, error: null }), timeout)
     ),
   ]);
 };
@@ -37,6 +47,7 @@ export default function Skillkaart() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showParentAuth, setShowParentAuth] = useState(false);
+  const [showParentDemo, setShowParentDemo] = useState(false);
   const lastKnownUserId = useRef(null);
 
   // Warm up the PostgREST database connection in the background so the first
@@ -51,7 +62,7 @@ export default function Skillkaart() {
 
     const hardFallback = setTimeout(() => {
       if (!cancelled) { setSession(null); setUserData(null); setLoading(false); }
-    }, 4000);
+    }, hasRecoveryCode ? 12000 : 4000);
 
     const init = async () => {
       if (window.location.hash.includes('type=recovery')) {
@@ -98,7 +109,10 @@ export default function Skillkaart() {
           }
         } else {
           if (!cancelled) {
-            try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* ignore */ }
+            // Don't signOut during a PKCE code exchange — it would kill the recovery session.
+            if (!hasRecoveryCode) {
+              try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* ignore */ }
+            }
             setSession(null);
             setUserData(null);
           }
@@ -181,9 +195,41 @@ export default function Skillkaart() {
     );
   }
 
+  if (isAdminRoute) {
+    return (
+      <div className="bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+        <ErrorBoundary>
+          {loading ? (
+            <div className="min-h-screen flex items-center justify-center">
+              <Loader2 className="animate-spin h-10 w-10" style={{ color: NEON_COLOR }} />
+            </div>
+          ) : !(session && userData) ? (
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10" style={{ color: NEON_COLOR }} /></div>}>
+              <AdminLogin onBack={() => { window.location.href = '/'; }} />
+            </Suspense>
+          ) : userData.role === 'superadmin' ? (
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10" style={{ color: NEON_COLOR }} /></div>}>
+              <AdminApp userData={userData} onLogout={handlePlayerLogout} />
+            </Suspense>
+          ) : (
+            <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+              <h1 className="text-2xl font-black mb-2">Geen toegang</h1>
+              <p className="text-gray-400 mb-6">Dit gedeelte is alleen voor de platformbeheerder.</p>
+              <button onClick={() => { window.location.href = '/'; }} className="px-5 py-2 rounded-lg bg-[--neon-color] text-black font-bold">
+                Terug naar app
+              </button>
+            </div>
+          )}
+        </ErrorBoundary>
+      </div>
+    );
+  }
+
+  const isLightTheme = !!(session && userData && (userData.role === 'club_admin' || userData.role === 'parent'));
+
   return (
-    <div className="bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
-      <style>{`body { scrollbar-width: thin; scrollbar-color: ${NEON_COLOR} #0D0D0D; } body::-webkit-scrollbar { width: 8px; } body::-webkit-scrollbar-track { background: #0D0D0D; } body::-webkit-scrollbar-thumb { background-color: ${NEON_COLOR}; border-radius: 20px; border: 3px solid #0D0D0D; }`}</style>
+    <div className={isLightTheme ? 'bg-white text-gray-900 font-sans min-h-screen' : 'bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans'} style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+      {!isLightTheme && <style>{`body { scrollbar-width: thin; scrollbar-color: ${NEON_COLOR} #0D0D0D; } body::-webkit-scrollbar { width: 8px; } body::-webkit-scrollbar-track { background: #0D0D0D; } body::-webkit-scrollbar-thumb { background-color: ${NEON_COLOR}; border-radius: 20px; border: 3px solid #0D0D0D; }`}</style>}
 
       {!consentGiven && (
         <ConsentModal
@@ -194,9 +240,17 @@ export default function Skillkaart() {
 
       <ErrorBoundary>
         {!(session && userData) || isRecovering ? (
-          showParentAuth ? (
+          showParentDemo ? (
             <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
-              <ParentAuthFlow onBack={() => setShowParentAuth(false)} />
+              <ParentDashboard
+                userData={{ role: 'parent', uid: 'demo-parent', linkedPlayerId: 'demo-player' }}
+                demo
+                onLogout={() => { setShowParentDemo(false); setShowParentAuth(false); }}
+              />
+            </Suspense>
+          ) : showParentAuth ? (
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
+              <ParentAuthFlow onBack={() => setShowParentAuth(false)} onDemo={() => setShowParentDemo(true)} />
             </Suspense>
           ) : showAuth || isRecovering ? (
             <AuthComponent
