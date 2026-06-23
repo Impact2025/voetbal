@@ -581,7 +581,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   return (
     <div className="min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
-      <OnboardingTour role={userData.role as 'coach' | 'player'} />
+      <OnboardingTour role={(userData.role === 'player' ? 'player' : 'coach')} />
       <Toaster position="bottom-center" toastOptions={{ style: { background: '#1A1A1A', color: '#fff', border: '1px solid #333' }, success: { iconTheme: { primary: '#00FF9D', secondary: '#000' } } }} />
       <AnimatePresence>
         {pendingTierUp && (
@@ -606,7 +606,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       </ConfirmModal>
 
       {/* ── COACH DASHBOARD ── */}
-      {userData.role === 'coach' && (
+      {userData.role !== 'player' && (
         <div className="flex flex-col min-h-screen bg-white text-gray-900">
 
           {/* Sticky header */}
