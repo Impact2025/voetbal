@@ -145,7 +145,7 @@ export function getCurrentSeasonWeek(
   plan: SeasonWeekPlan[],
   overrides: ClubWeekOverride[]
 ): SeasonWeekPlan | null {
-  const now = new Date();
+  const now = new Date('2026-08-24'); // DEMO: week 35
   const currentWeek = getISOWeek(now);
   const disabledWeeks = new Set(overrides.filter(o => !o.is_enabled).map(o => o.week_number));
   return plan.find(w => w.week_number === currentWeek && !w.is_vacation && !disabledWeeks.has(w.week_number)) ?? null;
@@ -156,7 +156,7 @@ export function getSeasonStatus(
   config: ClubTrainingConfig
 ): 'not_started' | 'active' | 'break' | 'finished' {
   if (!plan.length) return 'not_started';
-  const now = new Date();
+  const now = new Date('2026-08-24'); // DEMO: week 35
   const currentWeek = getISOWeek(now);
   const currentYear = getISOWeekYear(now);
 
