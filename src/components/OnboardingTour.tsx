@@ -190,6 +190,7 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
   const [direction, setDirection] = useState(1);
 
   useEffect(() => {
+    if (localStorage.getItem(storageKey)) return;
     const t = setTimeout(() => setVisible(true), 900);
     return () => clearTimeout(t);
   }, [storageKey]);
@@ -200,9 +201,10 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
   }, [step]);
 
   const dismiss = useCallback(() => {
+    localStorage.setItem(storageKey, '1');
     setVisible(false);
     setTimeout(() => setStep(0), 350);
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     if (!visible) return;
@@ -223,12 +225,12 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
 
   return (
     <>
-      {/* Floating help button — always visible */}
+      {/* Floating help button — only on desktop (mobile nav has no room) */}
       <motion.button
         onClick={() => { setStep(0); setDirection(1); setVisible(true); }}
-        className="fixed right-4 z-[90] w-9 h-9 rounded-full flex items-center justify-center"
+        className="hidden sm:flex fixed right-4 z-[90] w-9 h-9 rounded-full items-center justify-center"
         style={{
-          bottom: 'calc(env(safe-area-inset-bottom) + 4.5rem)',
+          bottom: '1.5rem',
           background: '#111',
           border: `1.5px solid ${NEON_COLOR}44`,
           color: `${NEON_COLOR}cc`,

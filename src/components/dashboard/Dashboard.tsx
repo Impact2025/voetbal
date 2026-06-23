@@ -1255,18 +1255,25 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             className="fixed bottom-0 left-0 right-0 sm:hidden z-30"
             style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid #f3f4f6', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            <div className="flex">
-              {COACH_SECTIONS.map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setMobileSection(id)}
-                  className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity"
-                  style={{ color: mobileSection === id ? NEON_COLOR : '#9ca3af' }}
-                >
-                  <Icon size={19} />
-                  <span className="text-[9px] font-bold tracking-wider uppercase">{label}</span>
-                </button>
-              ))}
+            <div className="flex overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {COACH_SECTIONS.map(({ id, label, icon: Icon }) => {
+                const shortLabel = id === 'aanwezigheid' ? 'Aanwezig' : label;
+                const isActive = mobileSection === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setMobileSection(id)}
+                    className="flex-none flex flex-col items-center justify-center py-2.5 gap-1 active:opacity-70 transition-opacity relative"
+                    style={{ color: isActive ? NEON_COLOR : '#9ca3af', minWidth: 60, paddingLeft: 6, paddingRight: 6 }}
+                  >
+                    {isActive && (
+                      <span className="absolute top-0 left-3 right-3 h-[2px] rounded-b-full" style={{ background: NEON_COLOR }} />
+                    )}
+                    <Icon size={18} />
+                    <span className="text-[8px] font-bold tracking-wide uppercase whitespace-nowrap">{shortLabel}</span>
+                  </button>
+                );
+              })}
             </div>
           </nav>
         </div>
