@@ -27,6 +27,6 @@ dist-ssr
 .env*.local
 
 # Large binary assets — not for git
-trainingen/
+/trainingen/
 docs/
 cleanup-dupes.mjs
