@@ -12,6 +12,7 @@ import { checkRateLimit, recordFailedAttempt, clearAttempts } from '../../utils/
 interface AuthComponentProps {
   onPlayerLogin: (playerData: UserData & Record<string, unknown>) => void;
   isRecovering?: boolean;
+  initialError?: string;
   onPasswordUpdated?: () => void;
   onBack?: () => void;
 }
@@ -24,8 +25,12 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
   ]);
 
-const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated, onBack }: AuthComponentProps) => {
-  const [view, setView] = useState<View>(() => isRecovering ? 'resetPassword' : 'playerLogin');
+const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPasswordUpdated, onBack }: AuthComponentProps) => {
+  const [view, setView] = useState<View>(() => {
+    if (isRecovering) return 'resetPassword';
+    if (initialError) return 'forgotPassword';
+    return 'playerLogin';
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -36,7 +41,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
   const [newClubId, setNewClubId] = useState('');
   const [clubName, setClubName] = useState('');
   const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initialError ?? '');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -221,11 +226,17 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
     setLoading(true); setError(''); setSuccess('');
     try {
       if (!email.trim()) throw new Error('Vul je e-mailadres in.');
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+      const redirectTo = window.location.hostname === 'localhost' ? window.location.origin : 'https://skills.weareimpact.nl';
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (error) throw error;
       setSuccess('Reset-link verstuurd! Controleer je inbox (en spammap).');
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message ?? '';
+      if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('too many')) {
+        setError('Te veel reset-mails verstuurd. Wacht een uur en probeer het opnieuw, of gebruik de link die je al ontvangen hebt.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -233,22 +244,41 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setSlowHint(false);
+    const slowTimer = setTimeout(() => setSlowHint(true), 6000);
     try {
       if (newPassword.length < 6) throw new Error('Wachtwoord moet minimaal 6 tekens zijn.');
       if (newPassword !== confirmPassword) throw new Error('Wachtwoorden komen niet overeen.');
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      setSuccess('Wachtwoord succesvol bijgewerkt!');
-      setTimeout(() => onPasswordUpdated?.(), 1500);
+      // Retry up to 3 times — Supabase Auth can be slow to start on free tier.
+      let lastErr: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const { error } = await withTimeout(
+            supabase.auth.updateUser({ password: newPassword }),
+            20000,
+            'Server reageert niet, opnieuw proberen...'
+          );
+          if (error) throw error;
+          setSuccess('Wachtwoord succesvol bijgewerkt!');
+          setTimeout(() => onPasswordUpdated?.(), 1500);
+          return;
+        } catch (err) {
+          lastErr = err as Error;
+          if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+        }
+      }
+      throw lastErr;
     } catch (err) {
-      setError((err as Error).message);
+      setError((err as Error).message ?? 'Server reageert niet. Probeer het opnieuw.');
     } finally {
+      clearTimeout(slowTimer);
+      setSlowHint(false);
       setLoading(false);
     }
   };
 
   const btnClass = 'w-full py-3 font-bold text-black rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center disabled:opacity-50';
+  const isLightMode = !['playerLogin', 'resetPassword'].includes(view);
 
   const renderForm = () => {
     if (view === 'resetPassword') return (
@@ -260,21 +290,22 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Wachtwoord opslaan'}
         </button>
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan even duren...</p>}
       </form>
     );
 
     if (view === 'forgotPassword') return (
       <form onSubmit={handleForgotPassword} className="space-y-4">
-        <button type="button" onClick={() => { setView(forgotPasswordOrigin); setError(''); setSuccess(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-2">
+        <button type="button" onClick={() => { setView(forgotPasswordOrigin); setError(''); setSuccess(''); }} className={`flex items-center gap-1.5 text-sm transition-colors mb-2 ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
           <ArrowLeft size={14} /> Terug
         </button>
-        <h2 className="text-2xl font-bold text-center mb-1" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>WACHTWOORD VERGETEN</h2>
+        <h2 className="text-2xl font-bold text-center mb-1" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>WACHTWOORD VERGETEN</h2>
         <p className="text-sm text-gray-400 text-center">We sturen een reset-link naar je e-mailadres.</p>
-        <Input label="E-mailadres" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" />
+        <Input light={isLightMode} label="E-mailadres" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" />
         {success ? (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-900/30 border border-green-700">
-            <CheckCircle2 size={18} className="text-green-400 shrink-0" />
-            <p className="text-sm text-green-300">{success}</p>
+          <div className={`flex items-center gap-2 p-3 rounded-lg border ${isLightMode ? 'bg-green-50 border-green-200' : 'bg-green-900/30 border-green-700'}`}>
+            <CheckCircle2 size={18} className={`shrink-0 ${isLightMode ? 'text-green-600' : 'text-green-400'}`} />
+            <p className={`text-sm ${isLightMode ? 'text-green-700' : 'text-green-300'}`}>{success}</p>
           </div>
         ) : (
           <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
@@ -302,15 +333,15 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
     if (view === 'clubAdminLogin') return (
       <form onSubmit={e => { e.preventDefault(); void handleCoachAuth(false); }} className="space-y-4">
-        <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB LOGIN</h2>
-        <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
-        <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+        <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB LOGIN</h2>
+        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
+        <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <input id="remember-club" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800" />
+            <input id="remember-club" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className={`h-4 w-4 rounded ${isLightMode ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`} />
             <label htmlFor="remember-club" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
           </div>
-          <button type="button" onClick={() => { setForgotPasswordOrigin('clubAdminLogin'); setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
+          <button type="button" onClick={() => { setForgotPasswordOrigin('clubAdminLogin'); setView('forgotPassword'); setError(''); }} className={`text-sm transition-colors ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
             Vergeten?
           </button>
         </div>
@@ -323,14 +354,14 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
     if (view === 'clubAdminRegister') return (
       <form onSubmit={handleClubAdminRegister} className="space-y-4">
-        <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors mb-2">
+        <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className={`flex items-center gap-1.5 text-sm transition-colors mb-2 ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
           <ArrowLeft size={14} /> Terug
         </button>
-        <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB REGISTRATIE</h2>
-        <Input label="Clubnaam" value={clubName} onChange={e => setClubName(e.target.value)} placeholder="bv. VV Sportlust" />
-        <Input label="Kies een unieke Club ID" value={newClubId} onChange={e => setNewClubId(e.target.value)} placeholder="bv. VVS-CLUB" />
-        <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
-        <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimaal 6 tekens" />
+        <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB REGISTRATIE</h2>
+        <Input light={isLightMode} label="Clubnaam" value={clubName} onChange={e => setClubName(e.target.value)} placeholder="bv. VV Sportlust" />
+        <Input light={isLightMode} label="Kies een unieke Club ID" value={newClubId} onChange={e => setNewClubId(e.target.value)} placeholder="bv. VVS-CLUB" />
+        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
+        <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimaal 6 tekens" />
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Club Registreren'}
         </button>
@@ -340,24 +371,24 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
     // Coach login / register
     return (
       <form onSubmit={e => { e.preventDefault(); void handleCoachAuth(view === 'coachRegister'); }} className="space-y-4">
-        <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>
+        <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>
           {view === 'coachLogin' ? 'COACH LOGIN' : 'COACH REGISTRATIE'}
         </h2>
-        <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" />
-        <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" />
+        <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
         {view === 'coachRegister' && (
           <>
-            <Input label="Kies een unieke Team ID" value={newTeamId} onChange={e => setNewTeamId(e.target.value)} placeholder="bv. VVC11-1" />
-            <Input label="Club ID (optioneel)" value={clubIdInput} onChange={e => setClubIdInput(e.target.value)} placeholder="Vraag je club admin" />
+            <Input light={isLightMode} label="Kies een unieke Team ID" value={newTeamId} onChange={e => setNewTeamId(e.target.value)} placeholder="bv. VVC11-1" />
+            <Input light={isLightMode} label="Club ID (optioneel)" value={clubIdInput} onChange={e => setClubIdInput(e.target.value)} placeholder="Vraag je club admin" />
           </>
         )}
         {view === 'coachLogin' && (
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <input id="remember-coach" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800" />
+              <input id="remember-coach" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className={`h-4 w-4 rounded ${isLightMode ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`} />
               <label htmlFor="remember-coach" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
             </div>
-            <button type="button" onClick={() => { setForgotPasswordOrigin('coachLogin'); setView('forgotPassword'); setError(''); }} className="text-sm text-gray-400 hover:text-white transition-colors">
+            <button type="button" onClick={() => { setForgotPasswordOrigin('coachLogin'); setView('forgotPassword'); setError(''); }} className={`text-sm transition-colors ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
               Vergeten?
             </button>
           </div>
@@ -372,14 +403,21 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
 
   const isCoachView = view === 'coachLogin' || view === 'coachRegister' || view === 'clubAdminLogin' || view === 'clubAdminRegister';
 
+  const tabActive = isLightMode
+    ? 'border-green-600 bg-green-50 text-gray-900'
+    : 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white';
+  const tabInactive = isLightMode
+    ? 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200';
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6">
+    <div className={`flex flex-col items-center justify-center min-h-screen px-4 gap-6${isLightMode ? ' bg-white text-gray-900' : ''}`}>
       {onBack && (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           onClick={onBack}
-          className="absolute top-5 left-5 flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+          className={`absolute top-5 left-5 flex items-center gap-1.5 text-sm transition-colors ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}
         >
           <ArrowLeft size={14} /> Terug naar home
         </motion.button>
@@ -390,16 +428,14 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
       </motion.div>
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
-        <Card>
+        <Card light={isLightMode}>
           {view !== 'forgotPassword' && view !== 'resetPassword' && (
             <div className="grid grid-cols-3 gap-2 mb-6">
               <button
                 onClick={() => { setView('playerLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
-                  view === 'playerLogin' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
-                }`}
+                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'playerLogin' ? tabActive : tabInactive}`}
               >
-                <User size={20} style={{ color: view === 'playerLogin' ? NEON_COLOR : '#6b7280' }} />
+                <User size={20} style={{ color: view === 'playerLogin' ? NEON_COLOR : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
                 <div className="text-center">
                   <div className="font-bold text-xs leading-none">Speler</div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Team + PIN</div>
@@ -407,11 +443,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
               </button>
               <button
                 onClick={() => { setView('coachLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
-                  view === 'coachLogin' || view === 'coachRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
-                }`}
+                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'coachLogin' || view === 'coachRegister' ? tabActive : tabInactive}`}
               >
-                <ShieldCheck size={20} style={{ color: view === 'coachLogin' || view === 'coachRegister' ? NEON_COLOR : '#6b7280' }} />
+                <ShieldCheck size={20} style={{ color: view === 'coachLogin' || view === 'coachRegister' ? (isLightMode ? '#16A34A' : NEON_COLOR) : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
                 <div className="text-center">
                   <div className="font-bold text-xs leading-none">Coach</div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Email + ww</div>
@@ -419,11 +453,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
               </button>
               <button
                 onClick={() => { setView('clubAdminLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${
-                  view === 'clubAdminLogin' || view === 'clubAdminRegister' ? 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white' : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200'
-                }`}
+                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'clubAdminLogin' || view === 'clubAdminRegister' ? tabActive : tabInactive}`}
               >
-                <Building2 size={20} style={{ color: view === 'clubAdminLogin' || view === 'clubAdminRegister' ? NEON_COLOR : '#6b7280' }} />
+                <Building2 size={20} style={{ color: view === 'clubAdminLogin' || view === 'clubAdminRegister' ? (isLightMode ? '#16A34A' : NEON_COLOR) : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
                 <div className="text-center">
                   <div className="font-bold text-xs leading-none">Club</div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Admin</div>
@@ -440,65 +472,65 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, onPasswordUpdated,
             </div>
           )}
           {view === 'coachLogin' && (
-            <p className="text-center text-sm mt-4 text-gray-400">
+            <p className="text-center text-sm mt-4 text-gray-500">
               Nog geen account? <button onClick={() => setView('coachRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Registreer hier</button>
             </p>
           )}
           {view === 'coachRegister' && (
-            <p className="text-center text-sm mt-4 text-gray-400">
+            <p className="text-center text-sm mt-4 text-gray-500">
               Al een account? <button onClick={() => setView('coachLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
             </p>
           )}
           {view === 'clubAdminLogin' && (
-            <p className="text-center text-sm mt-4 text-gray-400">
+            <p className="text-center text-sm mt-4 text-gray-500">
               Nog geen account? <button onClick={() => setView('clubAdminRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Club registreren</button>
             </p>
           )}
           {view === 'clubAdminRegister' && (
-            <p className="text-center text-sm mt-4 text-gray-400">
+            <p className="text-center text-sm mt-4 text-gray-500">
               Al een account? <button onClick={() => setView('clubAdminLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
             </p>
           )}
 
           {(view === 'playerLogin' || view === 'coachLogin' || view === 'clubAdminLogin') && (
-            <div className="mt-6 border-t border-gray-800 pt-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">Demo Account</p>
+            <div className={`mt-6 border-t pt-5 ${isLightMode ? 'border-gray-200' : 'border-gray-800'}`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isLightMode ? 'text-gray-400' : 'text-gray-600'}`}>Demo Account</p>
               <div className="space-y-2">
                 <button
                   type="button"
                   onClick={() => { localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false); setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left group ${isLightMode ? 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300' : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600'}`}
                 >
                   <Building2 size={15} style={{ color: NEON_COLOR }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white">Club Admin — Impact FC</p>
+                    <p className={`text-xs font-semibold ${isLightMode ? 'text-gray-800' : 'text-white'}`}>Club Admin — Impact FC</p>
                     <p className="text-[10px] text-gray-500 truncate">chat@weareimpact.nl · Skillkaart2026!</p>
                   </div>
-                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">invullen →</span>
+                  <span className={`text-[10px] transition-colors ${isLightMode ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-600 group-hover:text-gray-400'}`}>invullen →</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false); setView('coachLogin'); setEmail('v.munster@weareimpact.nl'); setPassword('Demo1234'); setError(''); }}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left group ${isLightMode ? 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300' : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600'}`}
                 >
                   <ShieldCheck size={15} style={{ color: NEON_COLOR }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white">Coach — V. Munster</p>
+                    <p className={`text-xs font-semibold ${isLightMode ? 'text-gray-800' : 'text-white'}`}>Coach — V. Munster</p>
                     <p className="text-[10px] text-gray-500 truncate">v.munster@weareimpact.nl · Demo1234</p>
                   </div>
-                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">invullen →</span>
+                  <span className={`text-[10px] transition-colors ${isLightMode ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-600 group-hover:text-gray-400'}`}>invullen →</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); setRememberMe(false); setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233'); setError(''); }}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600 transition-all text-left group"
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left group ${isLightMode ? 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300' : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600'}`}
                 >
                   <User size={15} style={{ color: NEON_COLOR }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white">Speler — Luca van den Berg</p>
+                    <p className={`text-xs font-semibold ${isLightMode ? 'text-gray-800' : 'text-white'}`}>Speler — Luca van den Berg</p>
                     <p className="text-[10px] text-gray-500">IMPACT-JO10-1 · PIN 112233</p>
                   </div>
-                  <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">invullen →</span>
+                  <span className={`text-[10px] transition-colors ${isLightMode ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-600 group-hover:text-gray-400'}`}>invullen →</span>
                 </button>
               </div>
             </div>

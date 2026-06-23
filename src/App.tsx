@@ -18,6 +18,21 @@ const AdminLogin         = lazy(() => import('./components/admin/AdminLogin'));
 // True wanneer de gebruiker /admin bezoekt — rol-gated platform-admin.
 const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
+// Redirect old voetbal-flame.vercel.app links to the canonical domain,
+// preserving the full hash (access_token, error, etc.) so Supabase can still handle them.
+if (typeof window !== 'undefined' && window.location.hostname === 'voetbal-flame.vercel.app') {
+  window.location.replace('https://skills.weareimpact.nl' + window.location.pathname + window.location.search + window.location.hash);
+}
+
+// Detect error in hash (e.g. expired OTP: #error=access_denied&error_code=otp_expired)
+const hashError = (() => {
+  if (typeof window === 'undefined' || !window.location.hash.includes('error=')) return null;
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const code = params.get('error_code') ?? '';
+  if (code === 'otp_expired') return 'Deze reset-link is verlopen. Vraag hieronder een nieuwe aan.';
+  return params.get('error_description') ?? 'Link is ongeldig of verlopen. Vraag hieronder een nieuwe aan.';
+})();
+
 // getSession() can hang when Supabase tries to refresh an expired token.
 // Always call it for recovery URLs (implicit: #type=recovery, PKCE: ?code=…).
 // For normal navigations, skip if there's no stored session to avoid cold-start delay.
@@ -45,15 +60,22 @@ export default function Skillkaart() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [consentGiven, setConsentGiven] = useState(hasConsented);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth] = useState(!!hashError);
   const [showParentAuth, setShowParentAuth] = useState(false);
   const [showParentDemo, setShowParentDemo] = useState(false);
   const lastKnownUserId = useRef(null);
 
-  // Warm up the PostgREST database connection in the background so the first
-  // login query doesn't hit a cold-start delay on Supabase free tier.
+  // Warm up both Supabase services on page load so cold-start delay is absorbed
+  // while the user is still typing credentials, not after they click submit.
+  // PostgREST and GoTrue (Auth) are separate services with independent cold starts.
   useEffect(() => {
-    const ping = async () => { try { await supabase.from('players').select('id').limit(1); } catch { /* ignore */ } };
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const ping = async () => {
+      await Promise.allSettled([
+        supabase.from('players').select('id').limit(1),        // warms PostgREST + DB
+        fetch(`${supabaseUrl}/auth/v1/health`, { method: 'GET' }), // warms GoTrue
+      ]);
+    };
     void ping();
   }, []);
 
@@ -197,7 +219,7 @@ export default function Skillkaart() {
 
   if (isAdminRoute) {
     return (
-      <div className="bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+      <div className="bg-white text-gray-900 font-sans min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
         <ErrorBoundary>
           {loading ? (
             <div className="min-h-screen flex items-center justify-center">
@@ -213,8 +235,8 @@ export default function Skillkaart() {
             </Suspense>
           ) : (
             <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-              <h1 className="text-2xl font-black mb-2">Geen toegang</h1>
-              <p className="text-gray-400 mb-6">Dit gedeelte is alleen voor de platformbeheerder.</p>
+              <h1 className="text-2xl font-black mb-2 text-gray-900">Geen toegang</h1>
+              <p className="text-gray-500 mb-6">Dit gedeelte is alleen voor de platformbeheerder.</p>
               <button onClick={() => { window.location.href = '/'; }} className="px-5 py-2 rounded-lg bg-[--neon-color] text-black font-bold">
                 Terug naar app
               </button>
@@ -256,6 +278,7 @@ export default function Skillkaart() {
             <AuthComponent
               onPlayerLogin={handlePlayerLogin}
               isRecovering={isRecovering}
+              initialError={hashError ?? undefined}
               onBack={isRecovering ? undefined : () => setShowAuth(false)}
               onPasswordUpdated={() => {
                 setIsRecovering(false);
