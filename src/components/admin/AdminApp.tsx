@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import {
   LayoutDashboard, Users, Mail, FileText, Ticket, Building2,
   LogOut, Loader2, RefreshCw, TrendingUp, Video, Activity,
-  AlertTriangle, UserCog, Sparkles,
+  AlertTriangle, UserCog, Sparkles, BookOpen,
 } from 'lucide-react';
 import { NEON_COLOR } from '../../utils/constants';
 import Card from '../ui/Card';
@@ -15,10 +15,11 @@ const CrmModule = lazy(() => import('./CrmModule'));
 const MailModule = lazy(() => import('./MailModule'));
 const BlogModule = lazy(() => import('./BlogModule'));
 const CouponsModule = lazy(() => import('./CouponsModule'));
+const TrainingModule = lazy(() => import('./TrainingModule'));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SectionId = 'cockpit' | 'crm' | 'mail' | 'blog' | 'coupons';
+type SectionId = 'cockpit' | 'crm' | 'mail' | 'blog' | 'coupons' | 'trainingen';
 
 interface AdminAppProps {
   userData: UserData;
@@ -37,7 +38,8 @@ const NAV: NavItem[] = [
   { id: 'crm',     label: 'CRM',     icon: Users,           ready: true },
   { id: 'mail',    label: 'Mail',    icon: Mail,            ready: true },
   { id: 'blog',    label: 'Blog',    icon: FileText,        ready: true },
-  { id: 'coupons', label: 'Coupons', icon: Ticket,          ready: true },
+  { id: 'coupons',    label: 'Coupons',     icon: Ticket,      ready: true },
+  { id: 'trainingen', label: 'Voetballessen', icon: BookOpen,  ready: true },
 ];
 
 // ─── KPI-kaart ────────────────────────────────────────────────────────────────
@@ -242,6 +244,10 @@ export default function AdminApp({ userData, onLogout }: AdminAppProps) {
           ) : section === 'coupons' ? (
             <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="animate-spin h-8 w-8" style={{ color: NEON_COLOR }} /></div>}>
               <CouponsModule />
+            </Suspense>
+          ) : section === 'trainingen' ? (
+            <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="animate-spin h-8 w-8" style={{ color: NEON_COLOR }} /></div>}>
+              <TrainingModule />
             </Suspense>
           ) : (
             <ComingSoon label={NAV.find((n) => n.id === section)?.label ?? ''} />

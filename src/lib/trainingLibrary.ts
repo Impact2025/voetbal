@@ -31,6 +31,18 @@ export function weekNumberToDate(year: number, week: number): Date {
   return target;
 }
 
+export async function fetchAllClubsWithTier(): Promise<{ id: string; name: string; subscription_tier: 'free' | 'pro' }[]> {
+  const { data } = await supabase
+    .from('clubs')
+    .select('id, name, subscription_tier')
+    .order('name');
+  return (data ?? []).map(c => ({
+    id: c.id as string,
+    name: (c.name as string) ?? c.id,
+    subscription_tier: (c.subscription_tier as 'free' | 'pro') ?? 'free',
+  }));
+}
+
 export async function fetchClubSubscriptionTier(clubId: string): Promise<'free' | 'pro'> {
   const { data } = await supabase
     .from('clubs')
