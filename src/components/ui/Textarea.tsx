@@ -8,21 +8,27 @@ interface TextareaProps {
   disabled?: boolean;
   className?: string;
   children?: ReactNode;
+  light?: boolean;
+  rows?: number;
 }
 
-const Textarea = ({ label, value, onChange, placeholder, disabled = false, className = '', children }: TextareaProps) => (
+const Textarea = ({ label, value, onChange, placeholder, disabled = false, className = '', children, light = false, rows = 4 }: TextareaProps) => (
   <div className={className}>
-    <div className="flex justify-between items-center mb-2">
-      {label && <label className="block text-sm font-medium text-gray-400">{label}</label>}
+    <div className="flex justify-between items-center mb-1.5">
+      {label && <label className={`block text-sm font-medium ${light ? 'text-gray-500' : 'text-gray-400'}`}>{label}</label>}
       {children}
     </div>
     <textarea
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      rows={4}
+      rows={rows}
       disabled={disabled}
-      className={`w-full bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-3 text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[--neon-color] resize-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`w-full rounded-xl px-3 py-3 text-sm resize-none transition-colors focus:outline-none focus:ring-2 ${
+        light
+          ? 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-offset-white focus:ring-[--neon-color] focus:border-transparent'
+          : 'bg-gray-900/50 border border-gray-700 text-white placeholder-gray-500 focus:ring-offset-gray-900 focus:ring-[--neon-color]'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     />
   </div>
 );

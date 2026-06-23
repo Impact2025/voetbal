@@ -671,54 +671,40 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
             {/* ── SPELERS ── */}
             {mobileSection === 'spelers' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
 
-                {/* Player selector */}
-                <div className="flex gap-3 overflow-x-auto pb-1">
+                {/* Player selector – compact pill row */}
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                   {players.map(player => {
                     const assignedCount = teamData.assigned_homework_ids?.length || 0;
                     const completedCount = player.completed_homework_ids?.filter(id => teamData.assigned_homework_ids?.includes(id)).length || 0;
+                    const allDone = assignedCount > 0 && completedCount === assignedCount;
                     const isActive = activePlayerId === player.id;
                     return (
-                      <motion.div
+                      <button
                         key={player.id}
-                        role="button"
-                        tabIndex={0}
                         onClick={() => setActivePlayerId(player.id)}
-                        onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setActivePlayerId(player.id); }}
-                        className={`relative shrink-0 flex flex-col items-start gap-2 p-3 rounded-xl transition-all cursor-pointer border ${
-                          isActive ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:bg-gray-50'
+                        className={`shrink-0 flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full border transition-all text-sm font-medium whitespace-nowrap ${
+                          isActive
+                            ? 'border-green-500 bg-green-50 text-gray-900'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                         }`}
-                        whileHover={{ y: -2 }}
                       >
-                        <div className="flex items-center gap-3">
-                          <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full" />
-                          <span className="font-semibold whitespace-nowrap text-sm">{player.name}</span>
-                        </div>
+                        <img src={player.avatar_url} alt={player.name} className="w-7 h-7 rounded-full shrink-0" />
+                        {player.name.split(' ')[0]}
                         {assignedCount > 0 && (
-                          <div className="text-xs text-gray-500 flex items-center gap-1 pl-1">
-                            <CheckCircle2 size={12} className={completedCount === assignedCount ? 'text-green-400' : 'text-gray-700'} />
-                            HW: {completedCount}/{assignedCount}
-                          </div>
+                          <span className={`text-[11px] font-semibold tabular-nums ${allDone ? 'text-green-500' : 'text-gray-400'}`}>
+                            {completedCount}/{assignedCount}
+                          </span>
                         )}
-                        <button onClick={e => { e.stopPropagation(); setEditingPlayer(player); }} className="absolute -top-2 -left-2 p-1 bg-blue-600 rounded-full text-white hover:bg-blue-500 transition-colors" aria-label="Profiel bewerken">
-                          <User size={11} />
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); handleRemovePlayer(player.id); }} className="absolute -top-2 -right-2 p-1 bg-red-600 rounded-full text-white hover:bg-red-500 transition-colors" aria-label="Verwijder speler">
-                          <Trash2 size={11} />
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); handleGenerateLinkCode(player.id); }} className="absolute -bottom-2 -right-2 p-1 bg-purple-600 rounded-full text-white hover:bg-purple-500 transition-colors" aria-label="Genereer ouder-koppelcode" title="Ouder koppelen">
-                          <Link2 size={11} />
-                        </button>
-                      </motion.div>
+                      </button>
                     );
                   })}
                   <button
                     onClick={() => setIsAddPlayerVisible(true)}
-                    className="shrink-0 flex flex-col items-center justify-center gap-1.5 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-green-600 min-w-[5rem] h-[5rem] transition-colors text-gray-400 hover:text-green-600"
+                    className="shrink-0 flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full border-2 border-dashed border-gray-200 hover:border-green-500 transition-colors text-gray-400 hover:text-green-600 text-sm font-medium whitespace-nowrap"
                   >
-                    <Plus size={18} />
-                    <span className="text-[10px] font-semibold uppercase tracking-wide">Toevoegen</span>
+                    <Plus size={14} /> Toevoegen
                   </button>
                 </div>
 
@@ -736,28 +722,40 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   <>
                     {/* Player header */}
                     <Card light>
-                      <div className="flex items-center gap-4">
-                        <img src={activePlayer.avatar_url} alt={activePlayer.name} className="w-14 h-14 rounded-full border-2 shrink-0" style={{ borderColor: NEON_COLOR }} />
+                      <div className="flex items-center gap-3">
+                        <img src={activePlayer.avatar_url} alt={activePlayer.name} className="w-12 h-12 rounded-full shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <h2 className="text-xl font-black truncate text-gray-900">{activePlayer.name}</h2>
-                          <p className="text-sm text-gray-500">{activePlayer.position || 'Positie niet ingesteld'} · {activePlayer.age ? `${activePlayer.age} jaar` : ''}</p>
+                          <h2 className="text-lg font-black truncate text-gray-900">{activePlayer.name}</h2>
+                          <p className="text-xs text-gray-400">{activePlayer.position || 'Positie niet ingesteld'}{activePlayer.age ? ` · ${activePlayer.age} jaar` : ''}</p>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-3xl font-black" style={{ color: NEON_COLOR }}>
-                            {Math.round(radarChartData.reduce((s, sk) => s + sk.value, 0) / skillKeys.length * 10)}
+                        {/* Inline action buttons */}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button onClick={() => setEditingPlayer(activePlayer)} title="Profiel bewerken" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                            <User size={15} />
+                          </button>
+                          <button onClick={() => handleGenerateLinkCode(activePlayer.id)} title="Ouder koppelen" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                            <Link2 size={15} />
+                          </button>
+                          <button onClick={() => handleRemovePlayer(activePlayer.id)} title="Speler verwijderen" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <Trash2 size={15} />
+                          </button>
+                          <div className="ml-2 text-right">
+                            <div className="text-2xl font-black tabular-nums" style={{ color: NEON_COLOR }}>
+                              {Math.round(radarChartData.reduce((s, sk) => s + sk.value, 0) / skillKeys.length * 10)}
+                            </div>
+                            <div className="text-[9px] text-gray-400 uppercase tracking-wide">score</div>
                           </div>
-                          <div className="text-[10px] text-gray-500 uppercase tracking-wide">score</div>
                         </div>
                       </div>
 
                       {/* Period tabs */}
-                      <div className="flex items-center justify-between mt-5 border-b border-gray-200">
+                      <div className="flex items-center justify-between mt-4 border-b border-gray-100">
                         <div className="flex overflow-x-auto">
                           {teamPeriods.map(period => (
                             <button
                               key={period}
                               onClick={() => setActiveTab(period)}
-                              className={`px-4 py-2.5 text-sm font-semibold relative transition-colors shrink-0 ${activeTab === period ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                              className={`px-3 py-2.5 text-sm font-semibold relative transition-colors shrink-0 ${activeTab === period ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                             >
                               {period}
                               {activeTab === period && (
@@ -766,23 +764,24 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             </button>
                           ))}
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-1.5 shrink-0 pb-1">
                           <ToolButton light onClick={() => setIsTestsVisible(true)}>
-                            <FileText size={14} /> Testen
+                            <FileText size={13} /> Testen
                           </ToolButton>
                           <ToolButton light onClick={() => exportPlayerPdf(activePlayer, teamData.team_name || 'Team', teamPeriods)}>
-                            <Download size={14} /> PDF
+                            <Download size={13} /> PDF
                           </ToolButton>
                         </div>
                       </div>
 
                       {/* Skills */}
                       <AnimatePresence mode="wait">
-                        <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="mt-5">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="mt-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                             {skillKeys.map(key => (
                               <Slider
                                 key={key}
+                                light
                                 label={key}
                                 value={activePlayer.evaluations[activeTab]?.skills[key] || 5}
                                 onChange={e => handleUpdateEvaluation(`skills.${key}`, parseInt(e.target.value))}
@@ -790,9 +789,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               />
                             ))}
                           </div>
-                          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="mt-5 max-w-[200px]">
                             <Input
-                              label="Wedstrijdcijfer (0-10)"
+                              light
+                              label="Wedstrijdcijfer (0–10)"
                               type="number"
                               value={activePlayer.evaluations[activeTab]?.matchRating || ''}
                               onChange={e => handleUpdateEvaluation('matchRating', parseFloat(e.target.value))}
@@ -806,13 +806,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     {/* Comments */}
                     <Card light>
                       <Textarea
+                        light
                         label="Opmerkingen Coach"
                         placeholder="Sterke punten, verbeterpunten..."
                         value={activePlayer.evaluations[activeTab]?.comments || ''}
                         onChange={e => handleUpdateEvaluation('comments', e.target.value)}
                         disabled={false}
                       >
-                        <button onClick={handleGenerateComments} disabled={isGenerating.comments} className="text-xs flex items-center gap-1 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+                        <button onClick={handleGenerateComments} disabled={isGenerating.comments} className="text-xs flex items-center gap-1 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50">
                           {isGenerating.comments ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} style={{ color: NEON_COLOR }} />}
                           Genereer
                         </button>
@@ -1163,18 +1164,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
             {/* ── VRAGEN ── */}
             {mobileSection === 'vragen' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
                 <div>
-                  <h2 className="text-xl font-black text-gray-900">Reflectievragen</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Stel wekelijkse vragen aan het team</p>
+                  <h2 className="text-lg font-black text-gray-900">Reflectievragen</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">Wekelijkse vragen voor je team</p>
                 </div>
 
                 <Card light>
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Vragen voor spelers</p>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {questionDrafts.map((value, idx) => (
                       <Textarea
                         key={`coach-question-${idx}`}
+                        light
+                        rows={3}
                         label={`Vraag ${idx + 1}`}
                         value={value}
                         onChange={e => {
@@ -1186,8 +1189,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                       />
                     ))}
                   </div>
-                  <div className="mt-5 flex justify-end gap-3">
-                    <button onClick={() => setQuestionDrafts(['', '', ''])} className="px-4 py-2 rounded-xl bg-gray-800 text-sm text-gray-300 hover:bg-gray-700 transition-colors border border-gray-700">
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button onClick={() => setQuestionDrafts(['', '', ''])} className="px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-500 hover:bg-gray-200 transition-colors border border-gray-200">
                       Reset
                     </button>
                     <button
@@ -1205,32 +1208,30 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 {/* Player answers */}
                 {visibleQuestions.length > 0 && players.length > 0 && (
                   <Card light>
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Antwoorden per speler</p>
-                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Antwoorden per speler</p>
                     {/* Player selector */}
-                    <div className="flex gap-2 overflow-x-auto pb-3 mb-4 border-b border-gray-200">
+                    <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
                       {players.map(p => (
                         <button
                           key={p.id}
                           onClick={() => setActivePlayerId(p.id)}
-                          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${
                             activePlayerId === p.id
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                              ? 'border-green-500 bg-green-50 text-gray-900'
+                              : 'border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300'
                           }`}
                         >
-                          <img src={p.avatar_url} className="w-5 h-5 rounded-full" alt={p.name} />
+                          <img src={p.avatar_url} className="w-5 h-5 rounded-full shrink-0" alt={p.name} />
                           {p.name.split(' ')[0]}
                         </button>
                       ))}
                     </div>
                     {activePlayer ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {visibleQuestions.map(({ text, idx }) => (
-                          <div key={idx} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                          <div key={idx} className="p-3.5 rounded-xl bg-gray-50 border border-gray-100">
                             <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Vraag {idx + 1}</p>
-                            <p className="text-sm text-gray-900 font-semibold mb-2">{text}</p>
+                            <p className="text-sm text-gray-800 font-semibold mb-2 leading-snug">{text}</p>
                             <p className="text-sm text-gray-600 leading-relaxed">
                               {activePlayer.weekly_question_responses?.[idx]?.trim()
                                 ? activePlayer.weekly_question_responses[idx]
