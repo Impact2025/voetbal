@@ -20,12 +20,12 @@ const timeline = [
 
 export default function Story() {
   return (
-    <section id="verhaal" className="py-24 bg-dark-800">
+    <section id="verhaal" className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
             <div>
-              <p className="text-neon text-sm font-semibold uppercase tracking-widest mb-3">
+              <p className="text-neon-ink text-sm font-semibold uppercase tracking-widest mb-3">
                 Over ons
               </p>
               <h2 className="text-3xl sm:text-4xl font-black leading-tight">
@@ -34,16 +34,16 @@ export default function Story() {
               </h2>
             </div>
 
-            <p className="text-white/60 leading-relaxed">
-              De basis van Skillkaart ligt in de <strong className="text-white">Haarlemmermeer</strong>. Tijdens de
+            <p className="text-slate-600 leading-relaxed">
+              De basis van Skillkaart ligt in de <strong className="text-slate-900">Haarlemmermeer</strong>. Tijdens de
               ontwikkeling van het platform zochten we niet naar de zoveelste software-investeerder,
               maar naar échte voetbalinhoud.
             </p>
 
-            <p className="text-white/60 leading-relaxed">
+            <p className="text-slate-600 leading-relaxed">
               Samen vormen zij de perfecte combinatie: technologisch vooruitstrevend, maar volledig
               geworteld in de praktijk van het Nederlandse amateurvoetbal.{' '}
-              <span className="text-white font-semibold">
+              <span className="text-slate-900 font-semibold">
                 Geen theoretische software van een verre multinational
               </span>
               , maar een platform gebouwd en getest op de velden in Nieuw-Vennep, Zwanenburg en
@@ -63,25 +63,25 @@ export default function Story() {
             <div className="space-y-8">
               {timeline.map((item, i) => (
                 <div key={i} className="flex gap-6 relative">
-                  <div className="w-14 h-14 rounded-2xl bg-dark-700 border border-neon/30 flex items-center justify-center flex-shrink-0 z-10">
-                    <item.icon size={20} className="text-neon" />
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-neon/40 shadow-sm flex items-center justify-center flex-shrink-0 z-10">
+                    <item.icon size={20} className="text-neon-ink" />
                   </div>
                   <div className="pt-3">
                     <h3 className="font-bold text-lg mb-1">{item.title}</h3>
-                    <p className="text-white/50 text-sm leading-relaxed">{item.text}</p>
+                    <p className="text-slate-500 text-sm leading-relaxed">{item.text}</p>
                   </div>
                 </div>
               ))}
 
               <div className="flex gap-4 pt-4 pl-20">
-                <div className="flex-1 bg-dark-700 rounded-xl p-4 border border-white/10 text-center">
-                  <p className="text-neon font-black text-lg">WeAre<br/>imPact</p>
-                  <p className="text-white/40 text-xs mt-1">Tech & AI</p>
+                <div className="flex-1 bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+                  <p className="text-neon-ink font-black text-lg">WeAre<br/>imPact</p>
+                  <p className="text-slate-400 text-xs mt-1">Tech & AI</p>
                 </div>
-                <div className="flex items-center text-white/20 font-bold text-xl">×</div>
-                <div className="flex-1 bg-dark-700 rounded-xl p-4 border border-white/10 text-center">
-                  <p className="text-white font-black text-lg leading-tight">UFA</p>
-                  <p className="text-white/40 text-xs mt-1">Voetbalinhoud</p>
+                <div className="flex items-center text-slate-300 font-bold text-xl">×</div>
+                <div className="flex-1 bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+                  <p className="text-slate-900 font-black text-lg leading-tight">UFA</p>
+                  <p className="text-slate-400 text-xs mt-1">Voetbalinhoud</p>
                 </div>
               </div>
             </div>

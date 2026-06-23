@@ -16,8 +16,8 @@ export default function Hero() {
           <div className="space-y-8">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-neon/10 border border-neon/30 rounded-full px-4 py-1.5">
-              <div className="w-2 h-2 bg-neon rounded-full animate-pulse" />
-              <span className="text-neon text-xs font-semibold uppercase tracking-wider">
+              <div className="w-2 h-2 bg-neon-ink rounded-full animate-pulse" />
+              <span className="text-neon-ink text-xs font-semibold uppercase tracking-wider">
                 Nieuw · Seizoen 2026/2027
               </span>
             </div>
@@ -28,15 +28,15 @@ export default function Hero() {
                 Geef jouw jeugdspelers{' '}
                 <span className="neon-text">de ultieme profervaring.</span>
                 <br />
-                <span className="text-white/90">Volledig automatisch.</span>
+                <span className="text-slate-900">Volledig automatisch.</span>
               </h1>
             </div>
 
             {/* Subheadline */}
-            <p className="text-lg text-white/60 leading-relaxed max-w-xl">
+            <p className="text-lg text-slate-600 leading-relaxed max-w-xl">
               Het eerste Nederlandse platform dat AI-gedreven skill tracking, persoonlijke dashboards
               en de voetbalexpertise van Ultimate Football Academy combineert voor teams van{' '}
-              <span className="text-white font-semibold">7 tot 12 jaar</span>.
+              <span className="text-slate-900 font-semibold">7 tot 12 jaar</span>.
             </p>
 
             {/* CTAs */}
@@ -49,7 +49,7 @@ export default function Hero() {
               </a>
               <a
                 href="#features"
-                className="px-8 py-4 rounded-xl font-bold text-base text-center border border-white/20 text-white hover:border-neon/40 hover:text-neon transition-all inline-flex items-center justify-center gap-2"
+                className="px-8 py-4 rounded-xl font-bold text-base text-center border border-slate-300 text-slate-700 hover:border-neon-ink/40 hover:text-neon-ink transition-all inline-flex items-center justify-center gap-2"
               >
                 Bekijk hoe het werkt ↓
               </a>
@@ -57,16 +57,16 @@ export default function Hero() {
 
             {/* Trust indicators */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-2">
-              <div className="flex items-center gap-2 text-white/50 text-sm">
-                <span className="text-neon text-lg">✓</span>
+              <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <span className="text-neon-ink text-lg">✓</span>
                 <span>Inclusief UFA-curriculum</span>
               </div>
-              <div className="flex items-center gap-2 text-white/50 text-sm">
-                <span className="text-neon text-lg">✓</span>
+              <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <span className="text-neon-ink text-lg">✓</span>
                 <span>AVG-compliant</span>
               </div>
-              <div className="flex items-center gap-2 text-white/50 text-sm">
-                <span className="text-neon text-lg">✓</span>
+              <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <span className="text-neon-ink text-lg">✓</span>
                 <span>Vanaf €150/jaar</span>
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function Hero() {
       </div>
 
       {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-dark-900 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent pointer-events-none" />
     </section>
   )
 }

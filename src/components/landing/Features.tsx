@@ -18,10 +18,10 @@ const features = [
         ].map((s) => (
           <div key={s.label}>
             <div className="flex justify-between mb-1">
-              <span className="text-white/60 text-xs">{s.label}</span>
-              <span className="text-neon text-xs font-bold">{s.val}/10</span>
+              <span className="text-slate-600 text-xs">{s.label}</span>
+              <span className="text-neon-ink text-xs font-bold">{s.val}/10</span>
             </div>
-            <div className="bg-dark-600 rounded-full h-2">
+            <div className="bg-slate-200 rounded-full h-2">
               <div
                 className="bg-gradient-to-r from-neon to-neon-dark rounded-full h-2 transition-all"
                 style={{ width: `${s.val * 10}%` }}
@@ -40,18 +40,18 @@ const features = [
       'Nooit meer urenlang teksten typen. Onze geavanceerde AI-module analyseert de ingevoerde sliders en genereert automatisch op maat gemaakte, motiverende opmerkingen en trainingsplannen voor de speler. Persoonlijke begeleiding op schaal.',
     highlights: ['Google Gemini 2.5', 'Automatisch gegenereerd', 'Motiverende teksten', 'Trainingsplannen'],
     visual: (
-      <div className="bg-dark-600 rounded-xl p-3 border border-neon/20">
+      <div className="bg-slate-50 rounded-xl p-3 border border-neon/30">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 bg-neon rounded-full animate-pulse" />
-          <span className="text-neon text-xs font-semibold">AI genereert...</span>
+          <div className="w-2 h-2 bg-neon-ink rounded-full animate-pulse" />
+          <span className="text-neon-ink text-xs font-semibold">AI genereert...</span>
         </div>
-        <p className="text-white/70 text-xs leading-relaxed">
+        <p className="text-slate-700 text-xs leading-relaxed">
           "Thomas, jouw techniek is indrukwekkend voor jouw leeftijd! Focus deze week op je
           passing in kleine ruimtes. Oefen de wandpass 10 minuten per dag..."
         </p>
         <div className="mt-2 flex gap-1">
           {['Techniek', 'Passing', 'Focus'].map((tag) => (
-            <span key={tag} className="bg-neon/10 text-neon text-[10px] px-2 py-0.5 rounded-full border border-neon/20">
+            <span key={tag} className="bg-neon/10 text-neon-ink text-[10px] px-2 py-0.5 rounded-full border border-neon/20">
               {tag}
             </span>
           ))}
@@ -115,12 +115,12 @@ const features = [
               className={`w-4 h-4 rounded flex items-center justify-center text-[10px] border flex-shrink-0 ${
                 item.done
                   ? 'bg-neon border-neon text-dark-900'
-                  : 'border-white/30 text-transparent'
+                  : 'border-slate-300 text-transparent'
               }`}
             >
               ✓
             </div>
-            <span className={`text-xs ${item.done ? 'text-white/60 line-through' : 'text-white'}`}>
+            <span className={`text-xs ${item.done ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
               {item.text}
             </span>
           </div>
@@ -132,14 +132,14 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="py-24 bg-dark-800">
+    <section id="features" className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16 space-y-3">
-          <p className="text-neon text-sm font-semibold uppercase tracking-widest">Productkenmerken</p>
+          <p className="text-neon-ink text-sm font-semibold uppercase tracking-widest">Productkenmerken</p>
           <h2 className="text-3xl sm:text-4xl font-black">
             Alles in één platform
           </h2>
-          <p className="text-white/50 max-w-xl mx-auto">
+          <p className="text-slate-500 max-w-xl mx-auto">
             Van coach-evaluatie tot speler-dashboard — Skillkaart begeleidt de volledige
             ontwikkelingscyclus van uw jeugdspelers.
           </p>
@@ -155,9 +155,9 @@ export default function Features() {
                 <div>
                   <div className="flex items-center gap-2.5 mb-3">
                     <div className="w-8 h-8 rounded-lg bg-neon/10 border border-neon/20 flex items-center justify-center flex-shrink-0">
-                      <f.icon size={15} className="text-neon" />
+                      <f.icon size={15} className="text-neon-ink" />
                     </div>
-                    <span className="text-neon text-xs font-semibold uppercase tracking-widest bg-neon/10 px-2 py-0.5 rounded-full border border-neon/20">
+                    <span className="text-neon-ink text-xs font-semibold uppercase tracking-widest bg-neon/10 px-2 py-0.5 rounded-full border border-neon/20">
                       {f.tag}
                     </span>
                   </div>
@@ -165,17 +165,17 @@ export default function Features() {
                 </div>
               </div>
 
-              <div className="bg-dark-700 rounded-xl p-4 mb-6 border border-white/5 min-h-[100px] flex flex-col justify-center">
+              <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200 min-h-[100px] flex flex-col justify-center">
                 {f.visual}
               </div>
 
-              <p className="text-white/60 text-sm leading-relaxed mb-4">{f.description}</p>
+              <p className="text-slate-600 text-sm leading-relaxed mb-4">{f.description}</p>
 
               <div className="flex flex-wrap gap-2">
                 {f.highlights.map((h) => (
                   <span
                     key={h}
-                    className="text-xs text-white/60 bg-dark-600 border border-white/10 px-2.5 py-1 rounded-full"
+                    className="text-xs text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full"
                   >
                     {h}
                   </span>

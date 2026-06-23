@@ -3,7 +3,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, Streak } from '../../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, BarChart2, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2 } from 'lucide-react';
+import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
@@ -31,11 +31,14 @@ import PlayerHomeworkCard from '../players/PlayerHomeworkCard';
 import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
 import PlayerOverview from './PlayerOverview';
+import TodayScreen from './TodayScreen';
 import PlayerCard from '../card/PlayerCard';
 import TierUpModal from '../feedback/TierUpModal';
 import StreakWidget from '../streak/StreakWidget';
 import ChallengeLibrary from '../challenges/ChallengeLibrary';
 import OnboardingTour from '../OnboardingTour';
+import ProGate from '../ui/ProGate';
+const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
 import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
 import type { PlayerStats, CardTier } from '../../types';
@@ -56,12 +59,9 @@ const COACH_SECTIONS = [
 ] as const;
 
 const PLAYER_SECTIONS = [
-  { id: 'dashboard',  label: 'Dashboard',     icon: LayoutDashboard },
-  { id: 'kaart',      label: 'Mijn Kaart',    icon: Trophy },
-  { id: 'huiswerk',   label: 'Huiswerk',      icon: ClipboardList },
-  { id: 'skills',     label: 'Skills',        icon: User },
-  { id: 'stats',      label: 'Statistieken',  icon: TrendingUp },
-  { id: 'vragen',     label: 'Vragen',        icon: ShieldCheck },
+  { id: 'vandaag',  label: 'Vandaag',     icon: Flame },
+  { id: 'kaart',    label: 'Mijn Kaart',  icon: Trophy },
+  { id: 'ik',       label: 'Ik',          icon: User },
 ] as const;
 
 const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
@@ -99,8 +99,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [challengeCompletions, setChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [fetchError, setFetchError] = useState(false);
-  const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'dashboard');
+  const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'vandaag');
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isClubPro, setIsClubPro] = useState(false);
 
   useEffect(() => {
     if (!userData.teamId) return;
@@ -186,6 +187,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
     return () => supabase.removeAllChannels();
   }, [userData, user.id]);
+
+  // Load club PRO status
+  useEffect(() => {
+    if (!userData.clubId || userData.role !== 'coach') return;
+    supabase.from('clubs').select('subscription_tier').eq('id', userData.clubId).single()
+      .then(({ data }) => setIsClubPro(data?.subscription_tier === 'pro'))
+      .catch(() => {/* clubs table may not have this column yet */});
+  }, [userData.clubId, userData.role]);
 
   // Load player stats, streak and challenge completions for the player role
   useEffect(() => {
@@ -1005,6 +1014,29 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             {mobileSection === 'trainingen' && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
 
+                {/* Seizoensprogramma PRO */}
+                {userData.clubId && (
+                  isClubPro ? (
+                    <Suspense fallback={<div className="h-32 bg-gray-800/40 rounded-2xl animate-pulse" />}>
+                      <SeasonTrainingView clubId={userData.clubId} />
+                    </Suspense>
+                  ) : (
+                    <ProGate
+                      feature="Seizoensprogramma"
+                      description="32 KNVB-trainingen per leeftijdscategorie, inclusief wekelijks huiswerk en challenges. Activeer PRO via je club-admin."
+                    />
+                  )
+                )}
+
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-gray-800" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-2 flex items-center gap-1.5">
+                    <Zap size={9} /> AI Plannen
+                  </span>
+                  <div className="h-px flex-1 bg-gray-800" />
+                </div>
+
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
@@ -1293,56 +1325,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           {/* Main content */}
           <main className="flex-1 px-4 py-5 max-w-6xl mx-auto w-full pb-28 sm:pb-10">
 
-          {/* Reflectievragen speler */}
-          {visibleQuestions.length > 0 && (
-            <motion.div className={`mb-6 ${mobileSection === 'vragen' ? '' : 'hidden'}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-              <Card>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-xl font-bold flex items-center gap-2"><ShieldCheck size={20} className="text-[--neon-color]" /> Coach Vragen</h3>
-                  <p className="text-sm text-gray-400">Beantwoord de vragen van je coach.</p>
-                </div>
-                <div className="mt-4 space-y-5">
-                  {visibleQuestions.map(({ text, idx }) => (
-                    <div key={`player-question-${idx}`} className="space-y-2">
-                      <p className="text-sm font-semibold text-[--neon-color] uppercase tracking-wide">Vraag {idx + 1}</p>
-                      <p className="text-base text-white leading-relaxed">{text}</p>
-                      <Textarea
-                        label="Jouw antwoord"
-                        value={responseDrafts[idx]}
-                        onChange={e => {
-                          const updated = [...responseDrafts];
-                          updated[idx] = e.target.value;
-                          setResponseDrafts(updated);
-                        }}
-                        placeholder="Schrijf hier je antwoord..."
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button onClick={handleSaveQuestionResponses} disabled={savingResponses} className="px-4 py-2 rounded-lg bg-[--neon-color] text-black font-semibold hover:opacity-90 transition-opacity flex items-center disabled:opacity-50">
-                    {savingResponses ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
-                    Verstuur antwoorden
-                  </button>
-                </div>
-              </Card>
-            </motion.div>
-          )}
+          {/* ════════════════ VANDAAG — één actie, rustig overzicht ════════════════ */}
+          {mobileSection === 'vandaag' && (
+            <div className="space-y-5">
+              <TodayScreen
+                player={activePlayer}
+                streak={streak}
+                customHomework={customHomework}
+                assignedHomeworkIds={teamData.assigned_homework_ids || []}
+                completions={challengeCompletions}
+                hasOpenQuestions={visibleQuestions.some(({ idx }) => !responseDrafts[idx]?.trim())}
+              />
 
-          {/* Player overview */}
-          <div className={`mb-6 ${mobileSection === 'dashboard' ? '' : 'hidden'}`}>
-            <PlayerOverview player={activePlayer} players={players} teamData={teamData} activeTab={activeTab} />
-          </div>
-
-          {/* Mijn Kaart — Inzet-DNA */}
-          <div className={`mb-6 space-y-3 ${mobileSection === 'kaart' ? '' : 'hidden'}`}>
-            <StreakWidget streak={streak} />
-            <PlayerCard player={activePlayer} stats={playerStats} />
-          </div>
-
-          <div className={((['huiswerk', 'skills', 'stats'].includes(mobileSection)) ? '' : 'hidden')}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <motion.div className={`lg:col-span-3 space-y-4${mobileSection !== 'huiswerk' ? ' hidden' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              <div id="today-homework" className="scroll-mt-24">
                 <PlayerHomeworkCard
                   player={activePlayer}
                   teamId={userData.teamId ?? ''}
@@ -1352,113 +1347,121 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   onToggleStatus={handleToggleHomeworkStatus}
                   onSubmissionComplete={handleSubmissionComplete}
                 />
-                <div className="rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4">
-                  <ChallengeLibrary
-                    player={activePlayer}
-                    completions={challengeCompletions}
-                    onComplete={handleChallengeComplete}
-                  />
-                </div>
-              </motion.div>
-              <div className="lg:col-span-1 flex flex-col gap-6">
-                <motion.div className={mobileSection !== 'skills' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                  <Card className="h-full">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="relative mb-4">
-                        <img src={activePlayer.avatar_url} alt={activePlayer.name} className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-2" style={{ borderColor: NEON_COLOR }} />
-                        <div className="absolute -bottom-2 right-0 bg-gray-900 px-4 py-1 rounded-full border" style={{ borderColor: NEON_COLOR, color: NEON_COLOR }}>
-                          <span className="text-2xl font-black">{Math.round(radarChartData.reduce((sum, skill) => sum + skill.value, 0) / skillKeys.length * 10)}</span>
-                        </div>
-                      </div>
-                      <h2 className="text-2xl font-bold">{activePlayer.name}</h2>
-                    </div>
-                    <div className="h-64 sm:h-80 mt-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarChartData}>
-                          <PolarGrid stroke="#4A5568" />
-                          <PolarAngleAxis dataKey="subject" tick={{ fill: 'white', fontSize: 12 }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                          <Radar name={activePlayer.name} dataKey="value" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.6} />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-                </motion.div>
-                <motion.div className={mobileSection !== 'stats' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
-                  <TestResultsCard player={activePlayer} period={activeTab} />
-                </motion.div>
-                <motion.div className={mobileSection !== 'stats' ? 'hidden' : ''} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-                  <Card>
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><BarChart2 size={20} className="text-[--neon-color]" />Prestatie Trend</h3>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={lineChartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#4A5568" />
-                          <XAxis dataKey="name" stroke="#A0AEC0" />
-                          <YAxis domain={[0, 10]} stroke="#A0AEC0" />
-                          <Tooltip contentStyle={{ backgroundColor: '#1A202C', border: '1px solid #4A5568' }} />
-                          <Legend />
-                          <Line type="monotone" dataKey="Gem. Skill" stroke={NEON_COLOR} strokeWidth={2} />
-                          <Line type="monotone" dataKey="Wedstrijdcijfer" stroke="#8884d8" strokeWidth={2} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-                </motion.div>
               </div>
 
-              <motion.div className={`lg:col-span-2${mobileSection !== 'skills' ? ' hidden' : ''}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-                <Card>
-                  <div className="flex justify-between items-center border-b border-gray-700 mb-4">
-                    <div className="flex">
-                      {teamPeriods.map(period => (
-                        <button key={period} onClick={() => setActiveTab(period)} className={`px-4 py-3 text-sm sm:text-base font-medium transition-colors duration-200 relative ${activeTab === period ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
-                          {period}
-                          {activeTab === period && (<motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--neon-color]" layoutId="underline" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />)}
-                        </button>
+              <div id="today-challenges" className="scroll-mt-24 rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4">
+                <ChallengeLibrary
+                  player={activePlayer}
+                  completions={challengeCompletions}
+                  onComplete={handleChallengeComplete}
+                />
+              </div>
+
+              {/* Coach-vragen — alleen indien aanwezig, rustig onderaan */}
+              {visibleQuestions.length > 0 && (
+                <div id="today-questions" className="scroll-mt-24">
+                  <Card>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <h3 className="text-xl font-bold flex items-center gap-2"><ShieldCheck size={20} className="text-[--neon-color]" /> Coach Vragen</h3>
+                      <p className="text-sm text-gray-400">Beantwoord de vragen van je coach.</p>
+                    </div>
+                    <div className="mt-4 space-y-5">
+                      {visibleQuestions.map(({ text, idx }) => (
+                        <div key={`player-question-${idx}`} className="space-y-2">
+                          <p className="text-sm font-semibold text-[--neon-color] uppercase tracking-wide">Vraag {idx + 1}</p>
+                          <p className="text-base text-white leading-relaxed">{text}</p>
+                          <Textarea
+                            label="Jouw antwoord"
+                            value={responseDrafts[idx]}
+                            onChange={e => {
+                              const updated = [...responseDrafts];
+                              updated[idx] = e.target.value;
+                              setResponseDrafts(updated);
+                            }}
+                            placeholder="Schrijf hier je antwoord..."
+                          />
+                        </div>
                       ))}
                     </div>
-                  </div>
-                  <AnimatePresence mode="wait">
-                    <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                          {skillKeys.map(key => (
-                            <Slider key={key} label={key} value={activePlayer.evaluations[activeTab]?.skills[key] || 5} onChange={() => {}} disabled={true} />
-                          ))}
-                        </div>
-                        <hr className="md:col-span-2 border-gray-700" />
-                        <Input label="Wedstrijdcijfer (0-10)" type="number" value={activePlayer.evaluations[activeTab]?.matchRating || ''} onChange={() => {}} disabled={true} />
-                        <Textarea label="Opmerkingen Coach" placeholder="Nog geen opmerkingen" value={activePlayer.evaluations[activeTab]?.comments || ''} onChange={() => {}} disabled={true} />
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
-                </Card>
-
-                {/* Training plan for player */}
-                {(activePlayer.evaluations[activeTab]?.structuredPlan || activePlayer.evaluations[activeTab]?.trainingPlan) && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
-                    <Card>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
-                        <Target size={11} style={{ color: NEON_COLOR }} /> Jouw Trainingsplan
-                      </p>
-                      {activePlayer.evaluations[activeTab]?.structuredPlan ? (
-                        <TrainingPlanCard
-                          plan={activePlayer.evaluations[activeTab].structuredPlan!}
-                          playerName={activePlayer.name}
-                          period={activeTab}
-                        />
-                      ) : (
-                        <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-gray-800/40 rounded-xl p-4 border border-gray-700/40">
-                          {activePlayer.evaluations[activeTab]?.trainingPlan}
-                        </div>
-                      )}
-                    </Card>
-                  </motion.div>
-                )}
-              </motion.div>
+                    <div className="mt-4 flex justify-end">
+                      <button onClick={handleSaveQuestionResponses} disabled={savingResponses} className="px-4 py-2 rounded-lg bg-[--neon-color] text-black font-semibold hover:opacity-90 transition-opacity flex items-center disabled:opacity-50">
+                        {savingResponses ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+                        Verstuur antwoorden
+                      </button>
+                    </div>
+                  </Card>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {/* ════════════════ MIJN KAART — Inzet-DNA (de trots) ════════════════ */}
+          {mobileSection === 'kaart' && (
+            <div className="space-y-3">
+              <StreakWidget streak={streak} />
+              <PlayerCard player={activePlayer} stats={playerStats} />
+            </div>
+          )}
+
+          {/* ════════════════ IK — alle data, rustig & opt-in ════════════════ */}
+          {mobileSection === 'ik' && (
+            <div className="space-y-5">
+              <PlayerOverview player={activePlayer} players={players} teamData={teamData} activeTab={activeTab} />
+
+              {/* Coach-evaluatie per periode (alleen-lezen) */}
+              <Card>
+                <div className="flex justify-between items-center border-b border-gray-700 mb-4">
+                  <div className="flex">
+                    {teamPeriods.map(period => (
+                      <button key={period} onClick={() => setActiveTab(period)} className={`px-4 py-3 text-sm sm:text-base font-medium transition-colors duration-200 relative ${activeTab === period ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
+                        {period}
+                        {activeTab === period && (<motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--neon-color]" layoutId="underline" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                      <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        {skillKeys.map(key => (
+                          <Slider key={key} label={key} value={activePlayer.evaluations[activeTab]?.skills[key] || 5} onChange={() => {}} disabled={true} />
+                        ))}
+                      </div>
+                      <hr className="md:col-span-2 border-gray-700" />
+                      <Input label="Wedstrijdcijfer (0-10)" type="number" value={activePlayer.evaluations[activeTab]?.matchRating || ''} onChange={() => {}} disabled={true} />
+                      <Textarea label="Opmerkingen Coach" placeholder="Nog geen opmerkingen" value={activePlayer.evaluations[activeTab]?.comments || ''} onChange={() => {}} disabled={true} />
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </Card>
+
+              {/* Trainingsplan */}
+              {(activePlayer.evaluations[activeTab]?.structuredPlan || activePlayer.evaluations[activeTab]?.trainingPlan) && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+                  <Card>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
+                      <Target size={11} style={{ color: NEON_COLOR }} /> Jouw Trainingsplan
+                    </p>
+                    {activePlayer.evaluations[activeTab]?.structuredPlan ? (
+                      <TrainingPlanCard
+                        plan={activePlayer.evaluations[activeTab].structuredPlan!}
+                        playerName={activePlayer.name}
+                        period={activeTab}
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-gray-800/40 rounded-xl p-4 border border-gray-700/40">
+                        {activePlayer.evaluations[activeTab]?.trainingPlan}
+                      </div>
+                    )}
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Fysieke testresultaten */}
+              <TestResultsCard player={activePlayer} period={activeTab} />
+            </div>
+          )}
 
           </main>
 
@@ -1535,29 +1538,17 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           {/* Player bottom nav */}
           <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(9,11,15,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex">
-              <button onClick={() => setMobileSection('dashboard')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'dashboard' ? NEON_COLOR : '#6b7280' }}>
-                <LayoutDashboard size={18} />
-                <span className="text-[9px] font-semibold tracking-wider uppercase">Pro</span>
+              <button onClick={() => setMobileSection('vandaag')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'vandaag' ? NEON_COLOR : '#6b7280' }}>
+                <Flame size={20} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Vandaag</span>
               </button>
               <button onClick={() => setMobileSection('kaart')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'kaart' ? NEON_COLOR : '#6b7280' }}>
-                <Trophy size={18} />
+                <Trophy size={20} />
                 <span className="text-[9px] font-semibold tracking-wider uppercase">Kaart</span>
               </button>
-              <button onClick={() => setMobileSection('huiswerk')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'huiswerk' ? NEON_COLOR : '#6b7280' }}>
-                <ClipboardList size={18} />
-                <span className="text-[9px] font-semibold tracking-wider uppercase">Huiswerk</span>
-              </button>
-              <button onClick={() => setMobileSection('skills')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'skills' ? NEON_COLOR : '#6b7280' }}>
-                <User size={18} />
-                <span className="text-[9px] font-semibold tracking-wider uppercase">Skills</span>
-              </button>
-              <button onClick={() => setMobileSection('stats')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'stats' ? NEON_COLOR : '#6b7280' }}>
-                <TrendingUp size={18} />
-                <span className="text-[9px] font-semibold tracking-wider uppercase">Stats</span>
-              </button>
-              <button onClick={() => setMobileSection('vragen')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'vragen' ? NEON_COLOR : '#6b7280' }}>
-                <ShieldCheck size={18} />
-                <span className="text-[9px] font-semibold tracking-wider uppercase">Vragen</span>
+              <button onClick={() => setMobileSection('ik')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'ik' ? NEON_COLOR : '#6b7280' }}>
+                <User size={20} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Ik</span>
               </button>
             </div>
           </nav>

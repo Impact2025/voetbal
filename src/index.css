@@ -45,17 +45,19 @@ button, [role="button"], a {
 /* ── Landing page utilities ───────────────────────────────────────────────── */
 
 .neon-text {
-  color: #00FF9D;
-  text-shadow: 0 0 20px #00FF9D66;
+  background: linear-gradient(135deg, #00d488, #00a86b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .neon-border {
-  border-color: #00FF9D;
+  border-color: #00cc7a;
   box-shadow: 0 0 20px #00FF9D22, inset 0 0 20px #00FF9D0a;
 }
 
 .neon-glow {
-  box-shadow: 0 0 30px #00FF9D44, 0 0 60px #00FF9D1a;
+  box-shadow: 0 10px 40px #00FF9D33, 0 0 0 1px #00FF9D44;
 }
 
 .neon-btn {
@@ -73,15 +75,16 @@ button, [role="button"], a {
 
 .grid-bg {
   background-image:
-    linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(0, 200, 130, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 130, 0.06) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
 .gradient-border {
-  background: linear-gradient(#0f0f1e, #0f0f1e) padding-box,
-    linear-gradient(135deg, #00FF9D33, #00FF9D05, #00FF9D22) border-box;
+  background: linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #00FF9D55, #00FF9D11, #00FF9D33) border-box;
   border: 1px solid transparent;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .phone-mockup {

@@ -10,7 +10,7 @@ import Footer from './Footer'
 
 export default function LandingPage({ onLogin, onParentLogin }: { onLogin: () => void; onParentLogin?: () => void }) {
   return (
-    <div className="min-h-screen bg-dark-900 text-white">
+    <div className="min-h-screen bg-white text-slate-900">
       <Navbar onLogin={onLogin} onParentLogin={onParentLogin} />
       <main>
         <Hero />

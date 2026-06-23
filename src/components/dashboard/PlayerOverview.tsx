@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  Radar, ResponsiveContainer, Legend,
+  Radar, ResponsiveContainer,
 } from 'recharts';
 import {
   Wand2, Loader2, TrendingUp, TrendingDown, Minus,
-  Target, Trophy, BookOpen, Zap, Shield,
+  Target, BookOpen, Zap, Shield,
   Crosshair, Brain, MessageSquare, CircleDot, Medal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -133,24 +133,16 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
   const hwDone = assignedIds.filter(id => player.completed_homework_ids?.includes(id)).length;
   const hwPct = assignedIds.length > 0 ? Math.round((hwDone / assignedIds.length) * 100) : null;
 
-  const ranking = useMemo(() => players
-    .map(p => ({
-      id: p.id, name: p.name, avatar: p.avatar_url,
-      score: Math.round(skillKeys.reduce((s, k) => s + (p.evaluations?.[activeTab]?.skills[k] ?? 5), 0) / skillKeys.length * 10),
-    }))
-    .sort((a, b) => b.score - a.score), [players, activeTab]);
-  const myRank = ranking.findIndex(p => p.id === player.id) + 1;
-
   const badges: { icon: React.ReactNode; label: string; earned: boolean }[] = useMemo(() => [
     { icon: <BookOpen size={14} />,    label: 'Huiswerk\nHeld',    earned: assignedIds.length > 0 && hwDone === assignedIds.length },
-    { icon: <Trophy size={14} />,      label: 'Top 3',             earned: myRank > 0 && myRank <= 3 },
+    { icon: <Medal size={14} />,       label: 'Groei-\nKnokker',   earned: improvements.every(s => s.value >= 5) },
     { icon: <CircleDot size={14} />,   label: 'All-\nRounder',     earned: sortedSkills.every(s => s.value >= 6) },
     { icon: <Zap size={14} />,         label: 'Techniek\nSter',    earned: (currentEval?.skills.techniek ?? 0) >= 8 },
     { icon: <Shield size={14} />,      label: 'Rots\nAchterin',    earned: (currentEval?.skills.verdedigen ?? 0) >= 8 },
     { icon: <Crosshair size={14} />,   label: 'Scherp-\nschutter', earned: (currentEval?.skills.schot ?? 0) >= 8 },
     { icon: <Brain size={14} />,       label: 'Spel-\nbrein',      earned: (currentEval?.skills.inzicht ?? 0) >= 8 },
     { icon: <MessageSquare size={14} />,label: 'Open\nGeest',      earned: (player.weekly_question_responses ?? []).some(r => r.trim().length > 0) },
-  ], [sortedSkills, currentEval, assignedIds, hwDone, myRank, player]);
+  ], [sortedSkills, improvements, currentEval, assignedIds, hwDone, player]);
 
   const skillProgress = skillKeys.map(k => ({
     key: k,
@@ -168,8 +160,6 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
     setAiInsight(result);
     setLoadingAI(false);
   };
-
-  const rankMedalColor = myRank === 1 ? '#FFD700' : myRank === 2 ? '#C0C0C0' : myRank === 3 ? '#CD7F32' : '#4b5563';
 
   return (
     <div className="space-y-3 pb-2">
@@ -239,7 +229,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                 </div>
               </div>
 
-              {/* Score + rank */}
+              {/* Score */}
               <div className="shrink-0 flex flex-col items-center gap-2 pt-1">
                 <div className="text-center">
                   <div className="text-4xl font-black leading-none" style={{ color: level.color, textShadow: `0 0 20px ${level.color}60` }}>
@@ -247,14 +237,6 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                   </div>
                   <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-0.5">score</div>
                 </div>
-                {players.length > 1 && (
-                  <div
-                    className="px-2 py-0.5 rounded-full text-xs font-black"
-                    style={{ backgroundColor: `${rankMedalColor}20`, color: rankMedalColor, border: `1px solid ${rankMedalColor}40` }}
-                  >
-                    #{myRank}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -461,28 +443,24 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
         </Card>
       </motion.div>
 
-      {/* ── JIJ VS TEAM RADAR ── */}
-      {players.length > 1 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.25 }}>
-          <Card className="!p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
-              Jij vs Team <span className="font-normal normal-case text-gray-600">— {activeTab}</span>
-            </p>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
-                  <PolarGrid stroke="#1f2937" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                  <Radar name="Jij" dataKey="jij" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.35} />
-                  <Radar name="Team gem." dataKey="team" stroke="#374151" fill="#374151" fillOpacity={0.15} />
-                  <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </motion.div>
-      )}
+      {/* ── JOUW SKILL-PROFIEL (alleen jij, geen team — P1) ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.25 }}>
+        <Card className="!p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
+            Jouw Skill-profiel <span className="font-normal normal-case text-gray-600">— {activeTab}</span>
+          </p>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
+                <PolarGrid stroke="#1f2937" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                <Radar name="Jij" dataKey="jij" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.4} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </motion.div>
 
       {/* ── VOORTGANG PER PERIODE ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.3 }}>
@@ -526,51 +504,6 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           </div>
         </Card>
       </motion.div>
-
-      {/* ── TEAM RANGLIJST ── */}
-      {players.length > 1 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.35 }}>
-          <Card className="!p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Team Ranglijst</p>
-              <div className="flex items-center gap-1 text-xs text-gray-600">
-                <Medal size={11} />
-                <span>#{myRank} van {players.length}</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              {ranking.map(({ id, name, avatar, score: s }, idx) => {
-                const isMe = id === player.id;
-                const medal = idx === 0 ? '#FFD700' : idx === 1 ? '#9ca3af' : idx === 2 ? '#CD7F32' : null;
-                return (
-                  <div
-                    key={id}
-                    className={`flex items-center gap-3 py-2 px-2.5 rounded-xl transition-all ${
-                      isMe ? 'border' : 'border border-transparent'
-                    }`}
-                    style={isMe ? { backgroundColor: `${NEON_COLOR}08`, borderColor: `${NEON_COLOR}25` } : {}}
-                  >
-                    <span
-                      className="text-xs font-black w-5 text-center shrink-0"
-                      style={{ color: isMe ? NEON_COLOR : medal ?? '#374151' }}
-                    >
-                      {idx + 1}
-                    </span>
-                    <img src={avatar} className="w-7 h-7 rounded-full shrink-0 border border-gray-700/40" alt={name} />
-                    <span className={`flex-1 text-sm min-w-0 truncate ${isMe ? 'font-bold text-white' : 'text-gray-400'}`}>
-                      {name}
-                      {isMe && <span className="text-[10px] ml-1.5 font-normal" style={{ color: NEON_COLOR }}>← jij</span>}
-                    </span>
-                    <span className="font-black text-sm shrink-0" style={{ color: isMe ? NEON_COLOR : 'white' }}>
-                      {s}<span className="text-gray-700 font-normal text-xs">/100</span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </motion.div>
-      )}
 
     </div>
   );

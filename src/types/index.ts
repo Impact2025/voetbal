@@ -115,7 +115,7 @@ export interface AttendanceRecord {
 }
 
 export interface UserData {
-  role: 'club_admin' | 'coach' | 'player' | 'parent';
+  role: 'club_admin' | 'coach' | 'player' | 'parent' | 'superadmin';
   teamId?: string;
   clubId?: string;
   uid: string;
@@ -259,6 +259,59 @@ export interface ChallengeCompletion {
   reflection?: string;
   ai_feedback?: string;
   completed_at: string;
+}
+
+// ── Training Library ─────────────────────────────────────────────────────────
+
+export type TrainingExerciseType = 'warming_up' | 'techniek' | 'partijvorm';
+
+export interface TrainingExercise {
+  type: TrainingExerciseType;
+  title: string;
+  content: string;
+}
+
+export interface TrainingLibraryExercises {
+  session_a: TrainingExercise[];
+  session_b: TrainingExercise[];
+}
+
+export interface TrainingLibraryRow {
+  id: string;
+  age_group: string;
+  training_number: number;
+  exercises: TrainingLibraryExercises;
+}
+
+export interface SeasonWeekPlan {
+  id: string;
+  age_group: string;
+  week_number: number;
+  sequence_number: number;
+  training_a_number: number | null;
+  training_b_number: number | null;
+  homework: string | null;
+  challenge: string | null;
+  is_vacation: boolean;
+  vacation_label: string | null;
+}
+
+export interface ClubTrainingConfig {
+  id: string;
+  club_id: string;
+  age_group: string;
+  is_active: boolean;
+  season_start_year: number;
+  season_start_week: number;
+}
+
+export interface ClubWeekOverride {
+  id: string;
+  club_id: string;
+  age_group: string;
+  week_number: number;
+  is_enabled: boolean;
+  custom_notes: string | null;
 }
 
 // ── Streaks ──────────────────────────────────────────────────────────────────

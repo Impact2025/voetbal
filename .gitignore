@@ -25,3 +25,8 @@ dist-ssr
 .env.local
 .vercel
 .env*.local
+
+# Large binary assets — not for git
+trainingen/
+docs/
+cleanup-dupes.mjs

@@ -7,6 +7,8 @@ import { TIER_CONFIG } from '../../lib/cardTier';
 import { CHALLENGES, CATEGORY_META } from '../../data/challenges';
 import type { Player, PlayerStats, Streak, NotificationPrefs, StatAxis, UserData } from '../../types';
 
+const ACCENT = '#16A34A';
+
 const AXIS_LABELS: Record<StatAxis, string> = {
   consistentie: 'Consistentie',
   werkethiek:   'Werkethiek',
@@ -45,19 +47,43 @@ function getRandomChallenge(player: Player) {
 interface ParentDashboardProps {
   userData: UserData;
   onLogout: () => void;
+  demo?: boolean;
 }
 
-const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
-  const [player, setPlayer]           = useState<Player | null>(null);
-  const [stats, setStats]             = useState<PlayerStats | null>(null);
-  const [streak, setStreak]           = useState<Streak | null>(null);
-  const [notifPrefs, setNotifPrefs]   = useState<NotificationPrefs | null>(null);
-  const [loading, setLoading]         = useState(true);
+const DEMO_PLAYER: Player = {
+  id: 'demo-player', name: 'Demo Kind', team_id: 'demo-team', age: '10',
+  preferred_foot: 'rechts', position: 'Middenvelder', pin: '0000',
+  avatar_url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=DemoKind',
+  evaluations: {}, completed_homework_ids: [], weekly_question_responses: [],
+};
+const DEMO_STATS: PlayerStats = {
+  player_id: 'demo-player', team_id: 'demo-team',
+  consistentie: 72, werkethiek: 58, techniek: 41, focus: 35, team_spirit: 80,
+  tier: 'zilver', total_xp: 240, prev_snapshot: null, snapshot_at: null,
+  updated_at: new Date().toISOString(),
+};
+const DEMO_STREAK: Streak = {
+  player_id: 'demo-player', week_start: new Date().toISOString(),
+  activities_count: 1, week_goal: 2, best_week_count: 4, recovery_used: false,
+  flame_state: 'active', updated_at: new Date().toISOString(),
+};
+const DEMO_PREFS: NotificationPrefs = {
+  parent_id: 'demo-parent', weekly_digest: true, critical_alerts: true,
+  channel: 'email', detail_level: 'light', updated_at: new Date().toISOString(),
+};
+
+const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardProps) => {
+  const [player, setPlayer]           = useState<Player | null>(demo ? DEMO_PLAYER : null);
+  const [stats, setStats]             = useState<PlayerStats | null>(demo ? DEMO_STATS : null);
+  const [streak, setStreak]           = useState<Streak | null>(demo ? DEMO_STREAK : null);
+  const [notifPrefs, setNotifPrefs]   = useState<NotificationPrefs | null>(demo ? DEMO_PREFS : null);
+  const [loading, setLoading]         = useState(!demo);
   const [savingPrefs, setSavingPrefs] = useState(false);
 
   const linkedPlayerId = userData.linkedPlayerId;
 
   useEffect(() => {
+    if (demo) { setLoading(false); return; }
     if (!linkedPlayerId) { setLoading(false); return; }
 
     Promise.allSettled([
@@ -72,12 +98,13 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
       if (prefsRes.status === 'fulfilled' && prefsRes.value.data)    setNotifPrefs(prefsRes.value.data as NotificationPrefs);
       setLoading(false);
     });
-  }, [linkedPlayerId, userData.uid]);
+  }, [demo, linkedPlayerId, userData.uid]);
 
   const handleToggleDigest = async () => {
     if (!notifPrefs || savingPrefs) return;
-    setSavingPrefs(true);
     const newVal = !notifPrefs.weekly_digest;
+    if (demo) { setNotifPrefs(p => p ? { ...p, weekly_digest: newVal } : p); return; }
+    setSavingPrefs(true);
     await supabase.from('notification_prefs')
       .update({ weekly_digest: newVal })
       .eq('parent_id', userData.uid);
@@ -87,19 +114,19 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0D0D0D' }}>
-        <Loader2 className="animate-spin h-10 w-10" style={{ color: NEON_COLOR }} />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="animate-spin h-10 w-10" style={{ color: ACCENT }} />
       </div>
     );
   }
 
   if (!player) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: '#0D0D0D' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center bg-white">
         <div className="text-4xl">⚽</div>
-        <h2 className="text-xl font-black text-white">Nog geen koppeling gevonden</h2>
-        <p className="text-sm text-gray-400">Vraag de coach om een koppelcode en link jouw account opnieuw.</p>
-        <button onClick={onLogout} className="mt-4 px-5 py-2 rounded-xl text-sm font-bold text-red-400 border border-red-900/50 hover:bg-red-950/30 transition-colors">
+        <h2 className="text-xl font-black text-gray-900">Nog geen koppeling gevonden</h2>
+        <p className="text-sm text-gray-500">Vraag de coach om een koppelcode en link jouw account opnieuw.</p>
+        <button onClick={onLogout} className="mt-4 px-5 py-2 rounded-xl text-sm font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-colors">
           Uitloggen
         </button>
       </div>
@@ -118,24 +145,22 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
   const suggMeta    = suggestion ? CATEGORY_META[suggestion.category] : null;
 
   return (
-    <div className="min-h-screen pb-10" style={{ background: 'linear-gradient(to bottom, #0D0D0D, #1A1A1A)' }}>
+    <div className="min-h-screen pb-10 bg-white" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
 
       {/* Header */}
-      <header className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-white/[0.06]"
-        style={{ background: 'rgba(9,11,15,0.95)', backdropFilter: 'blur(16px)' }}
-      >
+      <header className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-gray-100 bg-white/95 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <span className="text-lg">⚽</span>
-          <span className="text-sm font-black text-white">Ouder-portaal</span>
+          <span className="text-sm font-black text-gray-900">Ouder-portaal</span>
         </div>
-        <button onClick={onLogout} className="p-2 rounded-lg text-gray-500 hover:text-red-400 transition-colors">
+        <button onClick={onLogout} className="p-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
           <LogOut size={16} />
         </button>
       </header>
 
       <div className="max-w-sm mx-auto px-4 pt-6 space-y-4">
 
-        {/* Child card */}
+        {/* Child card — keeps tier gradient, looks great on white */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -143,7 +168,7 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
           style={{
             background: `linear-gradient(145deg, ${tierCfg.bgFrom}, ${tierCfg.bgTo})`,
             borderColor: `${tierCfg.color}40`,
-            boxShadow: `0 0 40px ${tierCfg.glow}`,
+            boxShadow: `0 4px 24px ${tierCfg.glow}`,
           }}
         >
           <div className="flex items-center gap-4">
@@ -153,7 +178,7 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
             />
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-black text-white truncate">{player.name}</h2>
-              <p className="text-xs text-gray-500">{player.age ? `${player.age} jaar` : ''}{player.position ? ` · ${player.position}` : ''}</p>
+              <p className="text-xs text-white/60">{player.age ? `${player.age} jaar` : ''}{player.position ? ` · ${player.position}` : ''}</p>
               <div className="mt-2 flex items-center gap-2">
                 <div
                   className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest"
@@ -161,7 +186,7 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
                 >
                   {tierCfg.label}
                 </div>
-                <span className="text-[10px] text-gray-600">{totalXP} XP</span>
+                <span className="text-[10px] text-white/40">{totalXP} XP</span>
               </div>
             </div>
           </div>
@@ -172,10 +197,10 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4"
+          className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
         >
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">⚽ Socks zegt</p>
-          <p className="text-sm text-gray-200 leading-relaxed italic">"{socksQuote}"</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">⚽ Socks zegt</p>
+          <p className="text-sm text-gray-700 leading-relaxed italic">"{socksQuote}"</p>
         </motion.div>
 
         {/* Deze week */}
@@ -185,26 +210,26 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
           transition={{ delay: 0.15 }}
           className="rounded-2xl border p-4"
           style={{
-            background: isComplete ? 'linear-gradient(135deg, #052e16, #0f2e1a)' : '#0d0f14',
-            borderColor: isComplete ? '#4ade8030' : 'rgba(255,255,255,0.06)',
+            background: isComplete ? '#f0fdf4' : '#f9fafb',
+            borderColor: isComplete ? '#bbf7d0' : '#f3f4f6',
           }}
         >
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">Deze week</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Deze week</p>
           <div className="flex items-center gap-3">
             <Flame
               size={28}
-              style={{ color: isComplete ? '#4ade80' : '#f97316' }}
-              fill={isComplete ? '#4ade80' : '#f97316'}
+              style={{ color: isComplete ? ACCENT : '#f97316' }}
+              fill={isComplete ? ACCENT : '#f97316'}
             />
             <div>
               <div className="flex items-center gap-2 mb-1">
                 {Array.from({ length: weekGoal }, (_, i) => (
                   <div key={i} className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: i < weekCount ? (isComplete ? '#4ade80' : '#f97316') : '#374151' }}
+                    style={{ backgroundColor: i < weekCount ? (isComplete ? ACCENT : '#f97316') : '#e5e7eb' }}
                   />
                 ))}
               </div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-bold text-gray-900">
                 {isComplete
                   ? `${firstName} heeft het weekdoel behaald! 🎉`
                   : weekCount === 0
@@ -216,18 +241,18 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
           </div>
         </motion.div>
 
-        {/* Inzet-DNA — soft labels only, no numbers */}
+        {/* Inzet-DNA */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4"
+          className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
         >
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
             Inzet-DNA van {firstName}
           </p>
           {totalXP === 0 ? (
-            <p className="text-xs text-gray-600 italic">Nog geen data — {firstName} bouwt dit op door huiswerk en uitdagingen te doen.</p>
+            <p className="text-xs text-gray-400 italic">Nog geen data — {firstName} bouwt dit op door huiswerk en uitdagingen te doen.</p>
           ) : (
             <div className="space-y-2.5">
               {AXIS_ORDER.map(axis => {
@@ -236,16 +261,16 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
                 return (
                   <div key={axis} className="flex items-center gap-3">
                     <span className="text-[11px] text-gray-500 w-24 shrink-0">{AXIS_LABELS[axis]}</span>
-                    <div className="flex-1 bg-black/40 rounded-full h-1.5 overflow-hidden">
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
                       <motion.div
-                        className="h-1.5 rounded-full bg-gray-500"
+                        className="h-1.5 rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${value}%` }}
                         transition={{ duration: 0.7, ease: 'easeOut' }}
-                        style={{ backgroundColor: value >= 67 ? '#4ade80' : value >= 34 ? NEON_COLOR : '#6b7280' }}
+                        style={{ backgroundColor: value >= 67 ? ACCENT : value >= 34 ? '#d97706' : '#9ca3af' }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-400 shrink-0 w-24 text-right">
+                    <span className="text-[10px] text-gray-500 shrink-0 w-24 text-right">
                       {soft.emoji} {soft.text}
                     </span>
                   </div>
@@ -253,7 +278,7 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
               })}
             </div>
           )}
-          <p className="text-[9px] text-gray-700 mt-3 leading-relaxed">
+          <p className="text-[9px] text-gray-400 mt-3 leading-relaxed">
             Dit zijn geen schoolcijfers — het zijn inzet-statistieken berekend uit gedrag.
           </p>
         </motion.div>
@@ -265,20 +290,20 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             className="rounded-2xl border p-4"
-            style={{ borderColor: `${suggMeta.color}30`, backgroundColor: suggMeta.bg }}
+            style={{ borderColor: `${suggMeta.color}40`, backgroundColor: `${suggMeta.color}08` }}
           >
-            <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: `${suggMeta.color}80` }}>
+            <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: suggMeta.color }}>
               {suggMeta.emoji} Samen doen deze week
             </p>
-            <p className="text-sm font-bold text-white mb-1">{suggestion.title}</p>
-            <p className="text-xs text-gray-400 leading-relaxed mb-3">{suggestion.setup}</p>
+            <p className="text-sm font-bold text-gray-900 mb-1">{suggestion.title}</p>
+            <p className="text-xs text-gray-500 leading-relaxed mb-3">{suggestion.setup}</p>
             <div
-              className="rounded-xl p-2.5 border text-xs font-semibold text-white"
-              style={{ backgroundColor: `${suggMeta.color}12`, borderColor: `${suggMeta.color}25` }}
+              className="rounded-xl p-2.5 border text-xs font-semibold text-gray-700"
+              style={{ backgroundColor: `${suggMeta.color}12`, borderColor: `${suggMeta.color}30` }}
             >
               🏆 {suggestion.win_condition}
             </div>
-            <p className="text-[9px] text-gray-600 mt-2">
+            <p className="text-[9px] text-gray-400 mt-2">
               Doe dit samen in de tuin of het park — 10 minuten is genoeg.
             </p>
           </motion.div>
@@ -290,9 +315,9 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4"
+            className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
           >
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-3">Instellingen</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Instellingen</p>
             <button
               onClick={handleToggleDigest}
               disabled={savingPrefs}
@@ -300,20 +325,20 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
             >
               <div className="flex items-center gap-3">
                 {notifPrefs.weekly_digest
-                  ? <Bell size={16} style={{ color: NEON_COLOR }} />
-                  : <BellOff size={16} className="text-gray-600" />
+                  ? <Bell size={16} style={{ color: ACCENT }} />
+                  : <BellOff size={16} className="text-gray-400" />
                 }
                 <div className="text-left">
-                  <p className="text-sm font-bold text-white">Wekelijkse update</p>
-                  <p className="text-[10px] text-gray-600">Elke vrijdag een kort berichtje over {firstName}</p>
+                  <p className="text-sm font-bold text-gray-900">Wekelijkse update</p>
+                  <p className="text-[10px] text-gray-400">Elke vrijdag een kort berichtje over {firstName}</p>
                 </div>
               </div>
               <div
                 className="w-10 h-6 rounded-full transition-colors relative shrink-0"
-                style={{ backgroundColor: notifPrefs.weekly_digest ? NEON_COLOR : '#374151' }}
+                style={{ backgroundColor: notifPrefs.weekly_digest ? ACCENT : '#e5e7eb' }}
               >
                 <div
-                  className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
+                  className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm"
                   style={{ left: notifPrefs.weekly_digest ? '22px' : '4px' }}
                 />
               </div>
@@ -322,7 +347,7 @@ const ParentDashboard = ({ userData, onLogout }: ParentDashboardProps) => {
         )}
 
         {/* Privacy note */}
-        <p className="text-[9px] text-gray-700 text-center leading-relaxed px-2">
+        <p className="text-[9px] text-gray-400 text-center leading-relaxed px-2">
           Je ziet alleen inzet-statistieken van jouw kind — geen ranglijsten, geen cijfers van andere kinderen.
         </p>
       </div>

@@ -4,13 +4,10 @@ import AuthComponent from './AuthComponent';
 
 vi.mock('../../lib/supabase', () => ({
   supabase: {
+    // Speler-login haalt spelers per team op: from('players').select('*').eq('team_id', …)
     from: () => ({
       select: () => ({
-        eq: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: null, error: { message: 'Not found' } }),
-          }),
-        }),
+        eq: () => Promise.resolve({ data: [], error: null }),
       }),
     }),
     auth: {
@@ -46,13 +43,13 @@ describe('AuthComponent', () => {
     expect(screen.getByText('COACH LOGIN')).toBeInTheDocument();
   });
 
-  it('shows player not found error on failed login', async () => {
+  it('shows "team not found" error when no players match the team', async () => {
     render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
     fireEvent.change(screen.getByPlaceholderText('Vraag je coach'), { target: { value: 'TEAM1' } });
     fireEvent.change(screen.getByPlaceholderText('6-cijferige code'), { target: { value: '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Inloggen' }));
     await waitFor(() => {
-      expect(screen.getByText('Speler niet gevonden. Controleer de Team ID en Pincode.')).toBeInTheDocument();
+      expect(screen.getByText('Team ID niet gevonden. Controleer de code bij je coach.')).toBeInTheDocument();
     });
   });
 });

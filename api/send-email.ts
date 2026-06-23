@@ -79,7 +79,7 @@ export default async function handler(req: Req, res: Res) {
     const { error } = await resend.emails.send({
       from: `${clubName} via Skillkaart <onboarding@resend.dev>`,
       to,
-      reply_to: senderEmail || undefined,
+      replyTo: senderEmail || undefined,
       subject,
       html,
     });

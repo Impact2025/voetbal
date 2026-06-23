@@ -6,10 +6,11 @@ import {
   Trophy, CalendarCheck, TrendingUp, TrendingDown, Minus, Users,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { NEON_COLOR } from '../../utils/constants';
 import Card from '../ui/Card';
 import toast from 'react-hot-toast';
 import type { SentMessage } from '../../types';
+
+const ACCENT = '#16A34A';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,13 +49,13 @@ interface TrainersTabProps {
 const toScore = (avg: number) => Math.round(avg * 10);
 
 const scoreColor = (s: number) =>
-  s >= 70 ? NEON_COLOR : s >= 55 ? '#a78bfa' : s >= 40 ? '#fbbf24' : '#f87171';
+  s >= 70 ? '#16A34A' : s >= 55 ? '#7c3aed' : s >= 40 ? '#d97706' : '#dc2626';
 
 const TrendIcon = ({ trend }: { trend: TrainerRow['trend'] }) => {
-  if (trend === 'up') return <TrendingUp size={12} style={{ color: NEON_COLOR }} />;
-  if (trend === 'down') return <TrendingDown size={12} className="text-red-400" />;
-  if (trend === 'stable') return <Minus size={12} className="text-gray-500" />;
-  return <span className="text-[10px] text-gray-600">nieuw</span>;
+  if (trend === 'up') return <TrendingUp size={12} style={{ color: ACCENT }} />;
+  if (trend === 'down') return <TrendingDown size={12} className="text-red-500" />;
+  if (trend === 'stable') return <Minus size={12} className="text-gray-400" />;
+  return <span className="text-[10px] text-gray-400">nieuw</span>;
 };
 
 // ─── Message Composer Modal ───────────────────────────────────────────────────
@@ -117,23 +118,23 @@ const MessageComposer = ({ recipient, allTrainers, clubName, senderEmail, clubId
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(4px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-lg bg-[#111318] border border-gray-800 rounded-2xl overflow-hidden"
+        className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <Mail size={16} style={{ color: NEON_COLOR }} />
-            <span className="font-bold text-sm">
+            <Mail size={16} style={{ color: ACCENT }} />
+            <span className="font-bold text-sm text-gray-900">
               {isBroadcast ? `Bericht aan alle ${targets.length} trainers` : `Bericht aan ${recipient?.teamName}`}
             </span>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700">
             <X size={16} />
           </button>
         </div>
@@ -141,8 +142,8 @@ const MessageComposer = ({ recipient, allTrainers, clubName, senderEmail, clubId
         <div className="p-5 space-y-4">
           <div className="flex flex-wrap gap-1.5">
             {targets.map(t => (
-              <span key={t.coachId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-800 text-gray-300">
-                <UserCircle2 size={11} style={{ color: NEON_COLOR }} />
+              <span key={t.coachId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600">
+                <UserCircle2 size={11} style={{ color: ACCENT }} />
                 {t.teamName} · {t.email}
               </span>
             ))}
@@ -154,7 +155,7 @@ const MessageComposer = ({ recipient, allTrainers, clubName, senderEmail, clubId
               value={subject}
               onChange={e => setSubject(e.target.value)}
               placeholder="bv. Teambespreking volgende week"
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-700 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-gray-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
             />
           </div>
 
@@ -165,22 +166,22 @@ const MessageComposer = ({ recipient, allTrainers, clubName, senderEmail, clubId
               onChange={e => setBody(e.target.value)}
               placeholder="Typ hier je bericht aan de trainer(s)..."
               rows={6}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-700 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-gray-500 transition-colors resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors resize-none"
             />
           </div>
 
           <div className="flex gap-3 pt-1">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 transition-colors text-sm font-semibold"
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors text-sm font-semibold"
             >
               Annuleren
             </button>
             <button
               onClick={handleSend}
               disabled={sending || !subject.trim() || !body.trim()}
-              className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-opacity"
-              style={{ backgroundColor: NEON_COLOR, color: '#000' }}
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-opacity text-white"
+              style={{ backgroundColor: ACCENT }}
             >
               {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               {sending ? 'Versturen...' : `Verstuur${toEmails.length > 1 ? ` (${toEmails.length})` : ''}`}
@@ -251,7 +252,7 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin h-8 w-8" style={{ color: NEON_COLOR }} />
+        <Loader2 className="animate-spin h-8 w-8" style={{ color: ACCENT }} />
       </div>
     );
   }
@@ -264,7 +265,7 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
           <button
             onClick={() => openComposer(null)}
             className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border-2 font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ borderColor: NEON_COLOR, color: NEON_COLOR, backgroundColor: `${NEON_COLOR}10` }}
+            style={{ borderColor: ACCENT, color: ACCENT, backgroundColor: '#f0fdf4' }}
           >
             <Radio size={16} />
             Bericht aan alle {trainers.length} trainers
@@ -272,11 +273,11 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
         )}
 
         {trainers.length === 0 ? (
-          <Card>
-            <div className="text-center py-14 text-gray-500">
-              <Users size={36} className="mx-auto mb-3 text-gray-700" />
+          <Card light>
+            <div className="text-center py-14 text-gray-400">
+              <Users size={36} className="mx-auto mb-3 text-gray-300" />
               <p className="font-semibold">Nog geen trainers gekoppeld.</p>
-              <p className="text-xs mt-1 text-gray-600">Trainers koppelen hun team via het Club ID bij registratie.</p>
+              <p className="text-xs mt-1 text-gray-400">Trainers koppelen hun team via het Club ID bij registratie.</p>
             </div>
           </Card>
         ) : (
@@ -288,24 +289,24 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
               >
-                <Card>
+                <Card light>
                   <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-gray-800">
-                      <UserCircle2 size={22} className="text-gray-500" />
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-gray-100">
+                      <UserCircle2 size={22} className="text-gray-400" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-white">{trainer.teamName}</span>
+                        <span className="font-bold text-gray-900">{trainer.teamName}</span>
                         {trainer.teamClass && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                             {trainer.teamClass}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-500 mt-0.5 truncate">{trainer.email}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5 truncate">{trainer.email}</p>
                       <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <span className="flex items-center gap-1 text-[10px] text-gray-400">
                           <Users size={9} />{trainer.playerCount} spelers
                         </span>
                         {trainer.avgScore > 0 && (
@@ -314,15 +315,15 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
                           </span>
                         )}
                         {trainer.attendanceRate !== null && (
-                          <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                          <span className="flex items-center gap-1 text-[10px] text-gray-400">
                             <CalendarCheck size={9} />{Math.round(trainer.attendanceRate)}%
                           </span>
                         )}
                         <span className="flex items-center gap-1">
                           <TrendIcon trend={trainer.trend} />
                           {trainer.trend !== 'new' && trainer.trend !== 'stable' && (
-                            <span className={`text-[10px] font-bold ${trainer.trend === 'up' ? '' : 'text-red-400'}`}
-                              style={trainer.trend === 'up' ? { color: NEON_COLOR } : undefined}>
+                            <span className={`text-[10px] font-bold ${trainer.trend === 'up' ? '' : 'text-red-500'}`}
+                              style={trainer.trend === 'up' ? { color: ACCENT } : undefined}>
                               {trainer.trend === 'up' ? '+' : '-'}{Math.abs(Math.round(trainer.trendDelta * 10))} pnt
                             </span>
                           )}
@@ -332,7 +333,7 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
 
                     <button
                       onClick={() => openComposer(trainer)}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white transition-all"
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 hover:border-gray-300 text-gray-500 hover:text-gray-700 transition-all"
                     >
                       <Mail size={13} />
                       <span className="hidden sm:inline">Bericht</span>
@@ -348,7 +349,7 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
           <div>
             <button
               onClick={() => setShowHistory(v => !v)}
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 transition-colors mb-3"
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-3"
             >
               <Clock size={13} />
               Verzonden berichten ({sentMessages.length})
@@ -363,19 +364,19 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
                   className="space-y-2 overflow-hidden"
                 >
                   {sentMessages.map(msg => (
-                    <Card key={msg.id} className="!py-3">
+                    <Card key={msg.id} light className="!py-3">
                       <div className="flex items-start gap-3">
-                        <div className="p-1.5 rounded-lg shrink-0" style={{ backgroundColor: `${NEON_COLOR}15` }}>
-                          <MessageSquare size={12} style={{ color: NEON_COLOR }} />
+                        <div className="p-1.5 rounded-lg shrink-0" style={{ backgroundColor: '#f0fdf4' }}>
+                          <MessageSquare size={12} style={{ color: ACCENT }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{msg.subject}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{msg.subject}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
                             Aan: {msg.to_names?.join(', ') || '—'} · {new Date(msg.sent_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </p>
-                          <p className="text-[11px] text-gray-600 mt-1 line-clamp-2">{msg.body}</p>
+                          <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{msg.body}</p>
                         </div>
-                        <CheckCircle2 size={14} className="text-green-500 shrink-0 mt-0.5" />
+                        <CheckCircle2 size={14} className="text-green-600 shrink-0 mt-0.5" />
                       </div>
                     </Card>
                   ))}

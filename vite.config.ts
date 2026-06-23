@@ -4,6 +4,13 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    watch: {
+      // Negeer geüploade trainingsmappen/PDF's — die kunnen door een viewer
+      // gelockt zijn en lieten de file-watcher crashen (EBUSY).
+      ignored: ['**/wetransfer_*/**', '**/*.pdf'],
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

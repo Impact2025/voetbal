@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ChevronRight, ChevronLeft, LayoutDashboard, Users, ClipboardList,
   Target, MessageSquare, Share2, Wand2, Rocket, HelpCircle, CheckCircle2,
-  BarChart2, BookOpen,
+  Flame, Trophy, User,
 } from 'lucide-react';
 import { NEON_COLOR } from '../utils/constants';
 
@@ -123,46 +123,47 @@ const PLAYER_STEPS: TourStep[] = [
     body: 'Volg hier jouw ontwikkeling als voetballer. Je coach heeft je een Team ID en persoonlijke PIN gegeven om in te loggen.',
   },
   {
-    icon: LayoutDashboard,
+    icon: Flame,
+    iconBg: '#f973161A',
+    iconColor: '#f97316',
+    title: 'Tabblad: Vandaag',
+    body: 'Hier begint elke dag. Je ziet één ding om te doen — een oefening of een uitdaging. Klaar? Dan groei je!',
+    bullets: [
+      'Eén duidelijke actie per keer',
+      'Jouw weekdoel en streak 🔥',
+      'Huiswerk en uitdagingen op één plek',
+    ],
+  },
+  {
+    icon: Trophy,
     iconBg: '#fbbf241A',
     iconColor: '#fbbf24',
-    title: 'Jouw Dashboard',
-    body: 'Op je dashboard zie je jouw score, voortgang en positie in het team.',
+    title: 'Tabblad: Mijn Kaart',
+    body: 'Jouw eigen voetbalkaart. Hoe meer je traint, hoe sterker je kaart wordt — van brons tot legendarisch.',
     bullets: [
-      'Jouw persoonlijke totaalscore',
-      'Vergelijking met teamgenoten',
-      'AI-analyse van jouw spel',
+      'Jouw Inzet-DNA: beloont doorzetten, niet talent',
+      'Verdien een hogere tier door te doen',
+      'Helemaal van jou — niet om mee te vergelijken',
     ],
   },
   {
-    icon: BarChart2,
+    icon: User,
     iconBg: '#3b82f61A',
     iconColor: '#60a5fa',
-    title: 'Skills & Stats',
-    body: 'Bekijk de skills die je coach heeft ingevuld en jouw radar-grafiek.',
+    title: 'Tabblad: Ik',
+    body: 'Wil je de details? Hier vind je je skills, je groei per check-in en de tips van je coach.',
     bullets: [
-      'Skill scores per check-in',
-      'Radar-grafiek van jouw profiel',
-      'Prestatie-trend over meerdere periodes',
-    ],
-  },
-  {
-    icon: BookOpen,
-    iconBg: '#ec48991A',
-    iconColor: '#f472b6',
-    title: 'Huiswerk',
-    body: 'Je coach kan oefeningen voor je klaarzetten. Vink ze af als je ze hebt gedaan!',
-    bullets: [
-      'Oefeningen met uitleg en video',
-      'Afvinken als je klaar bent',
+      'Jouw skills en hoe je groeit',
+      'Coach-feedback en trainingsplan',
+      'Jij nu vs. jij eerder — alleen jouw groei',
     ],
   },
   {
     icon: MessageSquare,
     iconBg: '#34d3991A',
     iconColor: '#34d399',
-    title: 'Coach Vragen',
-    body: 'Je coach stelt soms vragen aan het team. Beantwoord ze zodat je coach weet hoe het met je gaat.',
+    title: 'Vragen van je coach',
+    body: 'Soms stelt je coach een vraag. Die zie je onderaan bij Vandaag. Beantwoord ‘m zodat je coach weet hoe het gaat.',
     bullets: [
       'Maximaal 3 vragen per week',
       'Jouw antwoorden zijn alleen zichtbaar voor de coach',

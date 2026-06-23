@@ -9,6 +9,7 @@ export default {
       colors: {
         neon: '#00FF9D',
         'neon-dark': '#00cc7a',
+        'neon-ink': '#009966',
         dark: {
           900: '#06060e',
           800: '#0a0a16',

@@ -21,7 +21,7 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-dark-900/95 backdrop-blur-md border-b border-white/5' : 'bg-transparent'
+        scrolled ? 'bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm' : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,7 +29,7 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
           {/* Logo */}
           <a href="#" className="flex items-center gap-2 group">
             <img src="/logo.png" alt="Skillkaart" className="w-8 h-8 rounded-lg object-cover" />
-            <span className="font-black text-xl tracking-tight text-white group-hover:text-neon transition-colors">
+            <span className="font-black text-xl tracking-tight text-slate-900 group-hover:text-neon-ink transition-colors">
               SKILLKAART
             </span>
           </a>
@@ -40,7 +40,7 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
               <a
                 key={item.href}
                 href={item.href}
-                className="text-sm text-white/60 hover:text-white transition-colors font-medium"
+                className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
               >
                 {item.label}
               </a>
@@ -52,14 +52,14 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
             {onParentLogin && (
               <button
                 onClick={onParentLogin}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-white/10 text-white/40 hover:text-white/70 transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all"
               >
                 ❤️ Ouder-portaal
               </button>
             )}
             <button
               onClick={onLogin}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-white/20 text-white/70 hover:border-neon/50 hover:text-neon transition-all"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700 hover:border-neon-ink/50 hover:text-neon-ink transition-all"
             >
               <LogIn size={15} />
               Inloggen
@@ -74,7 +74,7 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden text-white/70 hover:text-white"
+            className="md:hidden text-slate-700 hover:text-slate-900"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -84,21 +84,29 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-dark-800/98 backdrop-blur-md border-b border-white/5">
+        <div className="md:hidden bg-white/98 backdrop-blur-md border-b border-slate-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3">
             {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
-                className="text-white/70 hover:text-white py-2 font-medium transition-colors"
+                className="text-slate-700 hover:text-slate-900 py-2 font-medium transition-colors"
               >
                 {item.label}
               </a>
             ))}
+            {onParentLogin && (
+              <button
+                onClick={() => { setMenuOpen(false); onParentLogin(); }}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-slate-200 text-slate-500 mt-1"
+              >
+                ❤️ Ouder-portaal
+              </button>
+            )}
             <button
               onClick={() => { setMenuOpen(false); onLogin(); }}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-white/20 text-white/70 mt-1"
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700"
             >
               <LogIn size={15} />
               Inloggen
