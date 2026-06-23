@@ -16,41 +16,30 @@ import type {
   ClubWeekOverride, TrainingExercise,
 } from '../../types';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const AGE_GROUPS = ['O8', 'O9', 'O10', 'O11', 'O12'] as const;
 
 const TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
-  warming_up: { label: 'Warming-up', color: '#fb923c', bg: '#fb923c15' },
-  techniek:   { label: 'Techniek',   color: '#818cf8', bg: '#818cf815' },
-  partijvorm: { label: 'Partijvorm', color: NEON_COLOR, bg: `${NEON_COLOR}15` },
+  warming_up: { label: 'Warming-up', color: '#ea580c', bg: '#ea580c12' },
+  techniek:   { label: 'Techniek',   color: '#7c3aed', bg: '#7c3aed12' },
+  partijvorm: { label: 'Partijvorm', color: '#16a34a', bg: '#16a34a12' },
 };
-
-// ─── Exercise Card ────────────────────────────────────────────────────────────
 
 function ExerciseCard({ exercise, defaultOpen = false }: { exercise: TrainingExercise; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const meta = TYPE_META[exercise.type] ?? TYPE_META.techniek;
-
   const sections = parseContent(exercise.content);
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ borderColor: `${meta.color}30`, backgroundColor: `${meta.color}08` }}
-    >
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: `${meta.color}30`, backgroundColor: `${meta.color}08` }}>
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:opacity-90 transition-opacity"
       >
-        <span
-          className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide"
-          style={{ backgroundColor: meta.bg, color: meta.color }}
-        >
+        <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide" style={{ backgroundColor: meta.bg, color: meta.color }}>
           {meta.label}
         </span>
-        <span className="font-bold text-sm text-white flex-1 truncate">{exercise.title}</span>
-        {open ? <ChevronDown size={15} className="text-gray-500 shrink-0" /> : <ChevronRight size={15} className="text-gray-500 shrink-0" />}
+        <span className="font-bold text-sm text-gray-900 flex-1 truncate">{exercise.title}</span>
+        {open ? <ChevronDown size={15} className="text-gray-400 shrink-0" /> : <ChevronRight size={15} className="text-gray-400 shrink-0" />}
       </button>
 
       <AnimatePresence>
@@ -62,16 +51,15 @@ function ExerciseCard({ exercise, defaultOpen = false }: { exercise: TrainingExe
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+            <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-3">
               {sections.map((s, i) => (
                 <div key={i}>
                   {s.heading && (
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1"
-                      style={{ color: meta.color }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: meta.color }}>
                       {s.heading}
                     </p>
                   )}
-                  <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">{s.text}</p>
+                  <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{s.text}</p>
                 </div>
               ))}
             </div>
@@ -104,19 +92,15 @@ function parseContent(raw: string): { heading: string; text: string }[] {
   return sections.filter(s => s.text);
 }
 
-// ─── Session Block ────────────────────────────────────────────────────────────
-
-function SessionBlock({
-  label, exercises, color,
-}: { label: string; exercises: TrainingExercise[]; color: string }) {
+function SessionBlock({ label, exercises, color }: { label: string; exercises: TrainingExercise[]; color: string }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-3">
-        <div className="h-px flex-1 bg-gray-800" />
+        <div className="h-px flex-1 bg-gray-100" />
         <span className="text-[10px] font-black uppercase tracking-widest px-2" style={{ color }}>
           {label}
         </span>
-        <div className="h-px flex-1 bg-gray-800" />
+        <div className="h-px flex-1 bg-gray-100" />
       </div>
       <div className="space-y-2">
         {exercises.map((ex, i) => (
@@ -126,8 +110,6 @@ function SessionBlock({
     </div>
   );
 }
-
-// ─── Week Info Banner ─────────────────────────────────────────────────────────
 
 function WeekBanner({ weekPlan, training, overrides }: {
   weekPlan: SeasonWeekPlan;
@@ -140,14 +122,12 @@ function WeekBanner({ weekPlan, training, overrides }: {
 
   if (isDisabled) {
     return (
-      <Card>
+      <Card light>
         <div className="flex items-center gap-3 py-2">
-          <Pause size={18} className="text-gray-600" />
+          <Pause size={18} className="text-gray-400" />
           <div>
-            <p className="font-bold text-gray-400">Week {weekPlan.week_number} — Uitgeschakeld</p>
-            {override?.custom_notes && (
-              <p className="text-xs text-gray-600 mt-0.5">{override.custom_notes}</p>
-            )}
+            <p className="font-bold text-gray-700">Week {weekPlan.week_number} — Uitgeschakeld</p>
+            {override?.custom_notes && <p className="text-xs text-gray-500 mt-0.5">{override.custom_notes}</p>}
           </div>
         </div>
       </Card>
@@ -156,28 +136,24 @@ function WeekBanner({ weekPlan, training, overrides }: {
 
   return (
     <div className="space-y-4">
-      {/* Week header */}
-      <Card>
+      <Card light>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span
-                className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: `${NEON_COLOR}20`, color: NEON_COLOR }}
-              >
+              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ backgroundColor: `${NEON_COLOR}15`, color: '#16a34a' }}>
                 Week {weekPlan.week_number}
               </span>
-              <span className="text-[10px] text-gray-600">Training {weekPlan.training_a_number}</span>
+              <span className="text-[10px] text-gray-400">Training {weekPlan.training_a_number}</span>
             </div>
-            <h2 className="text-xl font-black">Deze week</h2>
+            <h2 className="text-xl font-black text-gray-900">Deze week</h2>
           </div>
-          <div className="flex gap-1 bg-gray-800/80 rounded-xl p-1 border border-gray-700/40 shrink-0">
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border border-gray-200 shrink-0">
             {(['a', 'b'] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setActiveSession(s)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeSession === s ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
+                  activeSession === s ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 Sessie {s.toUpperCase()}
@@ -186,32 +162,30 @@ function WeekBanner({ weekPlan, training, overrides }: {
           </div>
         </div>
 
-        {/* Homework + Challenge badges */}
         <div className="grid grid-cols-2 gap-3">
           {weekPlan.homework && (
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-800/40 border border-gray-700/30">
-              <ClipboardList size={14} className="mt-0.5 shrink-0 text-purple-400" />
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-50 border border-purple-100">
+              <ClipboardList size={14} className="mt-0.5 shrink-0 text-purple-500" />
               <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">Huiswerk</p>
-                <p className="text-xs text-gray-200 font-semibold">{weekPlan.homework}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Huiswerk</p>
+                <p className="text-xs text-gray-700 font-semibold">{weekPlan.homework}</p>
               </div>
             </div>
           )}
           {weekPlan.challenge && (
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gray-800/40 border border-gray-700/30">
-              <Trophy size={14} className="mt-0.5 shrink-0" style={{ color: NEON_COLOR }} />
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-green-50 border border-green-100">
+              <Trophy size={14} className="mt-0.5 shrink-0 text-green-600" />
               <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">Challenge</p>
-                <p className="text-xs text-gray-200 font-semibold">{weekPlan.challenge}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Challenge</p>
+                <p className="text-xs text-gray-700 font-semibold">{weekPlan.challenge}</p>
               </div>
             </div>
           )}
         </div>
       </Card>
 
-      {/* Exercises */}
       {training ? (
-        <Card>
+        <Card light>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSession}
@@ -223,15 +197,15 @@ function WeekBanner({ weekPlan, training, overrides }: {
               <SessionBlock
                 label={`Sessie ${activeSession.toUpperCase()} — ${activeSession === 'a' ? 'Dinsdag' : 'Donderdag'}`}
                 exercises={activeSession === 'a' ? training.exercises.session_a : training.exercises.session_b}
-                color={activeSession === 'a' ? '#818cf8' : NEON_COLOR}
+                color={activeSession === 'a' ? '#7c3aed' : '#16a34a'}
               />
             </motion.div>
           </AnimatePresence>
         </Card>
       ) : (
-        <Card>
-          <div className="text-center py-8 text-gray-600">
-            <BookOpen size={28} className="mx-auto mb-2" />
+        <Card light>
+          <div className="text-center py-8 text-gray-400">
+            <BookOpen size={28} className="mx-auto mb-2 text-gray-300" />
             <p className="text-sm">Training content niet beschikbaar</p>
           </div>
         </Card>
@@ -239,8 +213,6 @@ function WeekBanner({ weekPlan, training, overrides }: {
     </div>
   );
 }
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 interface SeasonTrainingViewProps {
   clubId: string;
@@ -254,7 +226,6 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
   const [overrides, setOverrides] = useState<ClubWeekOverride[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load configs
   useEffect(() => {
     fetchClubTrainingConfigs(clubId).then(c => {
       setConfigs(c);
@@ -265,7 +236,6 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
     });
   }, [clubId]);
 
-  // Load plan + overrides when age group changes
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -278,11 +248,8 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
     });
   }, [clubId, activeAgeGroup]);
 
-  // Load training content
   const activeConfig = configs.find(c => c.age_group === activeAgeGroup);
-  const currentWeekPlan = activeConfig
-    ? getCurrentSeasonWeek(seasonPlan, overrides)
-    : null;
+  const currentWeekPlan = activeConfig ? getCurrentSeasonWeek(seasonPlan, overrides) : null;
 
   useEffect(() => {
     if (!currentWeekPlan?.training_a_number) { setTraining(null); return; }
@@ -295,18 +262,18 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-6 h-6 border-2 border-gray-700 border-t-white rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!configs.length) {
     return (
-      <Card>
+      <Card light>
         <div className="text-center py-10">
-          <Calendar size={32} className="mx-auto mb-3 text-gray-700" />
-          <p className="text-gray-400 font-semibold mb-1">Geen actieve leeftijdsgroepen</p>
-          <p className="text-sm text-gray-600">De club-admin moet het seizoensprogramma activeren.</p>
+          <Calendar size={32} className="mx-auto mb-3 text-gray-300" />
+          <p className="text-gray-700 font-semibold mb-1">Geen actieve leeftijdsgroepen</p>
+          <p className="text-sm text-gray-400">De club-admin moet het seizoensprogramma activeren.</p>
         </div>
       </Card>
     );
@@ -315,60 +282,52 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Zap size={14} style={{ color: NEON_COLOR }} />
-            <span
-              className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: `${NEON_COLOR}20`, color: NEON_COLOR }}
-            >
+            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ backgroundColor: `${NEON_COLOR}20`, color: '#16a34a' }}>
               PRO
             </span>
           </div>
-          <h2 className="text-xl font-black">Seizoensprogramma</h2>
+          <h2 className="text-xl font-black text-gray-900">Seizoensprogramma</h2>
           <p className="text-sm text-gray-500 mt-0.5">KNVB-curriculum — week {getISOWeek(new Date())}</p>
         </div>
+
+        {/* Age group tabs */}
+        {activeGroups.length > 1 && (
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border border-gray-200">
+            {activeGroups.map(ag => (
+              <button
+                key={ag}
+                onClick={() => setActiveAgeGroup(ag)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeAgeGroup === ag ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {ag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Age group tabs */}
-      {activeGroups.length > 1 && (
-        <div className="flex gap-1 bg-gray-800/60 rounded-xl p-1 border border-gray-700/40 w-fit">
-          {activeGroups.map(ag => (
-            <button
-              key={ag}
-              onClick={() => setActiveAgeGroup(ag)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeAgeGroup === ag
-                  ? 'text-black'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-              style={activeAgeGroup === ag ? { backgroundColor: NEON_COLOR } : {}}
-            >
-              {ag}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Status states */}
       {seasonStatus === 'not_started' && activeConfig && (
-        <Card>
+        <Card light>
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: `${NEON_COLOR}15` }}>
-              <Calendar size={16} style={{ color: NEON_COLOR }} />
+              <Calendar size={16} style={{ color: '#16a34a' }} />
             </div>
             <div>
-              <h3 className="font-bold mb-1">Seizoen start binnenkort</h3>
-              <p className="text-sm text-gray-400">
-                Het O8 programma begint in{' '}
-                <span className="text-white font-semibold">
+              <h3 className="font-bold text-gray-900 mb-1">Seizoen start binnenkort</h3>
+              <p className="text-sm text-gray-500">
+                Het {activeAgeGroup} programma begint in{' '}
+                <span className="text-gray-900 font-semibold">
                   week {activeConfig.season_start_week}, {activeConfig.season_start_year}
                 </span>{' '}
                 ({weekNumberToDate(activeConfig.season_start_year, activeConfig.season_start_week)
                   .toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}).
               </p>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-400 mt-2">
                 {seasonPlan.filter(w => !w.is_vacation).length} trainingen gepland · {seasonPlan.filter(w => w.is_vacation).length} vrije weken
               </p>
             </div>
@@ -377,11 +336,11 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
       )}
 
       {seasonStatus === 'break' && (
-        <Card>
+        <Card light>
           <div className="flex items-center gap-3">
-            <Pause size={18} className="text-yellow-400" />
+            <Pause size={18} className="text-yellow-500" />
             <div>
-              <p className="font-bold">Vakantie</p>
+              <p className="font-bold text-gray-900">Vakantie</p>
               <p className="text-sm text-gray-500">
                 {seasonPlan.find(w => w.week_number === getISOWeek(new Date()))?.vacation_label ?? 'Vrije week'}
               </p>
@@ -395,19 +354,19 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
       )}
 
       {seasonStatus === 'active' && !currentWeekPlan && (
-        <Card>
+        <Card light>
           <div className="flex items-center gap-3">
-            <Info size={18} className="text-gray-500" />
-            <p className="text-sm text-gray-400">Week {getISOWeek(new Date())} staat niet in het seizoensplan.</p>
+            <Info size={18} className="text-gray-400" />
+            <p className="text-sm text-gray-500">Week {getISOWeek(new Date())} staat niet in het seizoensplan.</p>
           </div>
         </Card>
       )}
 
       {seasonStatus === 'finished' && (
-        <Card>
+        <Card light>
           <div className="text-center py-6">
             <Trophy size={28} className="mx-auto mb-2" style={{ color: NEON_COLOR }} />
-            <p className="font-bold">Seizoen afgerond</p>
+            <p className="font-bold text-gray-900">Seizoen afgerond</p>
             <p className="text-sm text-gray-500 mt-1">Het programma voor dit seizoen is compleet.</p>
           </div>
         </Card>
@@ -415,9 +374,9 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
 
       {/* Season overview mini */}
       {seasonPlan.length > 0 && seasonStatus !== 'not_started' && (
-        <Card>
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3 flex items-center gap-1.5">
-            <Play size={10} style={{ color: NEON_COLOR }} /> Seizoensoverzicht
+        <Card light>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-1.5">
+            <Play size={10} style={{ color: '#16a34a' }} /> Seizoensoverzicht
           </p>
           <div className="flex flex-wrap gap-1.5">
             {seasonPlan.map(w => {
@@ -429,22 +388,10 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
                   key={w.id}
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold transition-all"
                   style={{
-                    backgroundColor: isCurrentWeek
-                      ? NEON_COLOR
-                      : w.is_vacation
-                      ? '#1f2937'
-                      : isDisabled
-                      ? '#111'
-                      : '#1f2937',
-                    color: isCurrentWeek
-                      ? '#000'
-                      : w.is_vacation
-                      ? '#4b5563'
-                      : isDisabled
-                      ? '#374151'
-                      : '#9ca3af',
-                    border: isCurrentWeek ? `2px solid ${NEON_COLOR}` : '1px solid #374151',
-                    opacity: isDisabled ? 0.4 : 1,
+                    backgroundColor: isCurrentWeek ? '#16a34a' : w.is_vacation ? '#f3f4f6' : isDisabled ? '#f9fafb' : '#f3f4f6',
+                    color: isCurrentWeek ? '#fff' : w.is_vacation ? '#9ca3af' : isDisabled ? '#d1d5db' : '#6b7280',
+                    border: isCurrentWeek ? '2px solid #16a34a' : '1px solid #e5e7eb',
+                    opacity: isDisabled ? 0.5 : 1,
                   }}
                   title={w.is_vacation ? w.vacation_label ?? 'Vakantie' : `Training ${w.training_a_number}`}
                 >

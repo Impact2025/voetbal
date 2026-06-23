@@ -149,7 +149,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         : DEFAULT_EVALUATION_PERIODS;
       setActiveTab(prev => (periods.includes(prev) ? prev : periods[0]));
 
-      if (userData.role === 'coach' && normalizedPlayers.length > 0) {
+      if (userData.role !== 'player' && normalizedPlayers.length > 0) {
         setActivePlayerId(prev => prev || normalizedPlayers[0].id);
       } else if (userData.role === 'player') {
         setActivePlayerId(user.id);
@@ -190,7 +190,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   // Load club PRO status
   useEffect(() => {
-    if (!userData.clubId || userData.role !== 'coach') return;
+    if (!userData.clubId || userData.role === 'player') return;
     supabase.from('clubs').select('subscription_tier').eq('id', userData.clubId).single()
       .then(({ data }) => setIsClubPro(data?.subscription_tier === 'pro'))
       .catch(() => {/* clubs table may not have this column yet */});
@@ -1017,7 +1017,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 {/* Seizoensprogramma PRO */}
                 {userData.clubId && (
                   isClubPro ? (
-                    <Suspense fallback={<div className="h-32 bg-gray-800/40 rounded-2xl animate-pulse" />}>
+                    <Suspense fallback={<div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />}>
                       <SeasonTrainingView clubId={userData.clubId} />
                     </Suspense>
                   ) : (
@@ -1028,20 +1028,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   )
                 )}
 
-                {/* Divider */}
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2 flex items-center gap-1.5">
-                    <Zap size={9} /> AI Plannen
-                  </span>
-                  <div className="h-px flex-1 bg-gray-200" />
-                </div>
-
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3 flex-wrap">
+                {/* AI Plannen sectie header */}
+                <div className="flex items-start justify-between gap-3 flex-wrap pt-2">
                   <div>
-                    <h2 className="text-xl font-black">Trainingen</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Individuele plannen + teamsessies</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap size={13} className="text-gray-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">AI Trainingsplannen</span>
+                    </div>
+                    <p className="text-sm text-gray-500">Individuele plannen per speler + teamsessies</p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border border-gray-200">
@@ -1083,7 +1077,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         <Card light key={player.id}>
                           {/* Player header */}
                           <div className="flex items-center gap-3 mb-4">
-                            <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full border border-gray-700 shrink-0" />
+                            <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full border border-gray-200 shrink-0" />
                             <div className="flex-1 min-w-0">
                               <h4 className="font-bold truncate">{player.name}</h4>
                               <p className="text-[10px] text-gray-600 uppercase tracking-wide">
