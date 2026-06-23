@@ -19,8 +19,27 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidUpdate(_: Props, prev: State) {
+    const { error } = this.state;
+    if (error && error !== prev.error && this.isChunkError(error)) {
+      window.location.reload();
+    }
+  }
+
+  private isChunkError(error: Error) {
+    const msg = error?.message ?? '';
+    return msg.includes('Failed to fetch dynamically imported module') || msg.includes('Importing a module script failed');
+  }
+
   render() {
     if (this.state.hasError) {
+      if (this.isChunkError(this.state.error!)) {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
+            <div className="text-gray-400 mb-3">Nieuwe versie beschikbaar, pagina wordt herladen...</div>
+          </div>
+        );
+      }
       return this.props.fallback ?? (
         <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
           <AlertTriangle className="h-16 w-16 mb-4" style={{ color: NEON_COLOR }} />

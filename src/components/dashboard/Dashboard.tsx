@@ -607,27 +607,27 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
       {/* ── COACH DASHBOARD ── */}
       {userData.role === 'coach' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen bg-white text-gray-900">
 
           {/* Sticky header */}
-          <header className="sticky top-0 z-20 bg-[#090B0F]/90 backdrop-blur-xl border-b border-white/[0.06] px-4 py-3">
+          <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-3">
             <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-              <h1 className="text-xl font-black tracking-wide truncate" style={{ color: NEON_COLOR, textShadow: `0 0 20px ${NEON_COLOR}40` }}>
+              <h1 className="text-xl font-black tracking-wide truncate" style={{ color: NEON_COLOR }}>
                 {teamData.team_name || 'Mijn Team'}
               </h1>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleCopyTeamId}
-                  className="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-gray-700 transition-colors"
+                  className="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
                 >
-                  <span className="text-gray-400">ID:</span>
-                  <span className="font-mono font-bold text-white">{userData.teamId}</span>
-                  {copied ? <CheckCircle2 size={13} className="text-green-400" /> : <Copy size={13} className="text-gray-500" />}
+                  <span className="text-gray-500">ID:</span>
+                  <span className="font-mono font-bold text-gray-900">{userData.teamId}</span>
+                  {copied ? <CheckCircle2 size={13} className="text-green-600" /> : <Copy size={13} className="text-gray-400" />}
                 </button>
-                <button onClick={() => setIsCoachProfileVisible(true)} className="p-2 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-gray-700 transition-colors text-gray-300">
+                <button onClick={() => setIsCoachProfileVisible(true)} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
                   <Edit size={16} />
                 </button>
-                <button onClick={async () => { await supabase.auth.signOut(); }} className="p-2 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-red-900/40 transition-colors text-red-400">
+                <button onClick={async () => { await supabase.auth.signOut(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-500">
                   <LogOut size={16} />
                 </button>
               </div>
@@ -635,7 +635,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           </header>
 
           {/* Desktop section tabs */}
-          <nav className="hidden sm:block border-b border-white/[0.06] bg-[#090B0F]/60 px-4">
+          <nav className="hidden sm:block border-b border-gray-100 bg-white px-4">
             <div className="max-w-6xl mx-auto flex">
               {COACH_SECTIONS.map(({ id, label, icon: Icon }) => (
                 <button
@@ -643,8 +643,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   onClick={() => setMobileSection(id)}
                   className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all relative ${
                     mobileSection === id
-                      ? 'border-[--neon-color] text-white'
-                      : 'border-transparent text-gray-500 hover:text-gray-200'
+                      ? 'border-green-700 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-900'
                   }`}
                 >
                   <Icon size={15} />
@@ -687,7 +687,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         onClick={() => setActivePlayerId(player.id)}
                         onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') setActivePlayerId(player.id); }}
                         className={`relative shrink-0 flex flex-col items-start gap-2 p-3 rounded-xl transition-all cursor-pointer border ${
-                          isActive ? 'border-[#00FF9D] bg-gray-800/80' : 'border-gray-700/60 bg-gray-900/60 hover:bg-gray-800/60'
+                          isActive ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:bg-gray-50'
                         }`}
                         whileHover={{ y: -2 }}
                       >
@@ -715,7 +715,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   })}
                   <button
                     onClick={() => setIsAddPlayerVisible(true)}
-                    className="shrink-0 flex flex-col items-center justify-center gap-1.5 px-4 rounded-xl border-2 border-dashed border-gray-700 hover:border-[--neon-color] min-w-[5rem] h-[5rem] transition-colors text-gray-600 hover:text-[--neon-color]"
+                    className="shrink-0 flex flex-col items-center justify-center gap-1.5 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-green-600 min-w-[5rem] h-[5rem] transition-colors text-gray-400 hover:text-green-600"
                   >
                     <Plus size={18} />
                     <span className="text-[10px] font-semibold uppercase tracking-wide">Toevoegen</span>
@@ -723,8 +723,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 </div>
 
                 {players.length === 0 && (
-                  <div className="text-center py-16 border-2 border-dashed border-gray-800 rounded-2xl">
-                    <UserSquare size={40} className="mx-auto mb-3 text-gray-700" />
+                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                    <UserSquare size={40} className="mx-auto mb-3 text-gray-300" />
                     <p className="text-gray-400 font-medium mb-3">Nog geen spelers in het team</p>
                     <button onClick={() => setIsAddPlayerVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity" style={{ backgroundColor: NEON_COLOR }}>
                       Eerste speler toevoegen
@@ -735,12 +735,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 {activePlayer && (
                   <>
                     {/* Player header */}
-                    <Card>
+                    <Card light>
                       <div className="flex items-center gap-4">
                         <img src={activePlayer.avatar_url} alt={activePlayer.name} className="w-14 h-14 rounded-full border-2 shrink-0" style={{ borderColor: NEON_COLOR }} />
                         <div className="flex-1 min-w-0">
-                          <h2 className="text-xl font-black truncate">{activePlayer.name}</h2>
-                          <p className="text-sm text-gray-400">{activePlayer.position || 'Positie niet ingesteld'} · {activePlayer.age ? `${activePlayer.age} jaar` : ''}</p>
+                          <h2 className="text-xl font-black truncate text-gray-900">{activePlayer.name}</h2>
+                          <p className="text-sm text-gray-500">{activePlayer.position || 'Positie niet ingesteld'} · {activePlayer.age ? `${activePlayer.age} jaar` : ''}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <div className="text-3xl font-black" style={{ color: NEON_COLOR }}>
@@ -751,13 +751,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                       </div>
 
                       {/* Period tabs */}
-                      <div className="flex items-center justify-between mt-5 border-b border-gray-800">
+                      <div className="flex items-center justify-between mt-5 border-b border-gray-200">
                         <div className="flex overflow-x-auto">
                           {teamPeriods.map(period => (
                             <button
                               key={period}
                               onClick={() => setActiveTab(period)}
-                              className={`px-4 py-2.5 text-sm font-semibold relative transition-colors shrink-0 ${activeTab === period ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                              className={`px-4 py-2.5 text-sm font-semibold relative transition-colors shrink-0 ${activeTab === period ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                               {period}
                               {activeTab === period && (
@@ -767,10 +767,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                           ))}
                         </div>
                         <div className="flex gap-2 shrink-0">
-                          <ToolButton onClick={() => setIsTestsVisible(true)}>
+                          <ToolButton light onClick={() => setIsTestsVisible(true)}>
                             <FileText size={14} /> Testen
                           </ToolButton>
-                          <ToolButton onClick={() => exportPlayerPdf(activePlayer, teamData.team_name || 'Team', teamPeriods)}>
+                          <ToolButton light onClick={() => exportPlayerPdf(activePlayer, teamData.team_name || 'Team', teamPeriods)}>
                             <Download size={14} /> PDF
                           </ToolButton>
                         </div>
@@ -804,7 +804,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </Card>
 
                     {/* Comments */}
-                    <Card>
+                    <Card light>
                       <Textarea
                         label="Opmerkingen Coach"
                         placeholder="Sterke punten, verbeterpunten..."
@@ -820,13 +820,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </Card>
 
                     {/* Radar */}
-                    <Card>
+                    <Card light>
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Skill Radar — {activeTab}</p>
                       <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                           <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarChartData}>
-                            <PolarGrid stroke="#374151" />
-                            <PolarAngleAxis dataKey="subject" tick={{ fill: 'white', fontSize: 11 }} />
+                            <PolarGrid stroke="#e5e7eb" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
                             <Radar name={activePlayer.name} dataKey="value" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.55} />
                           </RadarChart>
@@ -835,17 +835,17 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </Card>
 
                     {/* Trend */}
-                    <Card>
+                    <Card light>
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-1.5">
                         <TrendingUp size={13} style={{ color: NEON_COLOR }} /> Prestatie Trend
                       </p>
                       <div className="h-52">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={lineChartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                            <XAxis dataKey="name" stroke="#6b7280" tick={{ fontSize: 11 }} />
-                            <YAxis domain={[0, 10]} stroke="#6b7280" tick={{ fontSize: 11 }} />
-                            <Tooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: 8 }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                            <XAxis dataKey="name" stroke="#9ca3af" tick={{ fontSize: 11 }} />
+                            <YAxis domain={[0, 10]} stroke="#9ca3af" tick={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }} />
                             <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                             <Line type="monotone" dataKey="Gem. Skill" stroke={NEON_COLOR} strokeWidth={2} dot={false} />
                             <Line type="monotone" dataKey="Wedstrijdcijfer" stroke="#8b5cf6" strokeWidth={2} dot={false} />
@@ -877,7 +877,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                 {/* Team completion */}
                 {(teamData.assigned_homework_ids?.length || 0) > 0 && players.length > 0 && (
-                  <Card>
+                  <Card light>
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Voltooiing Team</p>
                     <div className="space-y-3">
                       {players.map(p => {
@@ -887,8 +887,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         return (
                           <div key={p.id} className="flex items-center gap-3">
                             <img src={p.avatar_url} className="w-7 h-7 rounded-full shrink-0" alt={p.name} />
-                            <span className="text-sm flex-1 min-w-0 truncate">{p.name}</span>
-                            <div className="w-24 bg-gray-800 rounded-full h-1.5 shrink-0">
+                            <span className="text-sm flex-1 min-w-0 truncate text-gray-700">{p.name}</span>
+                            <div className="w-24 bg-gray-200 rounded-full h-1.5 shrink-0">
                               <motion.div
                                 className="h-1.5 rounded-full"
                                 style={{ backgroundColor: pct === 100 ? '#4ade80' : NEON_COLOR }}
@@ -907,8 +907,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                 {/* Homework list */}
                 {customHomework.length === 0 ? (
-                  <div className="text-center py-16 border-2 border-dashed border-gray-800 rounded-2xl">
-                    <ClipboardList size={40} className="mx-auto mb-3 text-gray-700" />
+                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                    <ClipboardList size={40} className="mx-auto mb-3 text-gray-300" />
                     <p className="text-gray-400 font-medium mb-3">Nog geen huiswerk aangemaakt</p>
                     <button onClick={() => setIsHomeworkVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity" style={{ backgroundColor: NEON_COLOR }}>
                       Eerste opdracht aanmaken
@@ -919,7 +919,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     {customHomework.map(hw => {
                       const isAssigned = (teamData.assigned_homework_ids || []).includes(hw.id);
                       return (
-                        <Card key={hw.id} className={`transition-all ${isAssigned ? 'border border-[#00FF9D]/25' : ''}`}>
+                        <Card light key={hw.id} className={`transition-all ${isAssigned ? 'border border-green-600/30 !bg-green-50/50' : ''}`}>
                           <div className="flex items-start gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -956,7 +956,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                 {/* ── VIDEO INZENDINGEN (coach) ── */}
                 {submissions.length > 0 && (
-                  <Card>
+                  <Card light>
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
                       <span style={{ color: NEON_COLOR }}>●</span> Video Inzendingen
                     </p>
@@ -966,19 +966,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         const hw = customHomework.find(h => h.id === sub.homework_id);
                         if (!submPlayer || !hw) return null;
 
-                        const statusColor = sub.feedback_status === 'done' ? '#4ade80'
-                          : sub.feedback_status === 'error' ? '#f87171'
+                        const statusColor = sub.feedback_status === 'done' ? '#16a34a'
+                          : sub.feedback_status === 'error' ? '#dc2626'
                           : NEON_COLOR;
                         const statusLabel = sub.feedback_status === 'done' ? 'Feedback klaar'
                           : sub.feedback_status === 'error' ? 'Mislukt'
                           : 'Bezig…';
 
                         return (
-                          <details key={sub.id} className="group rounded-xl bg-gray-800/40 border border-gray-700/40 overflow-hidden">
-                            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-800/60 transition-colors">
+                          <details key={sub.id} className="group rounded-xl bg-gray-50 border border-gray-200 overflow-hidden">
+                            <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-100 transition-colors">
                               <img src={submPlayer.avatar_url} alt={submPlayer.name} className="w-8 h-8 rounded-full shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">{submPlayer.name}</p>
+                                <p className="text-sm font-semibold text-gray-900 truncate">{submPlayer.name}</p>
                                 <p className="text-xs text-gray-500 truncate">{hw.title}</p>
                               </div>
                               <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>
@@ -986,18 +986,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               </span>
                             </summary>
 
-                            <div className="px-3 pb-3 border-t border-gray-700/40 pt-3 space-y-2">
+                            <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
                               {sub.video_url && (
                                 <video src={sub.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />
                               )}
                               {sub.ai_feedback ? (
-                                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{sub.ai_feedback}</p>
+                                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{sub.ai_feedback}</p>
                               ) : (
-                                <p className="text-xs text-gray-600 italic">
+                                <p className="text-xs text-gray-400 italic">
                                   {sub.feedback_status === 'processing' ? 'Feedback wordt gegenereerd…' : 'Geen feedback beschikbaar.'}
                                 </p>
                               )}
-                              <p className="text-[10px] text-gray-700">
+                              <p className="text-[10px] text-gray-400">
                                 {new Date(sub.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
@@ -1030,11 +1030,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                 {/* Divider */}
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-gray-800" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-2 flex items-center gap-1.5">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2 flex items-center gap-1.5">
                     <Zap size={9} /> AI Plannen
                   </span>
-                  <div className="h-px flex-1 bg-gray-800" />
+                  <div className="h-px flex-1 bg-gray-200" />
                 </div>
 
                 {/* Header */}
@@ -1044,13 +1044,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     <p className="text-sm text-gray-500 mt-0.5">Individuele plannen + teamsessies</p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex gap-1 bg-gray-800/80 rounded-xl p-1 border border-gray-700/60">
+                    <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border border-gray-200">
                       {teamPeriods.map(p => (
                         <button
                           key={p}
                           onClick={() => setActiveTab(p)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            activeTab === p ? 'bg-gray-600 text-white' : 'text-gray-500 hover:text-gray-300'
+                            activeTab === p ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                           }`}
                         >
                           {p.length > 8 ? p.substring(0, 8) + '…' : p}
@@ -1069,8 +1069,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                 {/* Individual player plans */}
                 {players.length === 0 ? (
-                  <div className="text-center py-16 border-2 border-dashed border-gray-800 rounded-2xl">
-                    <Target size={40} className="mx-auto mb-3 text-gray-700" />
+                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                    <Target size={40} className="mx-auto mb-3 text-gray-300" />
                     <p className="text-gray-400">Voeg spelers toe om trainingsplannen te maken.</p>
                   </div>
                 ) : (
@@ -1080,7 +1080,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                       const legacyPlan = player.evaluations?.[activeTab]?.trainingPlan;
                       const isGeneratingThis = generatingPlanForPlayer === player.id;
                       return (
-                        <Card key={player.id}>
+                        <Card light key={player.id}>
                           {/* Player header */}
                           <div className="flex items-center gap-3 mb-4">
                             <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full border border-gray-700 shrink-0" />
@@ -1105,12 +1105,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                           {structuredPlan ? (
                             <TrainingPlanCard plan={structuredPlan} playerName={player.name} period={activeTab} />
                           ) : legacyPlan ? (
-                            <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-gray-800/40 rounded-xl p-4 border border-gray-700/40">
+                            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 rounded-xl p-4 border border-gray-100">
                               {legacyPlan}
                             </div>
                           ) : (
-                            <div className="text-center py-6 border border-dashed border-gray-800 rounded-xl">
-                              <Wand2 size={22} className="mx-auto mb-2 text-gray-700" />
+                            <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                              <Wand2 size={22} className="mx-auto mb-2 text-gray-300" />
                               <p className="text-xs text-gray-600">Klik Genereer voor een persoonlijk plan</p>
                             </div>
                           )}
@@ -1124,13 +1124,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 {teamSessions.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-px flex-1 bg-gray-800" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-2">Opgeslagen Teamsessies</p>
-                      <div className="h-px flex-1 bg-gray-800" />
+                      <div className="h-px flex-1 bg-gray-200" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">Opgeslagen Teamsessies</p>
+                      <div className="h-px flex-1 bg-gray-200" />
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       {teamSessions.map(session => (
-                        <Card key={session.id}>
+                        <Card light key={session.id}>
                           <div className="flex items-center gap-2 mb-3">
                             <Target size={13} style={{ color: NEON_COLOR }} />
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Teamsessie</span>
@@ -1171,11 +1171,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             {mobileSection === 'vragen' && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
                 <div>
-                  <h2 className="text-xl font-black">Reflectievragen</h2>
+                  <h2 className="text-xl font-black text-gray-900">Reflectievragen</h2>
                   <p className="text-sm text-gray-500 mt-0.5">Stel wekelijkse vragen aan het team</p>
                 </div>
 
-                <Card>
+                <Card light>
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Vragen voor spelers</p>
                   <div className="space-y-4">
                     {questionDrafts.map((value, idx) => (
@@ -1210,20 +1210,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                 {/* Player answers */}
                 {visibleQuestions.length > 0 && players.length > 0 && (
-                  <Card>
+                  <Card light>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Antwoorden per speler</p>
                     </div>
                     {/* Player selector */}
-                    <div className="flex gap-2 overflow-x-auto pb-3 mb-4 border-b border-gray-800">
+                    <div className="flex gap-2 overflow-x-auto pb-3 mb-4 border-b border-gray-200">
                       {players.map(p => (
                         <button
                           key={p.id}
                           onClick={() => setActivePlayerId(p.id)}
                           className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             activePlayerId === p.id
-                              ? 'bg-gray-700 text-white'
-                              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+                              ? 'bg-gray-100 text-gray-900'
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                           }`}
                         >
                           <img src={p.avatar_url} className="w-5 h-5 rounded-full" alt={p.name} />
@@ -1234,20 +1234,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     {activePlayer ? (
                       <div className="space-y-3">
                         {visibleQuestions.map(({ text, idx }) => (
-                          <div key={idx} className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/40">
-                            <p className="text-[10px] text-gray-600 uppercase tracking-wide mb-1">Vraag {idx + 1}</p>
-                            <p className="text-sm text-white font-semibold mb-2">{text}</p>
-                            <p className="text-sm text-gray-300 leading-relaxed">
+                          <div key={idx} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Vraag {idx + 1}</p>
+                            <p className="text-sm text-gray-900 font-semibold mb-2">{text}</p>
+                            <p className="text-sm text-gray-600 leading-relaxed">
                               {activePlayer.weekly_question_responses?.[idx]?.trim()
                                 ? activePlayer.weekly_question_responses[idx]
-                                : <span className="italic text-gray-600">Nog geen antwoord gegeven</span>
+                                : <span className="italic text-gray-400">Nog geen antwoord gegeven</span>
                               }
                             </p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-600 text-center py-4">Selecteer een speler om antwoorden te bekijken.</p>
+                      <p className="text-sm text-gray-400 text-center py-4">Selecteer een speler om antwoorden te bekijken.</p>
                     )}
                   </Card>
                 )}
@@ -1258,7 +1258,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           {/* Mobile bottom nav */}
           <nav
             className="fixed bottom-0 left-0 right-0 sm:hidden z-30"
-            style={{ background: 'rgba(9,11,15,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+            style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid #f3f4f6', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="flex">
               {COACH_SECTIONS.map(({ id, label, icon: Icon }) => (
@@ -1266,7 +1266,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   key={id}
                   onClick={() => setMobileSection(id)}
                   className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity"
-                  style={{ color: mobileSection === id ? NEON_COLOR : '#6b7280' }}
+                  style={{ color: mobileSection === id ? NEON_COLOR : '#9ca3af' }}
                 >
                   <Icon size={19} />
                   <span className="text-[9px] font-bold tracking-wider uppercase">{label}</span>

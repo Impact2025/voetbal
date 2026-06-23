@@ -25,9 +25,9 @@ const AttendanceCard = ({ players, records }: AttendanceCardProps) => {
 
   if (players.length === 0) {
     return (
-      <Card>
-        <div className="text-center py-10 text-gray-500">
-          <CalendarCheck size={36} className="mx-auto mb-3 text-gray-700" />
+      <Card light>
+        <div className="text-center py-10 text-gray-400">
+          <CalendarCheck size={36} className="mx-auto mb-3 text-gray-300" />
           <p>Voeg spelers toe om aanwezigheid bij te houden.</p>
         </div>
       </Card>
@@ -35,11 +35,11 @@ const AttendanceCard = ({ players, records }: AttendanceCardProps) => {
   }
 
   return (
-    <Card>
+    <Card light>
       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Aanwezigheid (laatste 10 sessies)</p>
       <div className="space-y-4">
         {stats.map(({ player, pct, total, present, absenceReasons }, idx) => {
-          const color = pct === null ? '#6b7280' : pct >= 80 ? '#4ade80' : pct >= 60 ? '#fb923c' : '#f87171';
+          const color = pct === null ? '#9ca3af' : pct >= 80 ? '#16a34a' : pct >= 60 ? '#ea580c' : '#dc2626';
           return (
             <motion.div
               key={player.id}
@@ -48,16 +48,16 @@ const AttendanceCard = ({ players, records }: AttendanceCardProps) => {
               transition={{ delay: idx * 0.04 }}
             >
               <div className="flex items-center gap-3 mb-1.5">
-                <img src={player.avatar_url} alt={player.name} className="w-8 h-8 rounded-full shrink-0 border border-gray-700" />
+                <img src={player.avatar_url} alt={player.name} className="w-8 h-8 rounded-full shrink-0 border border-gray-200" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold truncate">{player.name}</span>
-                    <span className="text-sm font-black tabular-nums shrink-0 ml-2" style={{ color: pct === null ? '#6b7280' : color }}>
+                    <span className="text-sm font-semibold text-gray-900 truncate">{player.name}</span>
+                    <span className="text-sm font-black tabular-nums shrink-0 ml-2" style={{ color: pct === null ? '#9ca3af' : color }}>
                       {pct === null ? '—' : `${pct}%`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <div className="flex-1 bg-gray-800 rounded-full h-1.5">
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                       <motion.div
                         className="h-1.5 rounded-full"
                         style={{ backgroundColor: color }}
@@ -66,7 +66,7 @@ const AttendanceCard = ({ players, records }: AttendanceCardProps) => {
                         transition={{ duration: 0.6, delay: idx * 0.05 }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-600 tabular-nums shrink-0">
+                    <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
                       {total === 0 ? 'Geen sessies' : `${present}/${total}`}
                     </span>
                   </div>
@@ -75,12 +75,12 @@ const AttendanceCard = ({ players, records }: AttendanceCardProps) => {
               {absenceReasons.length > 0 && (
                 <div className="ml-11 flex flex-wrap gap-1">
                   {absenceReasons.slice(0, 2).map((reason, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-red-950/40 text-red-400 border border-red-900/40">
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
                       {reason}
                     </span>
                   ))}
                   {absenceReasons.length > 2 && (
-                    <span className="text-[10px] text-gray-600">+{absenceReasons.length - 2} meer</span>
+                    <span className="text-[10px] text-gray-400">+{absenceReasons.length - 2} meer</span>
                   )}
                 </div>
               )}

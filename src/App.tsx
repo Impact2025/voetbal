@@ -247,7 +247,7 @@ export default function Skillkaart() {
     );
   }
 
-  const isLightTheme = !!(session && userData && (userData.role === 'club_admin' || userData.role === 'parent'));
+  const isLightTheme = !!(session && userData && (userData.role === 'club_admin' || userData.role === 'parent' || userData.role === 'coach'));
 
   return (
     <div className={isLightTheme ? 'bg-white text-gray-900 font-sans min-h-screen' : 'bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans'} style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
