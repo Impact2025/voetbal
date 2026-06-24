@@ -5,7 +5,7 @@ import {
   Target, MessageSquare, Share2, Wand2, Rocket, HelpCircle, CheckCircle2,
   Flame, Trophy, User,
 } from 'lucide-react';
-import { NEON_COLOR } from '../utils/constants';
+import { NEON_COLOR, COACH_COLOR } from '../utils/constants';
 
 const STORAGE_KEY_COACH = 'onboardingDone_coach_v2';
 const STORAGE_KEY_PLAYER = 'onboardingDone_player_v2';
@@ -223,6 +223,8 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
   const Icon = current.icon;
   const progressPct = steps.length > 1 ? (step / (steps.length - 1)) * 100 : 100;
 
+  const light = role === 'coach';
+
   return (
     <>
       {/* Floating help button — only on desktop (mobile nav has no room) */}
@@ -231,10 +233,10 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
         className="hidden sm:flex fixed right-4 z-[90] w-9 h-9 rounded-full items-center justify-center"
         style={{
           bottom: '1.5rem',
-          background: role === 'coach' ? '#fff' : '#111',
-          border: role === 'coach' ? '1.5px solid #d1fae5' : `1.5px solid ${NEON_COLOR}44`,
-          color: role === 'coach' ? '#059669' : `${NEON_COLOR}cc`,
-          boxShadow: role === 'coach' ? '0 2px 8px rgba(0,0,0,0.08)' : `0 0 14px ${NEON_COLOR}18`,
+          background: light ? '#fff' : '#111',
+          border: light ? '1.5px solid #d1fae5' : `1.5px solid ${NEON_COLOR}44`,
+          color: light ? '#059669' : `${NEON_COLOR}cc`,
+          boxShadow: light ? '0 2px 8px rgba(0,0,0,0.08)' : `0 0 14px ${NEON_COLOR}18`,
         }}
         whileHover={{ scale: 1.12 }}
         whileTap={{ scale: 0.92 }}
@@ -256,7 +258,7 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
             {/* Dimmed backdrop */}
             <div
               className="absolute inset-0"
-              style={{ background: 'rgba(0,0,0,0.84)', backdropFilter: 'blur(6px)' }}
+              style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
               onClick={dismiss}
             />
 
@@ -268,15 +270,17 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
               exit={{ scale: 0.93, y: 20, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               style={{
-                background: '#0e0e0e',
+                background: light ? '#ffffff' : '#0e0e0e',
                 borderRadius: 20,
-                border: '1px solid rgba(255,255,255,0.07)',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)',
+                border: light ? '1px solid #e5e7eb' : '1px solid rgba(255,255,255,0.07)',
+                boxShadow: light
+                  ? '0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06)'
+                  : '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)',
                 overflow: 'hidden',
               }}
             >
               {/* Progress bar */}
-              <div className="h-[3px]" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="h-[3px]" style={{ background: light ? '#f3f4f6' : 'rgba(255,255,255,0.05)' }}>
                 <motion.div
                   className="h-full"
                   style={{ background: current.iconColor, borderRadius: 2 }}
@@ -288,14 +292,14 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
               <div className="p-6">
                 {/* Counter + close */}
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <span className="text-[11px] font-bold tracking-widest uppercase" style={{ color: light ? '#9ca3af' : 'rgba(255,255,255,0.25)' }}>
                     Stap {step + 1} van {steps.length}
                   </span>
                   <button
                     onClick={dismiss}
                     className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.3)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                    style={{ color: light ? '#9ca3af' : 'rgba(255,255,255,0.3)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = light ? '#f3f4f6' : 'rgba(255,255,255,0.07)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     aria-label="Sluiten"
                   >
@@ -323,12 +327,12 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-[19px] font-black leading-snug text-white mb-2">
+                    <h3 className="text-[19px] font-black leading-snug mb-2" style={{ color: light ? '#111827' : '#ffffff' }}>
                       {current.title}
                     </h3>
 
                     {/* Body */}
-                    <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <p className="text-sm leading-relaxed mb-4" style={{ color: light ? '#6b7280' : 'rgba(255,255,255,0.5)' }}>
                       {current.body}
                     </p>
 
@@ -342,7 +346,7 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
                               className="shrink-0 mt-[3px]"
                               style={{ color: current.iconColor }}
                             />
-                            <span className="text-sm leading-snug" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                            <span className="text-sm leading-snug" style={{ color: light ? '#374151' : 'rgba(255,255,255,0.72)' }}>
                               {bullet}
                             </span>
                           </li>
@@ -353,15 +357,15 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
                 </AnimatePresence>
 
                 {/* Navigation row */}
-                <div className="flex items-center justify-between mt-7 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center justify-between mt-7 pt-5" style={{ borderTop: `1px solid ${light ? '#f3f4f6' : 'rgba(255,255,255,0.05)'}` }}>
                   {/* Back */}
                   <button
                     onClick={() => go(step - 1)}
                     disabled={isFirst}
                     className="flex items-center gap-1 text-sm transition-colors disabled:invisible"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
-                    onMouseEnter={e => !isFirst && (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+                    style={{ color: light ? '#9ca3af' : 'rgba(255,255,255,0.35)' }}
+                    onMouseEnter={e => !isFirst && (e.currentTarget.style.color = light ? '#374151' : 'rgba(255,255,255,0.7)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = light ? '#9ca3af' : 'rgba(255,255,255,0.35)')}
                   >
                     <ChevronLeft size={15} /> Vorige
                   </button>
@@ -376,7 +380,7 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
                         style={{
                           width: i === step ? 18 : 6,
                           height: 6,
-                          background: i === step ? current.iconColor : 'rgba(255,255,255,0.12)',
+                          background: i === step ? current.iconColor : (light ? '#d1d5db' : 'rgba(255,255,255,0.12)'),
                         }}
                         aria-label={`Ga naar stap ${i + 1}`}
                       />
@@ -387,8 +391,11 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
                   {isLast ? (
                     <motion.button
                       onClick={dismiss}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-black"
-                      style={{ background: NEON_COLOR }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold"
+                      style={{
+                        background: light ? COACH_COLOR : NEON_COLOR,
+                        color: light ? '#ffffff' : '#000000',
+                      }}
                       whileHover={{ opacity: 0.9 }}
                       whileTap={{ scale: 0.95 }}
                     >
