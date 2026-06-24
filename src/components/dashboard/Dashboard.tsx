@@ -663,7 +663,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
             {/* ── OVERZICHT ── */}
             {mobileSection === 'overzicht' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+              <div className="space-y-5">
                 <CoachWeekAgenda
                   clubId={userData.clubId}
                   isClubPro={isClubPro}
@@ -683,12 +683,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   onSelectPlayer={(id) => { setActivePlayerId(id); setMobileSection('spelers'); }}
                 />
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* ── SPELERS ── */}
             {mobileSection === 'spelers' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+              <div className="space-y-4">
 
                 {/* Player selector – compact pill row */}
                 <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -873,12 +873,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </Card>
                   </>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* ── HUISWERK + VRAGEN ── */}
             {mobileSection === 'huiswerk' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+              <div className="space-y-5">
 
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -1096,12 +1096,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     )}
                   </Card>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* ── TRAININGEN + AANWEZIGHEID ── */}
             {mobileSection === 'trainingen' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+              <div className="space-y-6">
 
                 {/* Seizoensprogramma PRO */}
                 {userData.clubId && (
@@ -1243,7 +1243,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   </button>
                 </div>
                 <AttendanceCard players={players} records={attendanceRecords} />
-              </motion.div>
+              </div>
             )}
           </main>
 
