@@ -9,12 +9,13 @@ interface CoachProfileModalProps {
   isVisible: boolean;
   onClose: () => void;
   teamData: Partial<Team>;
-  onSave: (data: { team_name: string; team_class: string; evaluation_periods: string[] }) => Promise<void>;
+  onSave: (data: { team_name: string; team_class: string; evaluation_periods: string[]; coach_name: string }) => Promise<void>;
 }
 
 const CoachProfileModal = ({ isVisible, onClose, teamData, onSave }: CoachProfileModalProps) => {
   const [teamName, setTeamName] = useState('');
   const [teamClass, setTeamClass] = useState('');
+  const [coachName, setCoachName] = useState('');
   const [periods, setPeriods] = useState<string[]>(DEFAULT_EVALUATION_PERIODS.slice());
   const [loading, setLoading] = useState(false);
 
@@ -22,6 +23,7 @@ const CoachProfileModal = ({ isVisible, onClose, teamData, onSave }: CoachProfil
     if (teamData) {
       setTeamName(teamData.team_name || '');
       setTeamClass(teamData.team_class || '');
+      setCoachName(teamData.coach_name || '');
       setPeriods(
         Array.isArray(teamData.evaluation_periods) && teamData.evaluation_periods.length > 0
           ? teamData.evaluation_periods.slice()
@@ -50,7 +52,7 @@ const CoachProfileModal = ({ isVisible, onClose, teamData, onSave }: CoachProfil
     const cleanPeriods = periods.map(p => p.trim()).filter(Boolean);
     if (cleanPeriods.length === 0) return;
     setLoading(true);
-    await onSave({ team_name: teamName, team_class: teamClass, evaluation_periods: cleanPeriods });
+    await onSave({ team_name: teamName, team_class: teamClass, evaluation_periods: cleanPeriods, coach_name: coachName.trim() });
     setLoading(false);
     onClose();
   };
@@ -80,6 +82,7 @@ const CoachProfileModal = ({ isVisible, onClose, teamData, onSave }: CoachProfil
             </div>
 
             <div className="px-6 py-5 space-y-4">
+              <Input light label="Jouw naam (coach)" value={coachName} onChange={e => setCoachName(e.target.value)} placeholder="bv. Vincent" />
               <Input light label="Teamnaam" value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Naam van je team" />
               <Input light label="Klasse" value={teamClass} onChange={e => setTeamClass(e.target.value)} placeholder="bv. JO11-2" />
             </div>

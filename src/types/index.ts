@@ -87,6 +87,7 @@ export interface Team {
   weekly_questions: string[];
   assigned_homework_ids: string[];
   evaluation_periods: string[];
+  coach_name?: string;
 }
 
 export interface CustomHomework {

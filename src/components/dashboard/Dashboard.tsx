@@ -31,6 +31,7 @@ import PlayerHomeworkCard from '../players/PlayerHomeworkCard';
 import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
 import PlayerOverview from './PlayerOverview';
+const CoachWeekAgenda = lazy(() => import('./CoachWeekAgenda'));
 import TodayScreen from './TodayScreen';
 import PlayerCard from '../card/PlayerCard';
 import TierUpModal from '../feedback/TierUpModal';
@@ -283,9 +284,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   const handleSaveCoachProfile = async (coachProfileData) => {
     await supabase.from('teams').update(coachProfileData).eq('id', userData.teamId);
-    if (coachProfileData.evaluation_periods) {
-      setTeamData(prev => ({ ...prev, evaluation_periods: coachProfileData.evaluation_periods }));
-    }
+    setTeamData(prev => ({ ...prev, ...coachProfileData }));
   };
 
   const handleSaveTeamQuestions = async () => {
@@ -661,7 +660,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
             {/* ── OVERZICHT ── */}
             {mobileSection === 'overzicht' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+                <Suspense fallback={<div className="h-28 bg-emerald-50 rounded-2xl animate-pulse border border-emerald-200" />}>
+                  <CoachWeekAgenda
+                    clubId={userData.clubId}
+                    isClubPro={isClubPro}
+                    coachName={teamData.coach_name}
+                    teamName={teamData.team_name}
+                    onGoToTrainingen={() => setMobileSection('trainingen')}
+                  />
+                </Suspense>
                 <TeamOverview
                   players={players}
                   teamData={teamData}
