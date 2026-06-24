@@ -1,6 +1,7 @@
 import type { HomeworkSuggestion, TestState, Evaluation } from '../types';
 
 export const NEON_COLOR = '#00FF9D';
+export const COACH_COLOR = '#059669';
 
 export const skillKeys: string[] = ['snelheid', 'passing', 'techniek', 'schot', 'verdedigen', 'inzicht', 'mentaliteit'];
 export const evaluationPeriods: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];

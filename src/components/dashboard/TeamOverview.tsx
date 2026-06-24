@@ -3,7 +3,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import { Trophy, Users, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from '../ui/Card';
-import { skillKeys, NEON_COLOR } from '../../utils/constants';
+import { skillKeys, COACH_COLOR } from '../../utils/constants';
 import type { Player, Team } from '../../types';
 
 interface TeamOverviewProps {
@@ -24,8 +24,8 @@ interface StatChipProps {
 const StatChip = ({ label, value, sub, icon, warn = false }: StatChipProps) => (
   <Card light className="text-center py-4">
     <div className="flex flex-col items-center gap-1">
-      <div style={{ color: warn && value !== '0' ? '#dc2626' : NEON_COLOR }}>{icon}</div>
-      <div className="text-2xl font-black" style={{ color: warn && value !== '0' ? '#dc2626' : NEON_COLOR }}>{value}</div>
+      <div style={{ color: warn && value !== '0' ? '#dc2626' : COACH_COLOR }}>{icon}</div>
+      <div className="text-2xl font-black" style={{ color: warn && value !== '0' ? '#dc2626' : COACH_COLOR }}>{value}</div>
       <div className="text-xs font-semibold text-gray-600">{label}</div>
       <div className="text-[10px] text-gray-400 uppercase tracking-wide">{sub}</div>
     </div>
@@ -114,7 +114,7 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
                   <PolarGrid stroke="#e5e7eb" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
                   <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                  <Radar name="Team" dataKey="value" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.45} />
+                  <Radar name="Team" dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.45} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>

@@ -7,7 +7,7 @@ import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, Che
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
-import { NEON_COLOR, skillKeys, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
+import { NEON_COLOR, COACH_COLOR, skillKeys, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import { hashPin } from '../../utils/crypto';
 import { exportPlayerPdf } from '../../utils/pdfExport';
@@ -50,12 +50,10 @@ interface DashboardProps {
 }
 
 const COACH_SECTIONS = [
-  { id: 'overzicht',    label: 'Overzicht',    icon: LayoutDashboard },
-  { id: 'spelers',      label: 'Spelers',       icon: UserSquare },
-  { id: 'huiswerk',     label: 'Huiswerk',      icon: ClipboardList },
-  { id: 'trainingen',   label: 'Trainingen',    icon: Target },
-  { id: 'aanwezigheid', label: 'Aanwezigheid',  icon: CalendarCheck },
-  { id: 'vragen',       label: 'Vragen',        icon: ListPlus },
+  { id: 'overzicht',  label: 'Overzicht',  icon: LayoutDashboard },
+  { id: 'spelers',    label: 'Spelers',    icon: UserSquare },
+  { id: 'huiswerk',   label: 'Huiswerk',   icon: ClipboardList },
+  { id: 'trainingen', label: 'Trainingen', icon: Target },
 ] as const;
 
 const PLAYER_SECTIONS = [
@@ -610,11 +608,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         <div className="flex flex-col min-h-screen bg-white text-gray-900">
 
           {/* Sticky header */}
-          <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-3">
+          <header className="sticky top-0 z-20 bg-white/98 backdrop-blur-md border-b border-gray-200 px-4 py-3">
             <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-              <h1 className="text-xl font-black tracking-wide truncate" style={{ color: NEON_COLOR }}>
-                {teamData.team_name || 'Mijn Team'}
-              </h1>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-lg shrink-0 flex items-center justify-center" style={{ background: COACH_COLOR }}>
+                  <Target size={14} className="text-white" />
+                </div>
+                <h1 className="text-lg font-black tracking-tight truncate text-gray-900">
+                  {teamData.team_name || 'Mijn Team'}
+                </h1>
+              </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleCopyTeamId}
@@ -622,12 +625,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 >
                   <span className="text-gray-500">ID:</span>
                   <span className="font-mono font-bold text-gray-900">{userData.teamId}</span>
-                  {copied ? <CheckCircle2 size={13} className="text-green-600" /> : <Copy size={13} className="text-gray-400" />}
+                  {copied ? <CheckCircle2 size={13} style={{ color: COACH_COLOR }} /> : <Copy size={13} className="text-gray-400" />}
                 </button>
                 <button onClick={() => setIsCoachProfileVisible(true)} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
                   <Edit size={16} />
                 </button>
-                <button onClick={async () => { await supabase.auth.signOut(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-500">
+                <button onClick={async () => { await supabase.auth.signOut(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-400">
                   <LogOut size={16} />
                 </button>
               </div>
@@ -635,17 +638,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           </header>
 
           {/* Desktop section tabs */}
-          <nav className="hidden sm:block border-b border-gray-100 bg-white px-4">
+          <nav className="hidden sm:block border-b border-gray-200 bg-white px-4">
             <div className="max-w-6xl mx-auto flex">
               {COACH_SECTIONS.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => setMobileSection(id)}
-                  className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all relative ${
+                  className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all ${
                     mobileSection === id
-                      ? 'border-green-700 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-900'
+                      ? 'text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
+                  style={mobileSection === id ? { borderColor: COACH_COLOR, color: '#111827' } : {}}
                 >
                   <Icon size={15} />
                   {label}
@@ -712,7 +716,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
                     <UserSquare size={40} className="mx-auto mb-3 text-gray-300" />
                     <p className="text-gray-400 font-medium mb-3">Nog geen spelers in het team</p>
-                    <button onClick={() => setIsAddPlayerVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity" style={{ backgroundColor: NEON_COLOR }}>
+                    <button onClick={() => setIsAddPlayerVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: COACH_COLOR }}>
                       Eerste speler toevoegen
                     </button>
                   </div>
@@ -740,7 +744,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             <Trash2 size={15} />
                           </button>
                           <div className="ml-2 text-right">
-                            <div className="text-2xl font-black tabular-nums" style={{ color: NEON_COLOR }}>
+                            <div className="text-2xl font-black tabular-nums" style={{ color: COACH_COLOR }}>
                               {Math.round(radarChartData.reduce((s, sk) => s + sk.value, 0) / skillKeys.length * 10)}
                             </div>
                             <div className="text-[9px] text-gray-400 uppercase tracking-wide">score</div>
@@ -759,7 +763,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             >
                               {period}
                               {activeTab === period && (
-                                <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--neon-color]" layoutId="coachTab" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                                <motion.div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: COACH_COLOR }} layoutId="coachTab" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
                               )}
                             </button>
                           ))}
@@ -814,7 +818,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         disabled={false}
                       >
                         <button onClick={handleGenerateComments} disabled={isGenerating.comments} className="text-xs flex items-center gap-1 text-gray-400 hover:text-gray-700 transition-colors disabled:opacity-50">
-                          {isGenerating.comments ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} style={{ color: NEON_COLOR }} />}
+                          {isGenerating.comments ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} style={{ color: COACH_COLOR }} />}
                           Genereer
                         </button>
                       </Textarea>
@@ -829,7 +833,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             <PolarGrid stroke="#e5e7eb" />
                             <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
                             <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                            <Radar name={activePlayer.name} dataKey="value" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.55} />
+                            <Radar name={activePlayer.name} dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.18} />
                           </RadarChart>
                         </ResponsiveContainer>
                       </div>
@@ -838,7 +842,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     {/* Trend */}
                     <Card light>
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-1.5">
-                        <TrendingUp size={13} style={{ color: NEON_COLOR }} /> Prestatie Trend
+                        <TrendingUp size={13} style={{ color: COACH_COLOR }} /> Prestatie Trend
                       </p>
                       <div className="h-52">
                         <ResponsiveContainer width="100%" height="100%">
@@ -848,7 +852,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             <YAxis domain={[0, 10]} stroke="#9ca3af" tick={{ fontSize: 11 }} />
                             <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }} />
                             <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                            <Line type="monotone" dataKey="Gem. Skill" stroke={NEON_COLOR} strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="Gem. Skill" stroke={COACH_COLOR} strokeWidth={2} dot={false} />
                             <Line type="monotone" dataKey="Wedstrijdcijfer" stroke="#8b5cf6" strokeWidth={2} dot={false} />
                           </LineChart>
                         </ResponsiveContainer>
@@ -859,18 +863,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
               </motion.div>
             )}
 
-            {/* ── HUISWERK ── */}
+            {/* ── HUISWERK + VRAGEN ── */}
             {mobileSection === 'huiswerk' && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+
+                {/* Header */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-black">Huiswerk</h2>
+                    <h2 className="text-xl font-black text-gray-900">Huiswerk</h2>
                     <p className="text-sm text-gray-500 mt-0.5">{customHomework.length} opdracht{customHomework.length !== 1 ? 'en' : ''} aangemaakt</p>
                   </div>
                   <button
                     onClick={() => setIsHomeworkVisible(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: NEON_COLOR }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: COACH_COLOR }}
                   >
                     <Plus size={15} /> Nieuw
                   </button>
@@ -879,7 +885,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 {/* Team completion */}
                 {(teamData.assigned_homework_ids?.length || 0) > 0 && players.length > 0 && (
                   <Card light>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Voltooiing Team</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Voltooiing team</p>
                     <div className="space-y-3">
                       {players.map(p => {
                         const total = teamData.assigned_homework_ids?.length || 0;
@@ -888,17 +894,17 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         return (
                           <div key={p.id} className="flex items-center gap-3">
                             <img src={p.avatar_url} className="w-7 h-7 rounded-full shrink-0" alt={p.name} />
-                            <span className="text-sm flex-1 min-w-0 truncate text-gray-700">{p.name}</span>
-                            <div className="w-24 bg-gray-200 rounded-full h-1.5 shrink-0">
+                            <span className="text-sm flex-1 min-w-0 truncate text-gray-800 font-medium">{p.name}</span>
+                            <div className="w-24 bg-gray-100 rounded-full h-1.5 shrink-0">
                               <motion.div
                                 className="h-1.5 rounded-full"
-                                style={{ backgroundColor: pct === 100 ? '#4ade80' : NEON_COLOR }}
+                                style={{ backgroundColor: pct === 100 ? COACH_COLOR : '#94a3b8' }}
                                 initial={{ width: 0 }}
                                 animate={{ width: `${pct}%` }}
                                 transition={{ duration: 0.5 }}
                               />
                             </div>
-                            <span className="text-xs text-gray-500 tabular-nums shrink-0 w-8 text-right">{done}/{total}</span>
+                            <span className="text-xs text-gray-600 font-semibold tabular-nums shrink-0 w-8 text-right">{done}/{total}</span>
                           </div>
                         );
                       })}
@@ -910,8 +916,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 {customHomework.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
                     <ClipboardList size={40} className="mx-auto mb-3 text-gray-300" />
-                    <p className="text-gray-400 font-medium mb-3">Nog geen huiswerk aangemaakt</p>
-                    <button onClick={() => setIsHomeworkVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity" style={{ backgroundColor: NEON_COLOR }}>
+                    <p className="text-gray-500 font-medium mb-3">Nog geen huiswerk aangemaakt</p>
+                    <button onClick={() => setIsHomeworkVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: COACH_COLOR }}>
                       Eerste opdracht aanmaken
                     </button>
                   </div>
@@ -920,30 +926,30 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     {customHomework.map(hw => {
                       const isAssigned = (teamData.assigned_homework_ids || []).includes(hw.id);
                       return (
-                        <Card light key={hw.id} className={`transition-all ${isAssigned ? 'border border-green-600/30 !bg-green-50/50' : ''}`}>
+                        <Card light key={hw.id} className={`transition-all ${isAssigned ? '!border-emerald-200 !bg-emerald-50/60' : ''}`}>
                           <div className="flex items-start gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-bold truncate">{hw.title}</h4>
+                                <h4 className="font-bold text-gray-900 truncate">{hw.title}</h4>
                                 {isAssigned && (
-                                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: `${NEON_COLOR}15`, color: NEON_COLOR }}>
+                                  <span className="shrink-0 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: COACH_COLOR }}>
                                     Actief
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-400 leading-relaxed">{hw.description}</p>
+                              <p className="text-sm text-gray-500 leading-relaxed">{hw.description}</p>
                               {hw.youtube_url && (
-                                <a href={hw.youtube_url} target="_blank" rel="noopener noreferrer" className="text-xs mt-2 inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors">
+                                <a href={hw.youtube_url} target="_blank" rel="noopener noreferrer" className="text-xs mt-2 inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors font-medium">
                                   Video bekijken →
                                 </a>
                               )}
                             </div>
                             <button
                               onClick={() => handleToggleHomeworkAssignment(hw.id)}
-                              className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                                 isAssigned
-                                  ? 'bg-gray-800 text-gray-400 hover:bg-red-900/30 hover:text-red-400 border border-gray-700'
-                                  : 'border border-gray-700 hover:border-[--neon-color] hover:text-[--neon-color] text-gray-400'
+                                  ? 'bg-white text-red-500 border-red-200 hover:bg-red-50'
+                                  : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
                               }`}
                             >
                               {isAssigned ? 'Intrekken' : 'Toewijzen'}
@@ -955,25 +961,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   </div>
                 )}
 
-                {/* ── VIDEO INZENDINGEN (coach) ── */}
+                {/* Video inzendingen */}
                 {submissions.length > 0 && (
                   <Card light>
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
-                      <span style={{ color: NEON_COLOR }}>●</span> Video Inzendingen
+                      <span style={{ color: COACH_COLOR }}>●</span> Video Inzendingen
                     </p>
                     <div className="space-y-3">
                       {submissions.slice(0, 20).map(sub => {
                         const submPlayer = players.find(p => p.id === sub.player_id);
                         const hw = customHomework.find(h => h.id === sub.homework_id);
                         if (!submPlayer || !hw) return null;
-
-                        const statusColor = sub.feedback_status === 'done' ? '#16a34a'
-                          : sub.feedback_status === 'error' ? '#dc2626'
-                          : NEON_COLOR;
-                        const statusLabel = sub.feedback_status === 'done' ? 'Feedback klaar'
-                          : sub.feedback_status === 'error' ? 'Mislukt'
-                          : 'Bezig…';
-
+                        const statusColor = sub.feedback_status === 'done' ? COACH_COLOR : sub.feedback_status === 'error' ? '#dc2626' : '#64748b';
+                        const statusLabel = sub.feedback_status === 'done' ? 'Klaar' : sub.feedback_status === 'error' ? 'Mislukt' : 'Bezig…';
                         return (
                           <details key={sub.id} className="group rounded-xl bg-gray-50 border border-gray-200 overflow-hidden">
                             <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-100 transition-colors">
@@ -982,25 +982,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                                 <p className="text-sm font-semibold text-gray-900 truncate">{submPlayer.name}</p>
                                 <p className="text-xs text-gray-500 truncate">{hw.title}</p>
                               </div>
-                              <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>
-                                {statusLabel}
-                              </span>
+                              <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>{statusLabel}</span>
                             </summary>
-
                             <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
-                              {sub.video_url && (
-                                <video src={sub.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />
-                              )}
+                              {sub.video_url && <video src={sub.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />}
                               {sub.ai_feedback ? (
                                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{sub.ai_feedback}</p>
                               ) : (
-                                <p className="text-xs text-gray-400 italic">
-                                  {sub.feedback_status === 'processing' ? 'Feedback wordt gegenereerd…' : 'Geen feedback beschikbaar.'}
-                                </p>
+                                <p className="text-xs text-gray-400 italic">{sub.feedback_status === 'processing' ? 'Feedback wordt gegenereerd…' : 'Geen feedback beschikbaar.'}</p>
                               )}
-                              <p className="text-[10px] text-gray-400">
-                                {new Date(sub.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                              <p className="text-[10px] text-gray-400">{new Date(sub.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
                           </details>
                         );
@@ -1008,176 +999,24 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </div>
                   </Card>
                 )}
-              </motion.div>
-            )}
 
-            {/* ── TRAININGEN ── */}
-            {mobileSection === 'trainingen' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
-
-                {/* Seizoensprogramma PRO */}
-                {userData.clubId && (
-                  isClubPro ? (
-                    <Suspense fallback={<div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />}>
-                      <SeasonTrainingView clubId={userData.clubId} />
-                    </Suspense>
-                  ) : (
-                    <ProGate
-                      feature="Seizoensprogramma"
-                      description="32 KNVB-trainingen per leeftijdscategorie, inclusief wekelijks huiswerk en challenges. Activeer PRO via je club-admin."
-                    />
-                  )
-                )}
-
-                {/* AI Plannen sectie header */}
-                <div className="flex items-start justify-between gap-3 flex-wrap pt-2">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Zap size={13} className="text-gray-400" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">AI Trainingsplannen</span>
-                    </div>
-                    <p className="text-sm text-gray-500">Individuele plannen per speler + teamsessies</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border border-gray-200">
-                      {teamPeriods.map(p => (
-                        <button
-                          key={p}
-                          onClick={() => setActiveTab(p)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            activeTab === p ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          {p.length > 8 ? p.substring(0, 8) + '…' : p}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setIsTeamSessionModalVisible(true)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-black hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: NEON_COLOR }}
-                    >
-                      <Wand2 size={13} /> Teamsessie
-                    </button>
-                  </div>
-                </div>
-
-                {/* Individual player plans */}
-                {players.length === 0 ? (
-                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
-                    <Target size={40} className="mx-auto mb-3 text-gray-300" />
-                    <p className="text-gray-400">Voeg spelers toe om trainingsplannen te maken.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {players.map(player => {
-                      const structuredPlan = player.evaluations?.[activeTab]?.structuredPlan;
-                      const legacyPlan = player.evaluations?.[activeTab]?.trainingPlan;
-                      const isGeneratingThis = generatingPlanForPlayer === player.id;
-                      return (
-                        <Card light key={player.id}>
-                          {/* Player header */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full border border-gray-200 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold truncate">{player.name}</h4>
-                              <p className="text-[10px] text-gray-600 uppercase tracking-wide">
-                                {player.position || 'positie onbekend'} · {player.age ? `${player.age}jr` : ''}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleGeneratePlanForPlayer(player)}
-                              disabled={!!generatingPlanForPlayer}
-                              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black disabled:opacity-40 hover:opacity-90 transition-opacity"
-                              style={{ backgroundColor: NEON_COLOR }}
-                            >
-                              {isGeneratingThis ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                              {isGeneratingThis ? 'Genereren...' : structuredPlan ? 'Vernieuwen' : 'Genereer'}
-                            </button>
-                          </div>
-
-                          {/* Plan display */}
-                          {structuredPlan ? (
-                            <TrainingPlanCard plan={structuredPlan} playerName={player.name} period={activeTab} />
-                          ) : legacyPlan ? (
-                            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 rounded-xl p-4 border border-gray-100">
-                              {legacyPlan}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
-                              <Wand2 size={22} className="mx-auto mb-2 text-gray-300" />
-                              <p className="text-xs text-gray-600">Klik Genereer voor een persoonlijk plan</p>
-                            </div>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Saved team sessions */}
-                {teamSessions.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-px flex-1 bg-gray-200" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">Opgeslagen Teamsessies</p>
-                      <div className="h-px flex-1 bg-gray-200" />
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {teamSessions.map(session => (
-                        <Card light key={session.id}>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Target size={13} style={{ color: NEON_COLOR }} />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Teamsessie</span>
-                            <span className="text-[10px] text-gray-700 ml-auto">
-                              {new Date(session.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
-                            </span>
-                          </div>
-                          <TrainingPlanCard plan={session.plan} />
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* ── AANWEZIGHEID ── */}
-            {mobileSection === 'aanwezigheid' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-black">Aanwezigheid</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Registreer trainingen en wedstrijden</p>
-                  </div>
-                  <button
-                    onClick={() => setIsAttendanceVisible(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: NEON_COLOR }}
-                  >
-                    <Plus size={15} /> Sessie
-                  </button>
-                </div>
-                <AttendanceCard players={players} records={attendanceRecords} />
-              </motion.div>
-            )}
-
-            {/* ── VRAGEN ── */}
-            {mobileSection === 'vragen' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-                <div>
-                  <h2 className="text-lg font-black text-gray-900">Reflectievragen</h2>
-                  <p className="text-sm text-gray-400 mt-0.5">Wekelijkse vragen voor je team</p>
+                {/* ── REFLECTIEVRAGEN (onder huiswerk) ── */}
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                    <ListPlus size={11} /> Reflectievragen
+                  </span>
+                  <div className="h-px flex-1 bg-gray-200" />
                 </div>
 
                 <Card light>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Vragen voor spelers</p>
+                  <p className="text-xs font-semibold text-gray-500 mb-3">Stel wekelijks maximaal 3 vragen aan je team.</p>
                   <div className="space-y-3">
                     {questionDrafts.map((value, idx) => (
                       <Textarea
                         key={`coach-question-${idx}`}
                         light
-                        rows={3}
+                        rows={2}
                         label={`Vraag ${idx + 1}`}
                         value={value}
                         onChange={e => {
@@ -1190,14 +1029,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     ))}
                   </div>
                   <div className="mt-4 flex justify-end gap-2">
-                    <button onClick={() => setQuestionDrafts(['', '', ''])} className="px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-500 hover:bg-gray-200 transition-colors border border-gray-200">
+                    <button onClick={() => setQuestionDrafts(['', '', ''])} className="px-4 py-2 rounded-lg bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors border border-gray-200">
                       Reset
                     </button>
                     <button
                       onClick={handleSaveTeamQuestions}
                       disabled={savingQuestions}
-                      className="px-5 py-2 rounded-xl text-sm font-bold text-black flex items-center gap-2 disabled:opacity-50 hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: NEON_COLOR }}
+                      className="px-5 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 disabled:opacity-50 hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: COACH_COLOR }}
                     >
                       {savingQuestions ? <Loader2 size={14} className="animate-spin" /> : null}
                       Opslaan & Delen
@@ -1205,21 +1044,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   </div>
                 </Card>
 
-                {/* Player answers */}
+                {/* Antwoorden per speler */}
                 {visibleQuestions.length > 0 && players.length > 0 && (
                   <Card light>
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Antwoorden per speler</p>
-                    {/* Player selector */}
                     <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
                       {players.map(p => (
                         <button
                           key={p.id}
                           onClick={() => setActivePlayerId(p.id)}
                           className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${
-                            activePlayerId === p.id
-                              ? 'border-green-500 bg-green-50 text-gray-900'
-                              : 'border-gray-200 text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            activePlayerId === p.id ? 'text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                           }`}
+                          style={activePlayerId === p.id ? { backgroundColor: COACH_COLOR, borderColor: COACH_COLOR } : {}}
                         >
                           <img src={p.avatar_url} className="w-5 h-5 rounded-full shrink-0" alt={p.name} />
                           {p.name.split(' ')[0]}
@@ -1248,29 +1085,175 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 )}
               </motion.div>
             )}
+
+            {/* ── TRAININGEN + AANWEZIGHEID ── */}
+            {mobileSection === 'trainingen' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+
+                {/* Seizoensprogramma PRO */}
+                {userData.clubId && (
+                  isClubPro ? (
+                    <Suspense fallback={<div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />}>
+                      <SeasonTrainingView clubId={userData.clubId} />
+                    </Suspense>
+                  ) : (
+                    <ProGate
+                      feature="Seizoensprogramma"
+                      description="32 KNVB-trainingen per leeftijdscategorie, inclusief wekelijks huiswerk en challenges. Activeer PRO via je club-admin."
+                    />
+                  )
+                )}
+
+                {/* AI Plannen header */}
+                <div className="flex items-start justify-between gap-3 flex-wrap pt-2">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap size={13} style={{ color: COACH_COLOR }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">AI Trainingsplannen</span>
+                    </div>
+                    <p className="text-sm text-gray-500">Individuele plannen per speler + teamsessies</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex gap-1 bg-gray-100 rounded-xl p-1 border border-gray-200">
+                      {teamPeriods.map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setActiveTab(p)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            activeTab === p ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          {p.length > 8 ? p.substring(0, 8) + '…' : p}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setIsTeamSessionModalVisible(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: COACH_COLOR }}
+                    >
+                      <Wand2 size={13} /> Teamsessie
+                    </button>
+                  </div>
+                </div>
+
+                {/* Individual player plans */}
+                {players.length === 0 ? (
+                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                    <Target size={40} className="mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-500">Voeg spelers toe om trainingsplannen te maken.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {players.map(player => {
+                      const structuredPlan = player.evaluations?.[activeTab]?.structuredPlan;
+                      const legacyPlan = player.evaluations?.[activeTab]?.trainingPlan;
+                      const isGeneratingThis = generatingPlanForPlayer === player.id;
+                      return (
+                        <Card light key={player.id}>
+                          <div className="flex items-center gap-3 mb-4">
+                            <img src={player.avatar_url} alt={player.name} className="w-10 h-10 rounded-full border border-gray-200 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-gray-900 truncate">{player.name}</h4>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                                {player.position || 'positie onbekend'} · {player.age ? `${player.age}jr` : ''}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleGeneratePlanForPlayer(player)}
+                              disabled={!!generatingPlanForPlayer}
+                              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+                              style={{ backgroundColor: COACH_COLOR }}
+                            >
+                              {isGeneratingThis ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                              {isGeneratingThis ? 'Bezig...' : structuredPlan ? 'Vernieuwen' : 'Genereer'}
+                            </button>
+                          </div>
+                          {structuredPlan ? (
+                            <TrainingPlanCard plan={structuredPlan} playerName={player.name} period={activeTab} />
+                          ) : legacyPlan ? (
+                            <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 rounded-xl p-4 border border-gray-100">{legacyPlan}</div>
+                          ) : (
+                            <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+                              <Wand2 size={22} className="mx-auto mb-2 text-gray-300" />
+                              <p className="text-xs text-gray-500">Klik Genereer voor een persoonlijk plan</p>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Saved team sessions */}
+                {teamSessions.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-gray-200" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">Opgeslagen Teamsessies</p>
+                      <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {teamSessions.map(session => (
+                        <Card light key={session.id}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Target size={13} style={{ color: COACH_COLOR }} />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Teamsessie</span>
+                            <span className="text-[10px] text-gray-500 ml-auto">
+                              {new Date(session.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          <TrainingPlanCard plan={session.plan} />
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── AANWEZIGHEID (onder trainingen) ── */}
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                    <CalendarCheck size={11} /> Aanwezigheid
+                  </span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">Registreer trainingen en wedstrijden</p>
+                  <button
+                    onClick={() => setIsAttendanceVisible(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: COACH_COLOR }}
+                  >
+                    <Plus size={15} /> Sessie
+                  </button>
+                </div>
+                <AttendanceCard players={players} records={attendanceRecords} />
+              </motion.div>
+            )}
           </main>
 
-          {/* Mobile bottom nav */}
+          {/* Mobile bottom nav — 4 tabs, ruim, duidelijk */}
           <nav
             className="fixed bottom-0 left-0 right-0 sm:hidden z-30"
-            style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid #f3f4f6', paddingBottom: 'env(safe-area-inset-bottom)' }}
+            style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            <div className="flex overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex">
               {COACH_SECTIONS.map(({ id, label, icon: Icon }) => {
-                const shortLabel = id === 'aanwezigheid' ? 'Aanwezig' : label;
                 const isActive = mobileSection === id;
                 return (
                   <button
                     key={id}
                     onClick={() => setMobileSection(id)}
-                    className="flex-none flex flex-col items-center justify-center py-2.5 gap-1 active:opacity-70 transition-opacity relative"
-                    style={{ color: isActive ? NEON_COLOR : '#9ca3af', minWidth: 60, paddingLeft: 6, paddingRight: 6 }}
+                    className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-60 transition-opacity relative"
+                    style={{ color: isActive ? COACH_COLOR : '#9ca3af' }}
                   >
                     {isActive && (
-                      <span className="absolute top-0 left-3 right-3 h-[2px] rounded-b-full" style={{ background: NEON_COLOR }} />
+                      <span className="absolute top-0 left-5 right-5 h-[2px] rounded-b-full" style={{ background: COACH_COLOR }} />
                     )}
-                    <Icon size={18} />
-                    <span className="text-[8px] font-bold tracking-wide uppercase whitespace-nowrap">{shortLabel}</span>
+                    <Icon size={20} />
+                    <span className="text-[9px] font-bold tracking-wide uppercase">{label}</span>
                   </button>
                 );
               })}
