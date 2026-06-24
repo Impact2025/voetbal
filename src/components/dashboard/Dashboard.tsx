@@ -98,6 +98,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [challengeCompletions, setChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [fetchError, setFetchError] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'vandaag');
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isClubPro, setIsClubPro] = useState(false);
@@ -153,10 +154,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       } else if (userData.role === 'player') {
         setActivePlayerId(user.id);
       }
+      setDataLoaded(true);
     };
 
     setFetchError(false);
-    fetchData().catch(err => { console.error('fetchData fout:', err); setFetchError(true); });
+    setDataLoaded(false);
+    fetchData().catch(err => { console.error('fetchData fout:', err); setFetchError(true); setDataLoaded(true); });
 
     supabase.channel(`public:players:team_id=eq.${userData.teamId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => fetchData())
@@ -668,12 +671,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   teamName={teamData.team_name}
                   onGoToTrainingen={() => setMobileSection('trainingen')}
                 />
+                {!dataLoaded ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="animate-spin h-8 w-8 text-gray-300" />
+                  </div>
+                ) : (
                 <TeamOverview
                   players={players}
                   teamData={teamData}
                   activeTab={activeTab}
                   onSelectPlayer={(id) => { setActivePlayerId(id); setMobileSection('spelers'); }}
                 />
+                )}
               </motion.div>
             )}
 
