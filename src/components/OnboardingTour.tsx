@@ -231,12 +231,12 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
         className="hidden sm:flex fixed right-4 z-[90] w-9 h-9 rounded-full items-center justify-center"
         style={{
           bottom: '1.5rem',
-          background: '#111',
-          border: `1.5px solid ${NEON_COLOR}44`,
-          color: `${NEON_COLOR}cc`,
-          boxShadow: `0 0 14px ${NEON_COLOR}18`,
+          background: role === 'coach' ? '#fff' : '#111',
+          border: role === 'coach' ? '1.5px solid #d1fae5' : `1.5px solid ${NEON_COLOR}44`,
+          color: role === 'coach' ? '#059669' : `${NEON_COLOR}cc`,
+          boxShadow: role === 'coach' ? '0 2px 8px rgba(0,0,0,0.08)' : `0 0 14px ${NEON_COLOR}18`,
         }}
-        whileHover={{ scale: 1.12, boxShadow: `0 0 18px ${NEON_COLOR}35` }}
+        whileHover={{ scale: 1.12 }}
         whileTap={{ scale: 0.92 }}
         aria-label="Open rondleiding"
       >

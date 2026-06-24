@@ -3,7 +3,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, Streak } from '../../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Edit, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap } from 'lucide-react';
+import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
@@ -627,8 +627,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   <span className="font-mono font-bold text-gray-900">{userData.teamId}</span>
                   {copied ? <CheckCircle2 size={13} style={{ color: COACH_COLOR }} /> : <Copy size={13} className="text-gray-400" />}
                 </button>
-                <button onClick={() => setIsCoachProfileVisible(true)} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
-                  <Edit size={16} />
+                <button onClick={() => setIsCoachProfileVisible(true)} title="Instellingen" className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
+                  <Settings2 size={16} />
                 </button>
                 <button onClick={async () => { await supabase.auth.signOut(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-400">
                   <LogOut size={16} />
