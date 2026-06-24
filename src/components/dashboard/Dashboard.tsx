@@ -99,7 +99,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [challengeCompletions, setChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [fetchError, setFetchError] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [mobileSection, setMobileSection] = useState(() => userData.role === 'coach' ? 'overzicht' : 'vandaag');
+  const [mobileSection, setMobileSection] = useState(() => userData.role === 'player' ? 'vandaag' : 'overzicht');
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isClubPro, setIsClubPro] = useState(false);
 

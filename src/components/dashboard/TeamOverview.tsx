@@ -79,10 +79,7 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
   return (
     <div className="space-y-6">
       {/* Stat chips */}
-      <motion.div
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-      >
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatChip label="Team Score" value={`${(teamAvg * 10).toFixed(0)}`} sub="/ 100" icon={<Trophy size={18} />} />
         <StatChip label="Spelers" value={`${players.length}`} sub="in team" icon={<Users size={18} />} />
         <StatChip
@@ -98,11 +95,11 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
           icon={<AlertTriangle size={18} />}
           warn
         />
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team radar */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+        <div>
           <Card light>
             <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
               Team Skill Gemiddelde
@@ -119,10 +116,10 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
               </ResponsiveContainer>
             </div>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Skill bars */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}>
+        <div>
           <Card light>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Skill Verdeling</h3>
             <div className="space-y-3">
@@ -148,11 +145,11 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
               })}
             </div>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
       {/* Player ranking */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
+      <div>
         <Card light>
           <h3 className="text-lg font-bold text-gray-900 mb-3">Spelers Ranglijst</h3>
           <div className="divide-y divide-gray-100">
@@ -188,7 +185,7 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
             })}
           </div>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 };
