@@ -217,38 +217,37 @@ function WeekBanner({
     <div className="space-y-4">
       {/* Week header card */}
       <div
-        className="rounded-2xl px-5 py-4"
+        className="rounded-2xl px-5 py-4 border border-emerald-200"
         style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a2f 100%)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+          boxShadow: '0 2px 12px rgba(5,150,105,0.08)',
         }}
       >
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span
-                className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: `${NEON_COLOR}25`, color: NEON_COLOR }}
+                className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-600 text-white"
               >
                 Week {weekPlan.week_number}
               </span>
-              <span className="text-[10px] text-gray-400 font-semibold">
+              <span className="text-[10px] text-gray-500 font-semibold">
                 Training {weekPlan.training_a_number}
               </span>
             </div>
-            <h2 className="text-xl font-black text-white">Deze week</h2>
+            <h2 className="text-xl font-black text-gray-900">Deze week</h2>
           </div>
 
           {hasSessions && (
-            <div className="flex gap-1 rounded-xl p-1 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+            <div className="flex gap-1 rounded-xl p-1 shrink-0 bg-white border border-emerald-200">
               {(['a', 'b'] as const).map(s => (
                 <button
                   key={s}
                   onClick={() => setActiveSession(s)}
                   className="px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide transition-all"
                   style={{
-                    backgroundColor: activeSession === s ? NEON_COLOR : 'transparent',
-                    color: activeSession === s ? '#000' : 'rgba(255,255,255,0.5)',
+                    backgroundColor: activeSession === s ? '#059669' : 'transparent',
+                    color: activeSession === s ? '#fff' : '#6b7280',
                   }}
                 >
                   Sessie {s.toUpperCase()}
@@ -261,20 +260,20 @@ function WeekBanner({
         {(weekPlan.homework || weekPlan.challenge) && (
           <div className="grid grid-cols-2 gap-2">
             {weekPlan.homework && (
-              <div className="flex items-start gap-2 p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                <ClipboardList size={13} className="mt-0.5 shrink-0 text-purple-300" />
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-emerald-100">
+                <ClipboardList size={13} className="mt-0.5 shrink-0 text-purple-500" />
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Huiswerk</p>
-                  <p className="text-xs text-white font-medium leading-snug">{weekPlan.homework}</p>
+                  <p className="text-xs text-gray-800 font-medium leading-snug">{weekPlan.homework}</p>
                 </div>
               </div>
             )}
             {weekPlan.challenge && (
-              <div className="flex items-start gap-2 p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
-                <Trophy size={13} className="mt-0.5 shrink-0 text-yellow-300" />
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-white border border-emerald-100">
+                <Trophy size={13} className="mt-0.5 shrink-0 text-amber-500" />
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Challenge</p>
-                  <p className="text-xs text-white font-medium leading-snug">{weekPlan.challenge}</p>
+                  <p className="text-xs text-gray-800 font-medium leading-snug">{weekPlan.challenge}</p>
                 </div>
               </div>
             )}
