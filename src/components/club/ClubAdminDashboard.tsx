@@ -334,7 +334,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
 
       {/* Desktop section tabs */}
       {!selectedTeam && (
-        <nav className="border-b border-gray-100 bg-white px-4">
+        <nav className="hidden sm:block border-b border-gray-100 bg-white px-4">
           <div className="max-w-5xl mx-auto flex">
             {SECTIONS.map(({ id, label, icon: Icon, badge }) => (
               <button
@@ -736,22 +736,28 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
 
       {/* Mobile bottom nav */}
       {!selectedTeam && (
-        <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid #f3f4f6', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex">
-            {SECTIONS.map(({ id, label, icon: Icon, badge }) => (
-              <button
-                key={id}
-                onClick={() => setSection(id)}
-                className="flex-1 flex flex-col items-center justify-center py-3 gap-1 relative active:opacity-70 transition-opacity"
-                style={{ color: section === id ? ACCENT : '#9ca3af' }}
-              >
-                <Icon size={19} />
-                <span className="text-[9px] font-bold tracking-wider uppercase">{label}</span>
-                {badge ? (
-                  <span className="absolute top-1.5 right-1/4 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">{badge}</span>
-                ) : null}
-              </button>
-            ))}
+            {SECTIONS.map(({ id, label, icon: Icon, badge }) => {
+              const isActive = section === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSection(id)}
+                  className="flex-1 flex flex-col items-center justify-center py-3 gap-1 relative active:opacity-60 transition-opacity"
+                  style={{ color: isActive ? ACCENT : '#9ca3af' }}
+                >
+                  {isActive && (
+                    <span className="absolute top-0 left-5 right-5 h-[2px] rounded-b-full" style={{ background: ACCENT }} />
+                  )}
+                  <Icon size={20} />
+                  <span className="text-[9px] font-bold tracking-wide uppercase">{label}</span>
+                  {badge ? (
+                    <span className="absolute top-1.5 right-1/4 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">{badge}</span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
         </nav>
       )}
