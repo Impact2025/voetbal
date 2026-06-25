@@ -38,13 +38,17 @@ import PlayerCard from '../card/PlayerCard';
 import TierUpModal from '../feedback/TierUpModal';
 import StreakWidget from '../streak/StreakWidget';
 import ChallengeLibrary from '../challenges/ChallengeLibrary';
+import TeamChallengeCard from '../challenges/TeamChallengeCard';
+import TeamChallengeSetter from '../challenges/TeamChallengeSetter';
 import OnboardingTour from '../OnboardingTour';
 import ProGate from '../ui/ProGate';
 const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
+const PushNotificationSender = lazy(() => import('../notifications/PushNotificationSender'));
 import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
-import type { PlayerStats, CardTier } from '../../types';
+import { getActiveTeamChallenge } from '../../lib/teamChallenge';
+import type { PlayerStats, CardTier, TeamChallenge } from '../../types';
 
 interface DashboardProps {
   user: SessionUser;
@@ -99,6 +103,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [pendingTierUp, setPendingTierUp] = useState<CardTier | null>(null);
   const [streak, setStreak] = useState<Streak | null>(null);
+  const [teamChallenge, setTeamChallenge] = useState<TeamChallenge | null>(null);
   const [challengeCompletions, setChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [fetchError, setFetchError] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -145,6 +150,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       setPlayers(normalizedPlayers);
       setTeamData(normalizedTeam);
       setCustomHomework(homeworkData || []);
+      getActiveTeamChallenge(userData.teamId!).then(c => setTeamChallenge(c)).catch(() => {});
       setAttendanceRecords((attendanceData || []) as AttendanceRecord[]);
 
       // Set default activeTab from team's periods
@@ -212,12 +218,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       fetchAndRecomputeStats(pid, tid),
       getOrCreateStreak(pid),
       supabase.from('challenge_completions').select('*').eq('player_id', pid),
-    ]).then(([statsResult, streakResult, completionsResult]) => {
+      getActiveTeamChallenge(tid),
+    ]).then(([statsResult, streakResult, completionsResult, challengeResult]) => {
       if (statsResult.status === 'fulfilled' && statsResult.value) setPlayerStats(statsResult.value);
       if (streakResult.status === 'fulfilled' && streakResult.value) setStreak(streakResult.value);
       if (completionsResult.status === 'fulfilled' && completionsResult.value.data) {
         setChallengeCompletions(completionsResult.value.data as ChallengeCompletion[]);
       }
+      if (challengeResult.status === 'fulfilled') setTeamChallenge(challengeResult.value);
     }).catch(() => {/* silently skip if tables not migrated yet */});
   }, [userData.role, userData.teamId, user.id]);
 
@@ -697,6 +705,15 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   activeTab={activeTab}
                   onSelectPlayer={(id) => { setActivePlayerId(id); setMobileSection('spelers'); }}
                 />
+                )}
+
+                {/* Team-uitdaging instellen */}
+                {userData.teamId && (
+                  <TeamChallengeSetter
+                    teamId={userData.teamId}
+                    current={teamChallenge}
+                    onChange={setTeamChallenge}
+                  />
                 )}
               </div>
             )}
@@ -1263,11 +1280,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
             {/* ── BERICHTEN ── */}
             {mobileSection === 'berichten' && (
-              <div>
-                <div className="mb-5">
+              <div className="space-y-6">
+                <div>
                   <h2 className="text-lg font-black text-gray-900">Berichten</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Communiceer direct met je club admin en ouders.</p>
+                  <p className="text-sm text-gray-500 mt-0.5">Communiceer met club admin, ouders en stuur push berichten naar spelers.</p>
                 </div>
+
+                <Suspense fallback={<div className="h-52 bg-gray-100 rounded-2xl animate-pulse" />}>
+                  <PushNotificationSender
+                    players={players}
+                    teamId={userData.teamId ?? ''}
+                    coachName={(teamData as { coach_name?: string }).coach_name || teamData.team_name || 'Trainer'}
+                  />
+                </Suspense>
+
                 <Suspense fallback={<div className="h-96 bg-gray-100 rounded-2xl animate-pulse" />}>
                   <MessagingInbox
                     currentUserId={user.id}
@@ -1374,6 +1400,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 completions={challengeCompletions}
                 hasOpenQuestions={visibleQuestions.some(({ idx }) => !responseDrafts[idx]?.trim())}
               />
+
+              {/* Team-uitdaging — collectief weekdoel, geen individuele ranking */}
+              {teamChallenge && (
+                <TeamChallengeCard
+                  challenge={teamChallenge}
+                  playerId={user.id}
+                />
+              )}
 
               <div id="today-homework" className="scroll-mt-24">
                 <PlayerHomeworkCard

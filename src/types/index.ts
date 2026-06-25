@@ -315,6 +315,48 @@ export interface ClubWeekOverride {
   custom_notes: string | null;
 }
 
+// ── Messaging ────────────────────────────────────────────────────────────────
+
+export interface Conversation {
+  id: string;
+  club_id: string | null;
+  participant_ids: string[];
+  participant_names: string[];
+  participant_roles: string[];
+  last_message_at: string;
+  last_message_preview: string | null;
+  created_at: string;
+}
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name: string;
+  content: string;
+  created_at: string;
+}
+
+export interface MessagingContact {
+  id: string;
+  name: string;
+  role: string;
+  subtitle: string;
+}
+
+// ── Team Challenges ───────────────────────────────────────────────────────────
+
+export interface TeamChallenge {
+  id: string;
+  team_id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  target_count: number;
+  week_start: string;
+  created_at: string;
+}
+
 // ── Streaks ──────────────────────────────────────────────────────────────────
 
 export interface Streak {
