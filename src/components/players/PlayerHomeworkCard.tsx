@@ -46,105 +46,104 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onToggleStatus, onSubmi
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-xl transition-all"
+      className="rounded-2xl overflow-hidden"
       style={
-        isFocused && !isCompleted
-          ? {
-              padding: '1px',
-              background: `linear-gradient(135deg, ${NEON_COLOR}60, ${NEON_COLOR}20)`,
-            }
-          : undefined
+        isCompleted
+          ? { background: 'rgba(6,95,70,0.15)', border: '1px solid rgba(74,222,128,0.12)' }
+          : isFocused
+          ? { background: 'rgba(15,17,23,1)', border: `1px solid ${NEON_COLOR}30`, boxShadow: `0 0 20px ${NEON_COLOR}08` }
+          : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }
       }
     >
-      <div
-        className={`p-4 rounded-xl transition-all ${
-          isCompleted
-            ? 'bg-emerald-950/30 border border-emerald-900/40'
-            : isFocused
-            ? 'bg-gray-900 border-0'
-            : 'bg-gray-800/40 border border-gray-700/30'
-        }`}
-      >
-        {/* "Actieve oefening" tag — alleen op gefocust + niet voltooid */}
+      {/* Neon accent stripe voor gefocust item */}
+      {isFocused && !isCompleted && (
+        <div
+          className="h-0.5 w-full"
+          style={{ background: `linear-gradient(90deg, ${NEON_COLOR}, ${NEON_COLOR}30, transparent)` }}
+        />
+      )}
+
+      <div className="p-4">
+        {/* Tag */}
         {isFocused && !isCompleted && (
-          <div className="flex items-center gap-1.5 mb-3">
+          <div className="mb-3">
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: `${NEON_COLOR}15`, color: NEON_COLOR }}
+              className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+              style={{ backgroundColor: `${NEON_COLOR}12`, color: NEON_COLOR, border: `1px solid ${NEON_COLOR}25` }}
             >
               🎯 Jouw actieve oefening
             </span>
           </div>
         )}
 
-        <div className="flex justify-between items-start flex-wrap gap-4">
-          <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-base text-white leading-snug">
-              {hw.week && <span className="text-gray-500 font-normal">{hw.week}: </span>}
-              {hw.title}
-            </h4>
-            <p className="mt-1.5 text-sm text-gray-300 leading-relaxed">{hw.description}</p>
-          </div>
+        {/* Titel + beschrijving — volledige breedte */}
+        <div className="mb-4">
+          <h4 className="font-bold text-base text-white leading-snug mb-1.5">
+            {hw.week && <span className="text-gray-500 font-normal text-sm">{hw.week} · </span>}
+            {hw.title}
+          </h4>
+          <p className="text-sm text-gray-400 leading-relaxed">{hw.description}</p>
+        </div>
 
-          {/* 3D button + confetti container */}
-          <div className="relative shrink-0">
-            <XPFloater visible={showXP} eventType="homework_done" />
+        {/* Voltooid-knop — volledige breedte onder de tekst */}
+        <div className="relative">
+          <XPFloater visible={showXP} eventType="homework_done" />
 
-            {showConfetti && ANGLES.map((angle, i) => {
-              const rad = (angle * Math.PI) / 180;
-              return (
-                <motion.div
-                  key={i}
-                  className="absolute rounded-full pointer-events-none"
-                  style={{
-                    width: 6 + (i % 3) * 3,
-                    height: 6 + (i % 3) * 3,
-                    backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-                    left: '50%',
-                    top: '50%',
-                    marginLeft: -4,
-                    marginTop: -4,
-                    zIndex: 10,
-                  }}
-                  initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
-                  animate={{
-                    x: Math.cos(rad) * (55 + i * 2),
-                    y: Math.sin(rad) * (55 + i * 2),
-                    opacity: 0,
-                    scale: 0.3,
-                    rotate: 360,
-                  }}
-                  transition={{ duration: 0.65, ease: [0.2, 0.9, 0.3, 1] }}
-                />
-              );
-            })}
+          {showConfetti && ANGLES.map((angle, i) => {
+            const rad = (angle * Math.PI) / 180;
+            return (
+              <motion.div
+                key={i}
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  width: 6 + (i % 3) * 3,
+                  height: 6 + (i % 3) * 3,
+                  backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                  left: '50%',
+                  top: '50%',
+                  marginLeft: -4,
+                  marginTop: -4,
+                  zIndex: 10,
+                }}
+                initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
+                animate={{
+                  x: Math.cos(rad) * (65 + i * 3),
+                  y: Math.sin(rad) * (65 + i * 3),
+                  opacity: 0,
+                  scale: 0.3,
+                  rotate: 360,
+                }}
+                transition={{ duration: 0.65, ease: [0.2, 0.9, 0.3, 1] }}
+              />
+            );
+          })}
 
-            <motion.button
-              onClick={handleToggle}
-              whileTap={{ scale: 0.90, y: 3 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="flex items-center gap-2 py-2.5 px-5 rounded-xl text-sm font-bold relative"
-              style={isCompleted
-                ? { backgroundColor: '#065f46', color: '#4ade80', boxShadow: '0 0 0 1px #4ade8030' }
+          <motion.button
+            onClick={handleToggle}
+            whileTap={{ scale: 0.97, y: 2 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-opacity"
+            style={
+              isCompleted
+                ? { backgroundColor: 'rgba(6,95,70,0.6)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)' }
                 : isFocused
-                ? { backgroundColor: NEON_COLOR, color: '#000', boxShadow: `0 4px 0 ${NEON_COLOR}50` }
-                : { backgroundColor: '#111827', color: '#e5e7eb', boxShadow: '0 4px 0 #030712, 0 0 0 1px #374151' }
-              }
-            >
-              <AnimatePresence mode="wait">
-                {isCompleted ? (
-                  <motion.div key="done" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                    <CheckCircle2 size={15} />
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-              {isCompleted ? 'Voltooid!' : 'Markeer als voltooid'}
-            </motion.button>
-          </div>
+                ? { backgroundColor: NEON_COLOR, color: '#000', boxShadow: `0 4px 16px ${NEON_COLOR}40` }
+                : { backgroundColor: 'rgba(255,255,255,0.07)', color: '#e5e7eb', border: '1px solid rgba(255,255,255,0.1)' }
+            }
+          >
+            <AnimatePresence mode="wait">
+              {isCompleted && (
+                <motion.div key="done" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <CheckCircle2 size={15} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {isCompleted ? 'Voltooid!' : 'Markeer als voltooid'}
+          </motion.button>
         </div>
 
         {embedUrl && (
-          <div className="mt-4 aspect-video rounded-lg overflow-hidden">
+          <div className="mt-4 aspect-video rounded-xl overflow-hidden">
             <iframe
               width="100%" height="100%"
               src={embedUrl}
@@ -196,7 +195,6 @@ const PlayerHomeworkCard = ({
     );
   }
 
-  // Gefocust item altijd bovenaan
   const sorted = focusedId
     ? [
         ...assignedTasks.filter(hw => hw.id === focusedId),

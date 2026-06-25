@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Flame, Bell, BellOff, Loader2 } from 'lucide-react';
+import { LogOut, Flame, Bell, BellOff, Loader2, MessageSquare } from 'lucide-react';
+
+const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
 import { supabase } from '../../lib/supabase';
 import { NEON_COLOR } from '../../utils/constants';
 import { TIER_CONFIG } from '../../lib/cardTier';
@@ -79,6 +81,7 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
   const [notifPrefs, setNotifPrefs]   = useState<NotificationPrefs | null>(demo ? DEMO_PREFS : null);
   const [loading, setLoading]         = useState(!demo);
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
 
   const linkedPlayerId = userData.linkedPlayerId;
 
@@ -343,6 +346,44 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                 />
               </div>
             </button>
+          </motion.div>
+        )}
+
+        {/* Berichten met trainer */}
+        {!demo && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <button
+              onClick={() => setShowMessages(v => !v)}
+              className="w-full flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: '#f0fdf4' }}>
+                  <MessageSquare size={16} style={{ color: ACCENT }} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-gray-900">Berichten met trainer</p>
+                  <p className="text-[10px] text-gray-400">Direct contact met de coach van {firstName}</p>
+                </div>
+              </div>
+              <span className="text-xs text-gray-400">{showMessages ? '▲' : '▼'}</span>
+            </button>
+
+            {showMessages && (
+              <div className="mt-3 h-[480px]">
+                <Suspense fallback={<div className="h-full bg-gray-100 rounded-2xl animate-pulse" />}>
+                  <MessagingInbox
+                    currentUserId={userData.uid}
+                    currentUserName={`Ouder van ${firstName}`}
+                    currentUserRole="parent"
+                    className="h-full"
+                  />
+                </Suspense>
+              </div>
+            )}
           </motion.div>
         )}
 

@@ -4,7 +4,7 @@ import {
   Users, Trophy, Copy, CheckCircle2, LogOut, Building2, Shield,
   TrendingUp, TrendingDown, Minus, ChevronLeft, CalendarCheck,
   ClipboardList, BarChart2, AlertTriangle, Star, Loader2,
-  LayoutDashboard, UserSquare, Bell, UserCog, BookOpen,
+  LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare,
 } from 'lucide-react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -17,6 +17,7 @@ import { copyToClipboard } from '../../utils/clipboard';
 import Card from '../ui/Card';
 import TrainersTab from './TrainersTab';
 import ClubTrainingTab from './ClubTrainingTab';
+import MessagingInbox from '../messaging/MessagingInbox';
 import type { UserData } from '../../types';
 
 const ACCENT = '#16A34A';
@@ -56,7 +57,7 @@ interface ClubAdminDashboardProps {
   onLogout: () => void;
 }
 
-type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers' | 'trainingen';
+type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers' | 'trainingen' | 'berichten';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const [copied, setCopied] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>('overzicht');
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -262,6 +264,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     { id: 'spelers',    label: 'Spelers',    icon: UserSquare },
     { id: 'trainingen', label: 'Trainingen', icon: BookOpen },
     { id: 'trainers',   label: 'Trainers',   icon: UserCog },
+    { id: 'berichten',  label: 'Berichten',  icon: MessageSquare, badge: unreadMessages || undefined },
     { id: 'signalen',   label: 'Signalen',   icon: Bell, badge: signals.length || undefined },
   ];
 
@@ -690,6 +693,22 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               clubName={clubName}
               senderEmail={senderEmail}
               teams={teams}
+            />
+          </motion.div>
+
+        ) : section === 'berichten' ? (
+          /* ── Berichten ── */
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="mb-5">
+              <h2 className="text-lg font-black text-gray-900">Berichten</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Communiceer direct met trainers en ouders via de app.</p>
+            </div>
+            <MessagingInbox
+              currentUserId={userData.uid}
+              currentUserName={clubName || 'Club Admin'}
+              currentUserRole="club_admin"
+              clubId={userData.clubId}
+              onUnreadChange={setUnreadMessages}
             />
           </motion.div>
 

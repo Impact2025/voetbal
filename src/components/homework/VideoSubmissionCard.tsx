@@ -198,13 +198,34 @@ const VideoSubmissionCard = ({
         {/* ── IDLE: upload knop ── */}
         {step === 'idle' && (
           <motion.div key="idle" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <button
+            <motion.button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border-2 border-dashed border-gray-600 hover:border-[--neon-color] text-gray-400 hover:text-[--neon-color] transition-all text-sm font-semibold active:scale-98"
+              whileTap={{ scale: 0.98 }}
+              className="w-full rounded-2xl overflow-hidden text-left transition-opacity hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0,255,157,0.08) 0%, rgba(0,255,157,0.03) 100%)',
+                border: `1px solid ${NEON_COLOR}25`,
+              }}
             >
-              <Video size={17} />
-              Film je oefening &amp; krijg AI-feedback
-            </button>
+              <div className="px-4 py-3.5 flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `linear-gradient(135deg, ${NEON_COLOR}25, ${NEON_COLOR}10)`, border: `1px solid ${NEON_COLOR}30` }}
+                >
+                  <Video size={18} style={{ color: NEON_COLOR }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white leading-tight">Film je oefening</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Krijg persoonlijke AI-feedback</p>
+                </div>
+                <div
+                  className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shrink-0"
+                  style={{ backgroundColor: `${NEON_COLOR}15`, color: NEON_COLOR }}
+                >
+                  AI
+                </div>
+              </div>
+            </motion.button>
           </motion.div>
         )}
 
