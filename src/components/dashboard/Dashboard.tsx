@@ -233,6 +233,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     return players.find(p => p.id === activePlayerId);
   }, [players, activePlayerId, user.id, userData.role]);
 
+  const focusedHomeworkId = useMemo(() => {
+    if (!activePlayer) return undefined;
+    const assigned = customHomework.filter(hw => (teamData.assigned_homework_ids || []).includes(hw.id));
+    return assigned.find(hw => !activePlayer.completed_homework_ids?.includes(hw.id))?.id;
+  }, [customHomework, teamData.assigned_homework_ids, activePlayer]);
+
   const normalizedQuestions = useMemo(
     () => Array.from({ length: 3 }, (_, idx) => teamData?.weekly_questions?.[idx] || ''),
     [teamData?.weekly_questions]
@@ -1378,6 +1384,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   submissions={submissions}
                   onToggleStatus={handleToggleHomeworkStatus}
                   onSubmissionComplete={handleSubmissionComplete}
+                  focusedId={focusedHomeworkId}
                 />
               </div>
 

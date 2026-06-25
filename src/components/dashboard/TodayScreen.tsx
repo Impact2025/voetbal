@@ -151,10 +151,11 @@ const TodayScreen = ({
               </div>
 
               <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                {focus.kind === 'homework' && isYoung && <span className="mr-2">⚽</span>}
                 {focus.kind === 'challenge' && <span className="mr-2">{focus.emoji}</span>}
                 {focus.title}
               </h3>
-              <p className="text-sm text-gray-300 mt-2 leading-relaxed line-clamp-3">{focus.sub}</p>
+              <p className={`text-sm text-gray-300 mt-2 leading-relaxed ${isYoung ? 'line-clamp-1' : 'line-clamp-3'}`}>{focus.sub}</p>
 
               <motion.button
                 whileTap={{ scale: 0.96, y: 2 }}
@@ -176,16 +177,30 @@ const TodayScreen = ({
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }}
         className="rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4 flex items-center gap-4"
       >
-        <div className="flex gap-1.5">
-          {Array.from({ length: goal }, (_, i) => (
-            <motion.div
-              key={i}
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: i < count ? (goalReached ? '#4ade80' : NEON_COLOR) : '#1f2937' }}
-              initial={{ scale: 0.6 }} animate={{ scale: i < count ? [1, 1.3, 1] : 1 }}
-              transition={{ duration: 0.3, delay: i * 0.08 }}
-            />
-          ))}
+        <div className="flex gap-1.5 items-center">
+          {goalReached
+            ? Array.from({ length: goal }, (_, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ scale: 0, rotate: -30 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 14, delay: i * 0.12 }}
+                  style={{ fontSize: 20, lineHeight: 1, display: 'block' }}
+                >
+                  ⭐
+                </motion.span>
+              ))
+            : Array.from({ length: goal }, (_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: i < count ? NEON_COLOR : '#1f2937' }}
+                  initial={{ scale: 0.6 }}
+                  animate={{ scale: i < count ? [1, 1.3, 1] : 1 }}
+                  transition={{ duration: 0.3, delay: i * 0.08 }}
+                />
+              ))
+          }
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-white">
