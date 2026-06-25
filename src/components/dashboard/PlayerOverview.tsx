@@ -40,6 +40,12 @@ const SKILL_ICONS: Record<string, string> = {
   schot: '💥', verdedigen: '🛡', inzicht: '🧠', mentaliteit: '💪',
 };
 
+// Geeft 1–5 sterren op basis van waarde 1–10
+const toStars = (value: number) => {
+  const stars = Math.round(value / 2);
+  return '⭐'.repeat(Math.max(1, Math.min(5, stars)));
+};
+
 const getLevel = (score: number) => LEVELS.find(l => score >= l.min && score < l.max) ?? LEVELS[0];
 
 const CIRCLE_R = 22;
@@ -49,12 +55,39 @@ interface SkillCircleProps {
   skill: string;
   value: number;
   color?: string;
+  isYoung?: boolean;
 }
 
-const SkillCircle = ({ skill, value, color = NEON_COLOR }: SkillCircleProps) => {
+const SkillCircle = ({ skill, value, color = NEON_COLOR, isYoung = false }: SkillCircleProps) => {
   const progress = value / 10;
   const offset = CIRCUMFERENCE * (1 - progress);
   const valueColor = value >= 8 ? NEON_COLOR : value >= 6 ? '#fff' : value >= 4 ? '#f97316' : '#f87171';
+
+  if (isYoung) {
+    return (
+      <motion.div
+        className="flex flex-col items-center gap-2"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
+      >
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+          style={{ backgroundColor: `${color}20`, border: `2px solid ${color}40` }}
+        >
+          {SKILL_ICONS[skill]}
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] leading-tight" style={{ color }}>
+            {toStars(value)}
+          </div>
+          <span className="text-[9px] font-bold text-gray-400 block leading-tight mt-0.5">
+            {SKILL_LABELS[skill]}
+          </span>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -95,6 +128,9 @@ const SkillCircle = ({ skill, value, color = NEON_COLOR }: SkillCircleProps) => 
 const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverviewProps) => {
   const [aiInsight, setAiInsight] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
+
+  const ageNum = parseInt(player.age ?? '10', 10);
+  const isYoung = !isNaN(ageNum) && ageNum <= 9;
 
   const assignedIds = teamData.assigned_homework_ids ?? [];
   const currentEval = player.evaluations?.[activeTab];
@@ -170,14 +206,12 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           className="relative rounded-2xl overflow-hidden border"
           style={{ borderColor: `${level.color}40` }}
         >
-          {/* Gradient background */}
           <div
             className="absolute inset-0"
             style={{
               background: `linear-gradient(135deg, #0d0f14 0%, ${level.color}18 60%, ${level.color}30 100%)`,
             }}
           />
-          {/* Glowing orb */}
           <div
             className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-20 blur-3xl"
             style={{ backgroundColor: level.color }}
@@ -197,7 +231,6 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                     className="w-full h-full rounded-full object-cover border-2 border-[#0d0f14]"
                   />
                 </div>
-                {/* Level % badge */}
                 <div
                   className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded-full whitespace-nowrap"
                   style={{ backgroundColor: level.color, color: '#000' }}
@@ -214,84 +247,116 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                   {player.age ? ` · ${player.age} jaar` : ''}
                 </p>
 
-                {/* Progress bar */}
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="flex-1 bg-gray-800 rounded-full h-1.5 overflow-hidden">
-                    <motion.div
-                      className="h-1.5 rounded-full"
-                      style={{ backgroundColor: level.color }}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${levelProgress}%` }}
-                      transition={{ duration: 0.9, delay: 0.2, ease: 'easeOut' }}
-                    />
+                {isYoung ? (
+                  /* Children: grote level-badge, geen cijfer */
+                  <div className="mt-3 flex items-center gap-2">
+                    <span
+                      className="text-2xl font-black"
+                      style={{ color: level.color, textShadow: `0 0 16px ${level.color}60` }}
+                    >
+                      {level.name}
+                    </span>
+                    <span className="text-lg">
+                      {level.name === 'Starter' ? '🌱' : level.name === 'Opkomst' ? '🌿' : level.name === 'Speler' ? '⚽' : level.name === 'Talent' ? '🌟' : level.name === 'Elite' ? '🔥' : '👑'}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-gray-500 shrink-0">{levelProgress}%</span>
-                </div>
+                ) : (
+                  /* Tweens: voortgangsbalk + % */
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="flex-1 bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                      <motion.div
+                        className="h-1.5 rounded-full"
+                        style={{ backgroundColor: level.color }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${levelProgress}%` }}
+                        transition={{ duration: 0.9, delay: 0.2, ease: 'easeOut' }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-gray-500 shrink-0">{levelProgress}%</span>
+                  </div>
+                )}
               </div>
 
-              {/* Score */}
-              <div className="shrink-0 flex flex-col items-center gap-2 pt-1">
-                <div className="text-center">
-                  <div className="text-4xl font-black leading-none" style={{ color: level.color, textShadow: `0 0 20px ${level.color}60` }}>
-                    {score}
+              {/* Score — alleen voor Tweens */}
+              {!isYoung && (
+                <div className="shrink-0 flex flex-col items-center gap-2 pt-1">
+                  <div className="text-center">
+                    <div className="text-4xl font-black leading-none" style={{ color: level.color, textShadow: `0 0 20px ${level.color}60` }}>
+                      {score}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-0.5">score</div>
                   </div>
-                  <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-0.5">score</div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Match rating strip */}
             {currentEval?.matchRating > 0 && (
               <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
                 <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Wedstrijdcijfer</span>
-                <div className="flex items-center gap-1.5">
-                  {[...Array(10)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-4 h-1.5 rounded-full transition-all"
-                      style={{
-                        backgroundColor: i < currentEval.matchRating
-                          ? (currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171')
-                          : '#1f2937',
-                      }}
-                    />
-                  ))}
-                  <span className="text-sm font-black ml-1" style={{ color: currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
-                    {currentEval.matchRating}
+                {isYoung ? (
+                  <span className="text-base font-black" style={{ color: currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
+                    {'⭐'.repeat(Math.round(currentEval.matchRating / 2))}
                   </span>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    {[...Array(10)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-4 h-1.5 rounded-full transition-all"
+                        style={{
+                          backgroundColor: i < currentEval.matchRating
+                            ? (currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171')
+                            : '#1f2937',
+                        }}
+                      />
+                    ))}
+                    <span className="text-sm font-black ml-1" style={{ color: currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
+                      {currentEval.matchRating}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       </motion.div>
 
-      {/* ── SKILL CIRCLES GRID ── */}
+      {/* ── SKILL WEERGAVE ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 }}>
         <Card className="!p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">
-            Skills — <span className="font-normal normal-case text-gray-600">{activeTab}</span>
+            {isYoung ? 'Jouw skills ⚽' : <>Skills — <span className="font-normal normal-case text-gray-600">{activeTab}</span></>}
           </p>
-          <div className="grid grid-cols-4 gap-y-4 gap-x-2">
-            {skillKeys.slice(0, 4).map(k => (
-              <SkillCircle
-                key={k}
-                skill={k}
-                value={currentEval?.skills[k] ?? 5}
-                color={level.color}
-              />
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-y-4 gap-x-2 mt-4 max-w-[calc(100%-2rem)] mx-auto">
-            {skillKeys.slice(4).map(k => (
-              <SkillCircle
-                key={k}
-                skill={k}
-                value={currentEval?.skills[k] ?? 5}
-                color={level.color}
-              />
-            ))}
-          </div>
+          {isYoung ? (
+            /* Children: grote emoji-blokken in grid van 4 */
+            <>
+              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+                {skillKeys.slice(0, 4).map(k => (
+                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} isYoung />
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-y-4 gap-x-2 mt-4 max-w-[calc(100%-2rem)] mx-auto">
+                {skillKeys.slice(4).map(k => (
+                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} isYoung />
+                ))}
+              </div>
+            </>
+          ) : (
+            /* Tweens: bestaande cirkel-weergave */
+            <>
+              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+                {skillKeys.slice(0, 4).map(k => (
+                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} />
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-y-4 gap-x-2 mt-4 max-w-[calc(100%-2rem)] mx-auto">
+                {skillKeys.slice(4).map(k => (
+                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} />
+                ))}
+              </div>
+            </>
+          )}
         </Card>
       </motion.div>
 
@@ -310,7 +375,10 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
               <div key={s.key}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-300 font-medium">{SKILL_LABELS[s.key]}</span>
-                  <span className="font-black text-emerald-400">{s.value}</span>
+                  {isYoung
+                    ? <span className="font-black text-emerald-400 text-xs">{toStars(s.value)}</span>
+                    : <span className="font-black text-emerald-400">{s.value}</span>
+                  }
                 </div>
                 <div className="bg-gray-800/60 rounded-full h-1">
                   <motion.div
@@ -335,7 +403,10 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
               <div key={s.key}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-300 font-medium">{SKILL_LABELS[s.key]}</span>
-                  <span className="font-black text-orange-400">{s.value}</span>
+                  {isYoung
+                    ? <span className="font-black text-orange-400 text-xs">{toStars(s.value)}</span>
+                    : <span className="font-black text-orange-400">{s.value}</span>
+                  }
                 </div>
                 <div className="bg-gray-800/60 rounded-full h-1">
                   <motion.div
@@ -351,7 +422,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
         </div>
       </motion.div>
 
-      {/* ── HUISWERK PROGRESS (indien aanwezig) ── */}
+      {/* ── HUISWERK PROGRESS ── */}
       {hwPct !== null && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.12 }}>
           <Card className="!p-4">
@@ -378,132 +449,154 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
       {/* ── BADGES ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.15 }}>
         <Card className="!p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Badges</p>
-          <div className="grid grid-cols-4 gap-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
+            {isYoung ? 'Jouw badges 🏅' : 'Badges'}
+          </p>
+          <div className={`grid gap-2 ${isYoung ? 'grid-cols-4' : 'grid-cols-4'}`}>
             {badges.map(b => (
               <motion.div
                 key={b.label}
                 whileTap={{ scale: 0.92 }}
-                className={`flex flex-col items-center gap-1 p-2 rounded-xl text-center transition-all ${
+                className={`flex flex-col items-center gap-1 rounded-xl text-center transition-all ${
                   b.earned
                     ? 'bg-gray-800/80 border border-gray-600/80'
                     : 'bg-gray-900/30 border border-gray-800/40 opacity-25'
                 }`}
+                style={{ padding: isYoung ? '10px 6px' : '8px 6px' }}
               >
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: b.earned ? `${NEON_COLOR}15` : 'transparent' }}
+                  className="rounded-full flex items-center justify-center"
+                  style={{
+                    width: isYoung ? 32 : 28,
+                    height: isYoung ? 32 : 28,
+                    backgroundColor: b.earned ? `${NEON_COLOR}15` : 'transparent',
+                  }}
                 >
                   <span style={{ color: b.earned ? NEON_COLOR : '#6b7280' }}>{b.icon}</span>
                 </div>
-                <span className="text-[8px] leading-tight text-gray-400 whitespace-pre-line font-medium">{b.label}</span>
+                <span
+                  className="leading-tight text-gray-400 whitespace-pre-line font-medium"
+                  style={{ fontSize: isYoung ? 9 : 8 }}
+                >
+                  {b.label}
+                </span>
               </motion.div>
             ))}
           </div>
         </Card>
       </motion.div>
 
-      {/* ── AI COACH ANALYSE ── */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.2 }}>
-        <Card className="!p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: `${NEON_COLOR}20` }}>
-                <Wand2 size={11} style={{ color: NEON_COLOR }} />
+      {/* ── AI COACH ANALYSE — alleen voor Tweens ── */}
+      {!isYoung && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.2 }}>
+          <Card className="!p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: `${NEON_COLOR}20` }}>
+                  <Wand2 size={11} style={{ color: NEON_COLOR }} />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Coach AI Analyse</p>
               </div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Coach AI Analyse</p>
+              <button
+                onClick={handleAIInsight}
+                disabled={loadingAI}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black disabled:opacity-50 transition-opacity hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: NEON_COLOR }}
+              >
+                {loadingAI ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                {loadingAI ? 'Laden...' : 'Genereer'}
+              </button>
             </div>
-            <button
-              onClick={handleAIInsight}
-              disabled={loadingAI}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black disabled:opacity-50 transition-opacity hover:opacity-90 active:scale-95"
-              style={{ backgroundColor: NEON_COLOR }}
-            >
-              {loadingAI ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-              {loadingAI ? 'Laden...' : 'Genereer'}
-            </button>
-          </div>
-          <AnimatePresence mode="wait">
-            {aiInsight ? (
-              <motion.p key="insight" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-gray-200 leading-relaxed">
-                {aiInsight}
-              </motion.p>
-            ) : (
-              <motion.p key="placeholder" className="text-xs text-gray-600 italic">
-                Druk op Genereer voor een persoonlijke analyse.
-              </motion.p>
+            <AnimatePresence mode="wait">
+              {aiInsight ? (
+                <motion.p key="insight" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-gray-200 leading-relaxed">
+                  {aiInsight}
+                </motion.p>
+              ) : (
+                <motion.p key="placeholder" className="text-xs text-gray-600 italic">
+                  Druk op Genereer voor een persoonlijke analyse.
+                </motion.p>
+              )}
+            </AnimatePresence>
+            {currentEval?.trainingPlan && (
+              <div className="mt-3 pt-3 border-t border-gray-800/60">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Persoonlijk Oefenplan</p>
+                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{currentEval.trainingPlan}</p>
+              </div>
             )}
-          </AnimatePresence>
-          {currentEval?.trainingPlan && (
-            <div className="mt-3 pt-3 border-t border-gray-800/60">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Persoonlijk Oefenplan</p>
-              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{currentEval.trainingPlan}</p>
-            </div>
-          )}
-        </Card>
-      </motion.div>
+          </Card>
+        </motion.div>
+      )}
 
-      {/* ── JOUW SKILL-PROFIEL (alleen jij, geen team — P1) ── */}
+      {/* ── JOUW SKILL-PROFIEL (radar) ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.25 }}>
         <Card className="!p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
-            Jouw Skill-profiel <span className="font-normal normal-case text-gray-600">— {activeTab}</span>
+            {isYoung
+              ? 'Jouw skill-profiel 🕸'
+              : <>Jouw Skill-profiel <span className="font-normal normal-case text-gray-600">— {activeTab}</span></>
+            }
           </p>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
                 <PolarGrid stroke="#1f2937" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10 }} />
+                <PolarAngleAxis
+                  dataKey="subject"
+                  tick={{ fill: '#6b7280', fontSize: isYoung ? 11 : 10 }}
+                />
                 <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                <Radar name="Jij" dataKey="jij" stroke={NEON_COLOR} fill={NEON_COLOR} fillOpacity={0.4} />
+                <Radar name="Jij" dataKey="jij" stroke={level.color} fill={level.color} fillOpacity={0.4} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </Card>
       </motion.div>
 
-      {/* ── VOORTGANG PER PERIODE ── */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.3 }}>
-        <Card className="!p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Voortgang per Periode</p>
-          <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-sm min-w-[240px]">
-              <thead>
-                <tr className="text-gray-600 text-[9px] uppercase tracking-wide border-b border-gray-800/60">
-                  <th className="text-left pb-2 font-semibold pl-1">Skill</th>
-                  {evaluationPeriods.map(p => (
-                    <th key={p} className="text-center pb-2 font-semibold">{p.replace('Check-in ', 'CI')}</th>
-                  ))}
-                  <th className="text-center pb-2">+/-</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/30">
-                {skillProgress.map(({ key, label, values }) => {
-                  const delta = values[values.length - 1] - values[0];
-                  const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-                  const trendColor = delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#374151';
-                  return (
-                    <tr key={key}>
-                      <td className="py-2 text-gray-400 text-[11px] pl-1">{label}</td>
-                      {values.map((v, i) => (
-                        <td key={i} className="py-2 text-center font-black text-sm" style={{
-                          color: v >= 7 ? NEON_COLOR : v >= 5 ? '#e5e7eb' : '#f87171',
-                        }}>{v}</td>
-                      ))}
-                      <td className="py-2 text-center">
-                        <div className="flex items-center justify-center gap-0.5">
-                          <TrendIcon size={11} style={{ color: trendColor }} />
-                          {delta !== 0 && <span className="text-[10px] font-black" style={{ color: trendColor }}>{delta > 0 ? `+${delta}` : delta}</span>}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </motion.div>
+      {/* ── VOORTGANG PER PERIODE — alleen voor Tweens ── */}
+      {!isYoung && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.3 }}>
+          <Card className="!p-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Voortgang per Periode</p>
+            <div className="overflow-x-auto -mx-1">
+              <table className="w-full text-sm min-w-[240px]">
+                <thead>
+                  <tr className="text-gray-600 text-[9px] uppercase tracking-wide border-b border-gray-800/60">
+                    <th className="text-left pb-2 font-semibold pl-1">Skill</th>
+                    {evaluationPeriods.map(p => (
+                      <th key={p} className="text-center pb-2 font-semibold">{p.replace('Check-in ', 'CI')}</th>
+                    ))}
+                    <th className="text-center pb-2">+/-</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/30">
+                  {skillProgress.map(({ key, label, values }) => {
+                    const delta = values[values.length - 1] - values[0];
+                    const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+                    const trendColor = delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#374151';
+                    return (
+                      <tr key={key}>
+                        <td className="py-2 text-gray-400 text-[11px] pl-1">{label}</td>
+                        {values.map((v, i) => (
+                          <td key={i} className="py-2 text-center font-black text-sm" style={{
+                            color: v >= 7 ? NEON_COLOR : v >= 5 ? '#e5e7eb' : '#f87171',
+                          }}>{v}</td>
+                        ))}
+                        <td className="py-2 text-center">
+                          <div className="flex items-center justify-center gap-0.5">
+                            <TrendIcon size={11} style={{ color: trendColor }} />
+                            {delta !== 0 && <span className="text-[10px] font-black" style={{ color: trendColor }}>{delta > 0 ? `+${delta}` : delta}</span>}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </motion.div>
+      )}
 
     </div>
   );

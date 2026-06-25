@@ -3,7 +3,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, Streak } from '../../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap } from 'lucide-react';
+import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap, MessageSquare } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
@@ -33,6 +33,7 @@ import TeamOverview from './TeamOverview';
 import PlayerOverview from './PlayerOverview';
 import CoachWeekAgenda from './CoachWeekAgenda';
 import TodayScreen from './TodayScreen';
+import QuestionPager from './QuestionPager';
 import PlayerCard from '../card/PlayerCard';
 import TierUpModal from '../feedback/TierUpModal';
 import StreakWidget from '../streak/StreakWidget';
@@ -40,6 +41,7 @@ import ChallengeLibrary from '../challenges/ChallengeLibrary';
 import OnboardingTour from '../OnboardingTour';
 import ProGate from '../ui/ProGate';
 const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
+const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
 import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
 import type { PlayerStats, CardTier } from '../../types';
@@ -55,6 +57,7 @@ const COACH_SECTIONS = [
   { id: 'spelers',    label: 'Spelers',    icon: UserSquare },
   { id: 'huiswerk',   label: 'Huiswerk',   icon: ClipboardList },
   { id: 'trainingen', label: 'Trainingen', icon: Target },
+  { id: 'berichten',  label: 'Berichten',  icon: MessageSquare },
 ] as const;
 
 const PLAYER_SECTIONS = [
@@ -102,6 +105,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'player' ? 'vandaag' : 'overzicht');
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isClubPro, setIsClubPro] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (!userData.teamId) return;
@@ -644,7 +648,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 <button
                   key={id}
                   onClick={() => setMobileSection(id)}
-                  className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all ${
+                  className={`relative flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all ${
                     mobileSection === id
                       ? 'text-gray-900'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -653,6 +657,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 >
                   <Icon size={15} />
                   {label}
+                  {id === 'berichten' && unreadMessages > 0 && (
+                    <span className="absolute top-2 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
+                      {unreadMessages}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -1245,9 +1254,29 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 <AttendanceCard players={players} records={attendanceRecords} />
               </div>
             )}
+
+            {/* ── BERICHTEN ── */}
+            {mobileSection === 'berichten' && (
+              <div>
+                <div className="mb-5">
+                  <h2 className="text-lg font-black text-gray-900">Berichten</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Communiceer direct met je club admin en ouders.</p>
+                </div>
+                <Suspense fallback={<div className="h-96 bg-gray-100 rounded-2xl animate-pulse" />}>
+                  <MessagingInbox
+                    currentUserId={user.id}
+                    currentUserName={(teamData as { coach_name?: string }).coach_name || teamData.team_name || 'Trainer'}
+                    currentUserRole="coach"
+                    clubId={userData.clubId}
+                    teamId={userData.teamId}
+                    onUnreadChange={setUnreadMessages}
+                  />
+                </Suspense>
+              </div>
+            )}
           </main>
 
-          {/* Mobile bottom nav — 4 tabs, ruim, duidelijk */}
+          {/* Mobile bottom nav */}
           <nav
             className="fixed bottom-0 left-0 right-0 sm:hidden z-30"
             style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -1267,6 +1296,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     )}
                     <Icon size={20} />
                     <span className="text-[9px] font-bold tracking-wide uppercase">{label}</span>
+                    {id === 'berichten' && unreadMessages > 0 && (
+                      <span className="absolute top-1.5 right-1/4 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center font-black">
+                        {unreadMessages}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -1355,38 +1389,26 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 />
               </div>
 
-              {/* Coach-vragen — alleen indien aanwezig, rustig onderaan */}
+              {/* Coach-vragen — paged, één vraag per scherm */}
               {visibleQuestions.length > 0 && (
                 <div id="today-questions" className="scroll-mt-24">
                   <Card>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <h3 className="text-xl font-bold flex items-center gap-2"><ShieldCheck size={20} className="text-[--neon-color]" /> Coach Vragen</h3>
-                      <p className="text-sm text-gray-400">Beantwoord de vragen van je coach.</p>
+                    <div className="flex items-center gap-2 mb-4">
+                      <ShieldCheck size={18} className="text-[--neon-color]" />
+                      <h3 className="text-lg font-black text-white">Vragen van je coach</h3>
                     </div>
-                    <div className="mt-4 space-y-5">
-                      {visibleQuestions.map(({ text, idx }) => (
-                        <div key={`player-question-${idx}`} className="space-y-2">
-                          <p className="text-sm font-semibold text-[--neon-color] uppercase tracking-wide">Vraag {idx + 1}</p>
-                          <p className="text-base text-white leading-relaxed">{text}</p>
-                          <Textarea
-                            label="Jouw antwoord"
-                            value={responseDrafts[idx]}
-                            onChange={e => {
-                              const updated = [...responseDrafts];
-                              updated[idx] = e.target.value;
-                              setResponseDrafts(updated);
-                            }}
-                            placeholder="Schrijf hier je antwoord..."
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                      <button onClick={handleSaveQuestionResponses} disabled={savingResponses} className="px-4 py-2 rounded-lg bg-[--neon-color] text-black font-semibold hover:opacity-90 transition-opacity flex items-center disabled:opacity-50">
-                        {savingResponses ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
-                        Verstuur antwoorden
-                      </button>
-                    </div>
+                    <QuestionPager
+                      questions={visibleQuestions}
+                      responseDrafts={responseDrafts}
+                      onChangeResponse={(idx, value) => {
+                        const updated = [...responseDrafts];
+                        updated[idx] = value;
+                        setResponseDrafts(updated);
+                      }}
+                      onSave={handleSaveQuestionResponses}
+                      saving={savingResponses}
+                      isYoung={parseInt(activePlayer.age ?? '10', 10) <= 9}
+                    />
                   </Card>
                 </div>
               )}
@@ -1396,7 +1418,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           {/* ════════════════ MIJN KAART — Inzet-DNA (de trots) ════════════════ */}
           {mobileSection === 'kaart' && (
             <div className="space-y-3">
-              <StreakWidget streak={streak} />
+              <StreakWidget streak={streak} onRevive={s => setStreak(s)} />
               <PlayerCard player={activePlayer} stats={playerStats} />
             </div>
           )}

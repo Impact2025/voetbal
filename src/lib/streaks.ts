@@ -22,10 +22,25 @@ export async function getOrCreateStreak(playerId: string): Promise<Streak | null
   // Als week_start ouder is dan huidige week → reset client-side view
   const currentWeek = getWeekStart();
   if (data.week_start < currentWeek) {
-    return { ...data as Streak, activities_count: 0, flame_state: 'active', recovery_used: false, week_start: currentWeek };
+    // Vorige week gemist (0 activiteiten) → sleep-state zodat Revive-knop verschijnt
+    const prevCount = (data as Streak).activities_count ?? 0;
+    const flameState: Streak['flame_state'] = prevCount === 0 ? 'sleep' : 'active';
+    return { ...data as Streak, activities_count: 0, flame_state: flameState, recovery_used: false, week_start: currentWeek };
   }
 
   return data as Streak;
+}
+
+export async function reviveStreak(playerId: string): Promise<Streak | null> {
+  const currentWeek = getWeekStart();
+  const { data } = await supabase
+    .from('streaks')
+    .update({ flame_state: 'active', recovery_used: true })
+    .eq('player_id', playerId)
+    .eq('week_start', currentWeek)
+    .select()
+    .single();
+  return (data as Streak) ?? null;
 }
 
 export async function incrementStreak(playerId: string): Promise<Streak | null> {
