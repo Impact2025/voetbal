@@ -280,12 +280,21 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       weekly_question_responses: ['', '', ''],
     };
 
-    const { data, error } = await supabase.from('players').insert(newPlayer).select().single();
-    if (error) throw error;
+    const withTimeout = <T,>(p: Promise<T>, ms: number, msg: string): Promise<T> =>
+      Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+
+    const { data, error } = await withTimeout(
+      supabase.from('players').insert(newPlayer).select().single(),
+      30000,
+      'Server reageert niet. Controleer je verbinding en probeer opnieuw.'
+    );
+    if (error) throw new Error(error.message || 'Aanmaken mislukt. Controleer je verbinding.');
+    if (!data) throw new Error('Geen toegang. Controleer of je ingelogd bent als coach.');
 
     // Hash PIN with player ID as salt now that we have the ID
     const pinHash = await hashPin(plainPin, data.id);
-    await supabase.from('players').update({ pin_hash: pinHash }).eq('id', data.id);
+    const { error: updateError } = await supabase.from('players').update({ pin_hash: pinHash }).eq('id', data.id);
+    if (updateError) throw new Error('Speler aangemaakt maar pincode niet opgeslagen. Probeer opnieuw in te loggen.');
 
     return { id: data.id, pin: plainPin };
   };
