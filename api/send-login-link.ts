@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { getAdminClient } from './_lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
 
 const APP_URL = 'https://skills.weareimpact.nl';
 
@@ -76,15 +76,20 @@ export default async function handler(req: Req, res: Res) {
     return;
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error('[send-login-link] RESEND_API_KEY ontbreekt');
+  const resendKey = process.env.RESEND_API_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!resendKey || !supabaseUrl || !serviceKey) {
+    console.error('[send-login-link] Ontbrekende env vars');
     res.status(500).json({ error: 'Serverconfiguratie ontbreekt.' });
     return;
   }
 
   try {
-    const admin = getAdminClient();
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const { data, error } = await admin.auth.admin.generateLink({
       type: 'magiclink',
@@ -102,7 +107,7 @@ export default async function handler(req: Req, res: Res) {
 
     const magicLink = data.properties.action_link;
     const FROM = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
-    const resend = new Resend(apiKey);
+    const resend = new Resend(resendKey);
 
     const { error: sendErr } = await resend.emails.send({
       from: FROM,
