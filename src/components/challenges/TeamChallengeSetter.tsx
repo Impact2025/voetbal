@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, ChevronDown, ChevronUp, Loader2, Trash2 } from 'lucide-react';
+import { Users, ChevronDown, ChevronUp, Loader2, Trash2, Sparkles } from 'lucide-react';
 import { upsertTeamChallenge, deleteTeamChallenge } from '../../lib/teamChallenge';
+import {
+  fetchClubTrainingConfigs,
+  fetchSeasonPlan,
+  fetchClubWeekOverrides,
+  fetchTrainingContent,
+  getCurrentSeasonWeek,
+} from '../../lib/trainingLibrary';
+import { generateTeamChallengeSuggestions, type TeamChallengeSuggestion } from '../../lib/trainingAI';
 import type { TeamChallenge } from '../../types';
 
 const EMOJI_OPTIONS = ['🏆', '⚽', '🔥', '💪', '🚀', '⭐', '🎯', '🤝'];
@@ -10,12 +18,15 @@ interface TeamChallengeSetterProps {
   teamId: string;
   current: TeamChallenge | null;
   onChange: (c: TeamChallenge | null) => void;
+  clubId?: string;
 }
 
-const TeamChallengeSetter = ({ teamId, current, onChange }: TeamChallengeSetterProps) => {
+const TeamChallengeSetter = ({ teamId, current, onChange, clubId }: TeamChallengeSetterProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<TeamChallengeSuggestion[]>([]);
 
   const [title, setTitle] = useState(current?.title ?? '');
   const [description, setDescription] = useState(current?.description ?? '');
@@ -50,6 +61,47 @@ const TeamChallengeSetter = ({ teamId, current, onChange }: TeamChallengeSetterP
     setOpen(false);
   };
 
+  const handleSuggest = async () => {
+    if (!clubId) return;
+    setLoadingSuggestions(true);
+    setSuggestions([]);
+    try {
+      const configs = await fetchClubTrainingConfigs(clubId);
+      if (!configs.length) { setLoadingSuggestions(false); return; }
+      const ag = configs[0].age_group;
+      const [plan, overrides] = await Promise.all([
+        fetchSeasonPlan(ag),
+        fetchClubWeekOverrides(clubId, ag),
+      ]);
+      const weekPlan = getCurrentSeasonWeek(plan, overrides);
+      let exerciseTitles: string[] = [];
+      if (weekPlan?.training_a_number) {
+        const content = await fetchTrainingContent(ag, weekPlan.training_a_number);
+        if (content?.exercises?.session_a) {
+          exerciseTitles = content.exercises.session_a.slice(0, 3).map((e: { title: string }) => e.title);
+        }
+      }
+      const result = await generateTeamChallengeSuggestions(
+        weekPlan?.week_number ?? 0,
+        ag,
+        weekPlan?.homework ?? null,
+        weekPlan?.challenge ?? null,
+        exerciseTitles,
+      );
+      setSuggestions(result);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const applySuggestion = (s: TeamChallengeSuggestion) => {
+    setEmoji(s.emoji);
+    setTitle(s.title);
+    setDescription(s.description);
+    setTarget(s.target);
+    setSuggestions([]);
+  };
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
       {/* Header — toggle */}
@@ -82,6 +134,55 @@ const TeamChallengeSetter = ({ teamId, current, onChange }: TeamChallengeSetterP
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-3">
+
+              {/* AI suggest button */}
+              {clubId && (
+                <div>
+                  <button
+                    onClick={handleSuggest}
+                    disabled={loadingSuggestions}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 transition-colors disabled:opacity-60"
+                  >
+                    {loadingSuggestions
+                      ? <Loader2 size={12} className="animate-spin" />
+                      : <Sparkles size={12} />
+                    }
+                    {loadingSuggestions ? 'AI denkt na...' : 'Stel voor op basis van training deze week'}
+                  </button>
+
+                  {/* Suggestions */}
+                  <AnimatePresence>
+                    {suggestions.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.18 }}
+                        className="mt-2 space-y-1.5"
+                      >
+                        {suggestions.map((s, i) => (
+                          <button
+                            key={i}
+                            onClick={() => applySuggestion(s)}
+                            className="w-full text-left px-3 py-2.5 rounded-xl border border-violet-100 bg-violet-50 hover:bg-violet-100 hover:border-violet-300 transition-all"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{s.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-black text-gray-900 truncate">{s.title}</p>
+                                <p className="text-[10px] text-gray-500 truncate">{s.description}</p>
+                              </div>
+                              <span className="shrink-0 text-[10px] font-bold text-violet-500 bg-white rounded-lg px-2 py-0.5 border border-violet-200">
+                                {s.target} acties
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {/* Emoji picker */}
               <div>

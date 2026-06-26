@@ -1,6 +1,58 @@
 import { callAI } from './ai';
 import type { StructuredTrainingPlan, Player } from '../types';
 
+export interface TeamChallengeSuggestion {
+  emoji: string;
+  title: string;
+  description: string;
+  target: number;
+}
+
+export async function generateTeamChallengeSuggestions(
+  weekNumber: number,
+  ageGroup: string,
+  homework: string | null,
+  challenge: string | null,
+  exerciseTitles: string[]
+): Promise<TeamChallengeSuggestion[]> {
+  const trainingContext = [
+    homework ? `Huiswerk deze week: ${homework}` : null,
+    challenge ? `Challenge deze week: ${challenge}` : null,
+    exerciseTitles.length ? `Trainingsthema's: ${exerciseTitles.join(', ')}` : null,
+  ].filter(Boolean).join('\n');
+
+  const prompt = `Je bent een jeugdvoetbalcoach die een team uitdaging bedenkt voor week ${weekNumber} van het seizoen, voor een ${ageGroup} team.
+
+CONTEXT VAN DEZE WEEK:
+${trainingContext || 'Standaard trainingsprogramma'}
+
+Genereer 3 korte, motiverende team uitdagingen die PASSEN bij deze trainingsweek. De uitdaging moet het team aanmoedigen om samen te oefenen.
+
+Geef ALLEEN een geldig JSON array terug zonder markdown:
+[
+  {
+    "emoji": "🔥",
+    "title": "pakkende titel max 45 tekens",
+    "description": "koppeling aan training van deze week max 80 tekens",
+    "target": 15
+  }
+]
+
+REGELS: Alle tekst Nederlands. target is het totale aantal acties voor het team (5-50). Koppel de titel expliciet aan het trainingsthema. Geef 3 varianten: één makkelijk, één gemiddeld, één ambitieus. Alleen JSON array teruggeven.`;
+
+  const raw = await callAI(prompt, 2, 1000, { max_tokens: 700, temperature: 0.72 });
+  try {
+    const start = raw.indexOf('[');
+    const end = raw.lastIndexOf(']');
+    if (start !== -1 && end !== -1) {
+      return JSON.parse(raw.slice(start, end + 1)) as TeamChallengeSuggestion[];
+    }
+  } catch {
+    console.error('Parse failed for team challenge suggestions');
+  }
+  return [];
+}
+
 const AGE_GROUP_CONTEXT: Record<string, string> = {
   'U8':  'Leeftijd 6-8 jaar. FUNdamentals fase: plezier, basismotoriek, balgewenning. Korte aandachtsspanne, veel variatie, geen tactiek. Oefeningen max 5 min per onderdeel.',
   'U10': 'Leeftijd 8-10 jaar. Leren to Train: bal aannemen, passen, dribbelen centraal. Eenvoudige 1v1 situaties en kleine partijvormen (3v3, 4v4). Enthousiast en spelend leren.',

@@ -722,6 +722,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     teamId={userData.teamId}
                     current={teamChallenge}
                     onChange={setTeamChallenge}
+                    clubId={userData.clubId}
                   />
                 )}
               </div>
