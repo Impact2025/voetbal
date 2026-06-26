@@ -24,7 +24,16 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
     if (!email || !password) { setError('Vul e-mail en wachtwoord in.'); return; }
     setError(''); setLoading(true);
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) setError('Inloggen mislukt: ' + err.message);
+    if (err) {
+      const m = err.message.toLowerCase();
+      if (m.includes('invalid') || m.includes('credentials') || m.includes('wrong')) {
+        setError('E-mailadres of wachtwoord klopt niet.');
+      } else if (m.includes('security purposes') || m.includes('after')) {
+        setError('Even geduld — wacht een minuutje en probeer het opnieuw.');
+      } else {
+        setError('Inloggen mislukt. Controleer je gegevens.');
+      }
+    }
     setLoading(false);
   };
 
@@ -46,7 +55,16 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
     // Create Supabase account
     const { data: authData, error: signUpErr } = await supabase.auth.signUp({ email, password });
     if (signUpErr || !authData.user) {
-      setError(signUpErr?.message ?? 'Account aanmaken mislukt.');
+      const msg = signUpErr?.message ?? '';
+      if (msg.toLowerCase().includes('security purposes') || msg.toLowerCase().includes('after')) {
+        setError('Even geduld — wacht een minuutje en probeer het opnieuw.');
+      } else if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+        setError('Dit e-mailadres is al in gebruik. Probeer in te loggen.');
+      } else if (msg.toLowerCase().includes('rate limit')) {
+        setError('Te veel pogingen. Wacht even en probeer het opnieuw.');
+      } else {
+        setError(msg || 'Account aanmaken mislukt. Controleer je gegevens.');
+      }
       setLoading(false); return;
     }
 
