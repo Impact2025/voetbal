@@ -12,7 +12,7 @@ import {
   Tooltip, Legend,
 } from 'recharts';
 import { supabase } from '../../lib/supabase';
-import { NEON_COLOR, skillKeys } from '../../utils/constants';
+import { NEON_COLOR, skillKeys, SKILL_GROUPS } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import Card from '../ui/Card';
 import ParentLinkModal from '../parent/ParentLinkModal';
@@ -209,15 +209,18 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     return { avgScore, avgAtt, avgHw };
   }, [teams]);
 
-  const clubRadarData = useMemo(() => skillKeys.map(key => {
-    const avg = allPlayers.length
-      ? allPlayers.reduce((s, p) => {
-          const team = teams.find(t => t.id === p.team_id);
-          const period = team?.evaluation_periods.at(-1) ?? 'Check-in 1';
-          return s + (p.evaluations?.[period]?.skills?.[key] ?? 5);
-        }, 0) / allPlayers.length
-      : 5;
-    return { subject: key.charAt(0).toUpperCase() + key.slice(1), value: +avg.toFixed(1), fullMark: 10 };
+  const clubRadarData = useMemo(() => SKILL_GROUPS.map(group => {
+    const avg = group.skills.reduce((sum, s) => {
+      const keyAvg = allPlayers.length
+        ? allPlayers.reduce((ps, p) => {
+            const team = teams.find(t => t.id === p.team_id);
+            const period = team?.evaluation_periods.at(-1) ?? 'Check-in 1';
+            return ps + (p.evaluations?.[period]?.skills?.[s.key] ?? 5);
+          }, 0) / allPlayers.length
+        : 5;
+      return sum + keyAvg;
+    }, 0) / group.skills.length;
+    return { subject: group.label, value: +avg.toFixed(1), fullMark: 10 };
   }), [allPlayers, teams]);
 
   const topPerformers = useMemo(() =>
@@ -285,18 +288,24 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
       score: toScore(calcTeamAvg(selectedTeam.players, period)),
     }));
 
-    const radarData = skillKeys.map(key => {
-      const teamAvg = selectedTeam.players.length
-        ? selectedTeam.players.reduce((s, p) => s + (p.evaluations?.[latestPeriod]?.skills?.[key] ?? 5), 0) / selectedTeam.players.length
-        : 5;
-      const clubAvg = allPlayers.length
-        ? allPlayers.reduce((s, p) => {
-            const t = teams.find(t2 => t2.id === p.team_id);
-            const period = t?.evaluation_periods.at(-1) ?? 'Check-in 1';
-            return s + (p.evaluations?.[period]?.skills?.[key] ?? 5);
-          }, 0) / allPlayers.length
-        : 5;
-      return { subject: key.charAt(0).toUpperCase() + key.slice(1), team: +teamAvg.toFixed(1), club: +clubAvg.toFixed(1) };
+    const radarData = SKILL_GROUPS.map(group => {
+      const teamAvg = group.skills.reduce((sum, s) => {
+        const a = selectedTeam.players.length
+          ? selectedTeam.players.reduce((ps, p) => ps + (p.evaluations?.[latestPeriod]?.skills?.[s.key] ?? 5), 0) / selectedTeam.players.length
+          : 5;
+        return sum + a;
+      }, 0) / group.skills.length;
+      const clubAvg = group.skills.reduce((sum, s) => {
+        const a = allPlayers.length
+          ? allPlayers.reduce((ps, p) => {
+              const t = teams.find(t2 => t2.id === p.team_id);
+              const period = t?.evaluation_periods.at(-1) ?? 'Check-in 1';
+              return ps + (p.evaluations?.[period]?.skills?.[s.key] ?? 5);
+            }, 0) / allPlayers.length
+          : 5;
+        return sum + a;
+      }, 0) / group.skills.length;
+      return { subject: group.label, team: +teamAvg.toFixed(1), club: +clubAvg.toFixed(1) };
     });
 
     return { playerRows, trendLine, radarData };
