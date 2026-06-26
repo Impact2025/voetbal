@@ -49,6 +49,7 @@ export default function ParentLinkSection({ playerId, teamId, playerName, sender
       p_team_id: teamId,
     });
     if (error || !(data as LinkStatus[] | null)?.[0]) {
+      console.error('[generate_parent_link_code]', error);
       toast.error('Genereren mislukt. Probeer opnieuw.');
     } else {
       setStatus((data as LinkStatus[])[0]);

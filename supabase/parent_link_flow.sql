@@ -2,9 +2,15 @@
 -- RPC functions voor ouder-koppeling vanuit coach én club-admin.
 -- Voer uit in Supabase SQL Editor.
 
+-- Drop old versions first so CREATE OR REPLACE can't fail on return-type changes
+-- (PostgreSQL doesn't allow changing return column names/types via REPLACE)
+DROP FUNCTION IF EXISTS get_parent_link_status(uuid);
+DROP FUNCTION IF EXISTS generate_parent_link_code(uuid);
+DROP FUNCTION IF EXISTS generate_parent_link_code(uuid, text);
+
 -- ── 1. Huidige koppelstatus opvragen ─────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION get_parent_link_status(p_player_id uuid)
+CREATE FUNCTION get_parent_link_status(p_player_id uuid)
 RETURNS TABLE(
   link_code    text,
   expires_at   timestamptz,
@@ -33,7 +39,7 @@ $$;
 
 -- ── 2. Koppelcode genereren (of bestaande teruggeven) ────────────────────────
 
-CREATE OR REPLACE FUNCTION generate_parent_link_code(p_player_id uuid, p_team_id text)
+CREATE FUNCTION generate_parent_link_code(p_player_id uuid, p_team_id text)
 RETURNS TABLE(
   link_code    text,
   expires_at   timestamptz,
@@ -79,7 +85,9 @@ $$;
 
 -- ── 3. Ouder ontkoppelen ─────────────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION unlink_parent(p_player_id uuid)
+DROP FUNCTION IF EXISTS unlink_parent(uuid);
+
+CREATE FUNCTION unlink_parent(p_player_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
