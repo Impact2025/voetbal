@@ -1,8 +1,6 @@
 import { Resend } from 'resend';
-import { getAdminClient } from './_lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
 
-const resend  = new Resend(process.env.RESEND_API_KEY);
-const FROM    = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
 const APP_URL = 'https://skills.weareimpact.nl';
 
 interface Req {
@@ -24,8 +22,14 @@ interface Res {
 }
 
 async function getMagicLink(email: string, linkCode: string): Promise<string | null> {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return null;
+
   try {
-    const admin = getAdminClient();
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const redirectTo = `${APP_URL}/?parentCode=${linkCode}`;
 
     // Try invite (creates new user if they don't exist)
@@ -185,7 +189,8 @@ export default async function handler(req: Req, res: Res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (!process.env.RESEND_API_KEY) {
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) {
     return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt in Vercel omgevingsvariabelen.' });
   }
 
@@ -204,6 +209,8 @@ export default async function handler(req: Req, res: Res) {
   }
 
   try {
+    const resend = new Resend(resendKey);
+    const FROM = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
     const { data, error } = await resend.emails.send({
       from: FROM,
       to: [to],
