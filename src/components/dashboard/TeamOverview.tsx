@@ -119,21 +119,27 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
         <div>
           <Card light>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Skill Verdeling</h3>
-            <div className="space-y-3">
-              {teamSkillAvgs.map(({ key, avg }) => {
-                const color = avg >= 7 ? '#16a34a' : avg >= 5 ? '#7c3aed' : '#dc2626';
+            <div className="space-y-4">
+              {SKILL_GROUPS.map(group => {
+                const groupAvg = group.skills.reduce((sum, s) => {
+                  const a = players.length
+                    ? players.reduce((ps, p) => ps + (p.evaluations?.[activeTab]?.skills[s.key] ?? 5), 0) / players.length
+                    : 5;
+                  return sum + a;
+                }, 0) / group.skills.length;
+                const color = groupAvg >= 7 ? '#16a34a' : groupAvg >= 5 ? '#7c3aed' : '#dc2626';
                 return (
-                  <div key={key}>
+                  <div key={group.key}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="capitalize text-gray-600">{key}</span>
-                      <span className="font-bold" style={{ color }}>{avg.toFixed(1)}</span>
+                      <span className="font-semibold text-gray-700" style={{ color: group.color }}>{group.label}</span>
+                      <span className="font-bold" style={{ color }}>{groupAvg.toFixed(1)}</span>
                     </div>
                     <div className="bg-gray-200 rounded-full h-2">
                       <motion.div
                         className="h-2 rounded-full"
                         style={{ backgroundColor: color }}
                         initial={{ width: 0 }}
-                        animate={{ width: `${avg * 10}%` }}
+                        animate={{ width: `${groupAvg * 10}%` }}
                         transition={{ duration: 0.6, delay: 0.2 }}
                       />
                     </div>
