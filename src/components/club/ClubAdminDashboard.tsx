@@ -12,7 +12,7 @@ import {
   Tooltip, Legend,
 } from 'recharts';
 import { supabase } from '../../lib/supabase';
-import { NEON_COLOR, skillKeys, SKILL_GROUPS } from '../../utils/constants';
+import { NEON_COLOR, skillKeys } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import Card from '../ui/Card';
 import ParentLinkModal from '../parent/ParentLinkModal';
