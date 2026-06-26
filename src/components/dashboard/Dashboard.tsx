@@ -7,7 +7,7 @@ import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, Che
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
-import { NEON_COLOR, COACH_COLOR, skillKeys, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
+import { NEON_COLOR, COACH_COLOR, skillKeys, SKILL_GROUPS, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import { hashPin } from '../../utils/crypto';
 import { exportPlayerPdf } from '../../utils/pdfExport';
@@ -569,8 +569,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
   const radarChartData = useMemo(() => {
     if (!activePlayer) return [];
-    const currentSkills = activePlayer.evaluations[activeTab].skills;
-    return skillKeys.map(key => ({ subject: key.charAt(0).toUpperCase() + key.slice(1), value: currentSkills[key], fullMark: 10 }));
+    const skills = activePlayer.evaluations[activeTab]?.skills ?? {};
+    return SKILL_GROUPS.map(group => {
+      const avg = group.skills.reduce((sum, s) => sum + (skills[s.key] ?? 5), 0) / group.skills.length;
+      return { subject: group.label, value: parseFloat(avg.toFixed(1)), fullMark: 10 };
+    });
   }, [activePlayer, activeTab]);
 
   const lineChartData = useMemo(() => {
@@ -804,7 +807,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                           </button>
                           <div className="ml-2 text-right">
                             <div className="text-2xl font-black tabular-nums" style={{ color: COACH_COLOR }}>
-                              {Math.round(radarChartData.reduce((s, sk) => s + sk.value, 0) / skillKeys.length * 10)}
+                              {Math.round(skillKeys.reduce((s, k) => s + (activePlayer.evaluations[activeTab]?.skills[k] ?? 5), 0) / skillKeys.length * 10)}
                             </div>
                             <div className="text-[9px] text-gray-400 uppercase tracking-wide">score</div>
                           </div>
@@ -839,20 +842,31 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
                       {/* Skills */}
                       <AnimatePresence mode="wait">
-                        <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="mt-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-                            {skillKeys.map(key => (
-                              <Slider
-                                key={key}
-                                light
-                                label={key}
-                                value={activePlayer.evaluations[activeTab]?.skills[key] || 5}
-                                onChange={e => handleUpdateEvaluation(`skills.${key}`, parseInt(e.target.value))}
-                                disabled={false}
-                              />
-                            ))}
-                          </div>
-                          <div className="mt-5 max-w-[200px]">
+                        <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="mt-4 space-y-6">
+                          {SKILL_GROUPS.map(group => (
+                            <div key={group.key}>
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: group.color }} />
+                                <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: group.color }}>{group.label}</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                                {group.skills.map(skill => (
+                                  <Slider
+                                    key={skill.key}
+                                    light
+                                    label={skill.label}
+                                    value={activePlayer.evaluations[activeTab]?.skills[skill.key] ?? 5}
+                                    onChange={e => {
+                                      const v = parseInt(e.target.value);
+                                      if (!isNaN(v)) handleUpdateEvaluation(`skills.${skill.key}`, Math.max(0, Math.min(10, v)));
+                                    }}
+                                    disabled={false}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          <div className="max-w-[200px]">
                             <Input
                               light
                               label="Wedstrijdcijfer (0–10)"

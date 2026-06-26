@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../ui/Card';
-import { skillKeys, evaluationPeriods, NEON_COLOR } from '../../utils/constants';
+import { skillKeys, SKILL_GROUPS, SKILL_LABELS, evaluationPeriods, NEON_COLOR } from '../../utils/constants';
 import { callAI } from '../../lib/ai';
 import type { Player, Team } from '../../types';
 
@@ -30,14 +30,12 @@ const LEVELS = [
   { min: 85, max: 101, name: 'MVP',      color: '#FFD700' },
 ];
 
-const SKILL_LABELS: Record<string, string> = {
-  snelheid: 'Snelheid', passing: 'Passing', techniek: 'Techniek',
-  schot: 'Schot', verdedigen: 'Verdedigen', inzicht: 'Inzicht', mentaliteit: 'Mentaliteit',
-};
-
 const SKILL_ICONS: Record<string, string> = {
-  snelheid: '⚡', passing: '🎯', techniek: '🔥',
-  schot: '💥', verdedigen: '🛡', inzicht: '🧠', mentaliteit: '💪',
+  rechterbeen: '🦵', linkerbeen: '🦿', aannemen: '🎯', passen: '📤',
+  passeerbewegingen: '💫', scoren: '⚽', aanvallend_1v1: '⚡', verdedigend_1v1: '🛡',
+  snelheid: '💨', wendbaarheid: '🔄', duelkracht: '💪',
+  trainingsmentaliteit: '🔥', wedstrijdmentaliteit: '🏆', leiderschap: '👑',
+  concentratie: '🧠', discipline: '📐', aanwezigheid: '✅',
 };
 
 // Geeft 1–5 sterren op basis van waarde 1–10
@@ -159,12 +157,16 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
     ])
   ), [players, activeTab]);
 
-  const radarData = skillKeys.map(k => ({
-    subject: SKILL_LABELS[k],
-    jij: currentEval?.skills[k] ?? 5,
-    team: parseFloat((teamSkillAvgs[k] ?? 5).toFixed(1)),
-    fullMark: 10,
-  }));
+  const radarData = SKILL_GROUPS.map(group => {
+    const myAvg = group.skills.reduce((sum, s) => sum + (currentEval?.skills[s.key] ?? 5), 0) / group.skills.length;
+    const teamAvg = group.skills.reduce((sum, s) => sum + (teamSkillAvgs[s.key] ?? 5), 0) / group.skills.length;
+    return {
+      subject: group.label,
+      jij: parseFloat(myAvg.toFixed(1)),
+      team: parseFloat(teamAvg.toFixed(1)),
+      fullMark: 10,
+    };
+  });
 
   const hwDone = assignedIds.filter(id => player.completed_homework_ids?.includes(id)).length;
   const hwPct = assignedIds.length > 0 ? Math.round((hwDone / assignedIds.length) * 100) : null;
@@ -173,10 +175,10 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
     { icon: <BookOpen size={14} />,    label: 'Huiswerk\nHeld',    earned: assignedIds.length > 0 && hwDone === assignedIds.length },
     { icon: <Medal size={14} />,       label: 'Groei-\nKnokker',   earned: improvements.every(s => s.value >= 5) },
     { icon: <CircleDot size={14} />,   label: 'All-\nRounder',     earned: sortedSkills.every(s => s.value >= 6) },
-    { icon: <Zap size={14} />,         label: 'Techniek\nSter',    earned: (currentEval?.skills.techniek ?? 0) >= 8 },
-    { icon: <Shield size={14} />,      label: 'Rots\nAchterin',    earned: (currentEval?.skills.verdedigen ?? 0) >= 8 },
-    { icon: <Crosshair size={14} />,   label: 'Scherp-\nschutter', earned: (currentEval?.skills.schot ?? 0) >= 8 },
-    { icon: <Brain size={14} />,       label: 'Spel-\nbrein',      earned: (currentEval?.skills.inzicht ?? 0) >= 8 },
+    { icon: <Zap size={14} />,         label: 'Techniek\nSter',    earned: (currentEval?.skills.scoren ?? 0) >= 8 || (currentEval?.skills.passen ?? 0) >= 8 },
+    { icon: <Shield size={14} />,      label: 'Rots\nAchterin',    earned: (currentEval?.skills.verdedigend_1v1 ?? 0) >= 8 },
+    { icon: <Crosshair size={14} />,   label: 'Scherp-\nschutter', earned: (currentEval?.skills.scoren ?? 0) >= 8 },
+    { icon: <Brain size={14} />,       label: 'Leider',            earned: (currentEval?.skills.leiderschap ?? 0) >= 8 },
     { icon: <MessageSquare size={14} />,label: 'Open\nGeest',      earned: (player.weekly_question_responses ?? []).some(r => r.trim().length > 0) },
   ], [sortedSkills, improvements, currentEval, assignedIds, hwDone, player]);
 
@@ -328,35 +330,24 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">
             {isYoung ? 'Jouw skills ⚽' : <>Skills — <span className="font-normal normal-case text-gray-600">{activeTab}</span></>}
           </p>
-          {isYoung ? (
-            /* Children: grote emoji-blokken in grid van 4 */
-            <>
-              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
-                {skillKeys.slice(0, 4).map(k => (
-                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} isYoung />
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-y-4 gap-x-2 mt-4 max-w-[calc(100%-2rem)] mx-auto">
-                {skillKeys.slice(4).map(k => (
-                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} isYoung />
-                ))}
-              </div>
-            </>
-          ) : (
-            /* Tweens: bestaande cirkel-weergave */
-            <>
-              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
-                {skillKeys.slice(0, 4).map(k => (
-                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} />
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-y-4 gap-x-2 mt-4 max-w-[calc(100%-2rem)] mx-auto">
-                {skillKeys.slice(4).map(k => (
-                  <SkillCircle key={k} skill={k} value={currentEval?.skills[k] ?? 5} color={level.color} />
-                ))}
-              </div>
-            </>
-          )}
+          <div className="space-y-5">
+            {SKILL_GROUPS.map(group => {
+              const groupAvg = group.skills.reduce((sum, s) => sum + (currentEval?.skills[s.key] ?? 5), 0) / group.skills.length;
+              return (
+                <div key={group.key}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: group.color }}>{group.label}</span>
+                    <span className="text-xs font-black tabular-nums" style={{ color: group.color }}>{groupAvg.toFixed(1)}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-y-3 gap-x-2">
+                    {group.skills.map(s => (
+                      <SkillCircle key={s.key} skill={s.key} value={currentEval?.skills[s.key] ?? 5} color={group.color} isYoung={isYoung} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
       </motion.div>
 

@@ -3,7 +3,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import { Trophy, Users, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from '../ui/Card';
-import { skillKeys, COACH_COLOR } from '../../utils/constants';
+import { skillKeys, SKILL_GROUPS, COACH_COLOR } from '../../utils/constants';
 import type { Player, Team } from '../../types';
 
 interface TeamOverviewProps {
@@ -42,13 +42,6 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
     return { player: p, avgSkill, matchRating: ev?.matchRating ?? 0, hwDone };
   }).sort((a, b) => b.avgSkill - a.avgSkill), [players, activeTab, assignedIds]);
 
-  const teamSkillAvgs = useMemo(() => skillKeys.map(key => {
-    const avg = players.length
-      ? players.reduce((s, p) => s + (p.evaluations?.[activeTab]?.skills[key] ?? 5), 0) / players.length
-      : 5;
-    return { key, avg };
-  }), [players, activeTab]);
-
   const teamAvg = playerStats.length
     ? playerStats.reduce((s, p) => s + p.avgSkill, 0) / playerStats.length
     : 0;
@@ -59,11 +52,15 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
 
   const needsAttention = playerStats.filter(p => p.avgSkill < 5);
 
-  const radarData = teamSkillAvgs.map(({ key, avg }) => ({
-    subject: key.charAt(0).toUpperCase() + key.slice(1),
-    value: parseFloat(avg.toFixed(1)),
-    fullMark: 10,
-  }));
+  const radarData = SKILL_GROUPS.map(group => {
+    const avg = group.skills.reduce((sum, s) => {
+      const playerAvg = players.length
+        ? players.reduce((ps, p) => ps + (p.evaluations?.[activeTab]?.skills[s.key] ?? 5), 0) / players.length
+        : 5;
+      return sum + playerAvg;
+    }, 0) / group.skills.length;
+    return { subject: group.label, value: parseFloat(avg.toFixed(1)), fullMark: 10 };
+  });
 
   if (players.length === 0) {
     return (

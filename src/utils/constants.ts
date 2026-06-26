@@ -3,7 +3,60 @@ import type { HomeworkSuggestion, TestState, Evaluation } from '../types';
 export const NEON_COLOR = '#00FF9D';
 export const COACH_COLOR = '#059669';
 
-export const skillKeys: string[] = ['snelheid', 'passing', 'techniek', 'schot', 'verdedigen', 'inzicht', 'mentaliteit'];
+export interface SkillGroupDef {
+  key: string;
+  label: string;
+  color: string;
+  skills: { key: string; label: string }[];
+}
+
+export const SKILL_GROUPS: SkillGroupDef[] = [
+  {
+    key: 'techniek',
+    label: 'Techniek',
+    color: '#f59e0b',
+    skills: [
+      { key: 'rechterbeen', label: 'Rechterbeen' },
+      { key: 'linkerbeen', label: 'Linkerbeen' },
+      { key: 'aannemen', label: 'Aannemen' },
+      { key: 'passen', label: 'Passen' },
+      { key: 'passeerbewegingen', label: 'Passeerbewegingen' },
+      { key: 'scoren', label: 'Scoren' },
+      { key: 'aanvallend_1v1', label: '1v1 Aanvallend' },
+      { key: 'verdedigend_1v1', label: '1v1 Verdedigen' },
+    ],
+  },
+  {
+    key: 'fysiek',
+    label: 'Fysiek',
+    color: '#3b82f6',
+    skills: [
+      { key: 'snelheid', label: 'Snelheid' },
+      { key: 'wendbaarheid', label: 'Wendbaarheid' },
+      { key: 'duelkracht', label: 'Duelkracht' },
+    ],
+  },
+  {
+    key: 'mentaliteit',
+    label: 'Mentaliteit',
+    color: '#a78bfa',
+    skills: [
+      { key: 'trainingsmentaliteit', label: 'Trainingsmentaliteit' },
+      { key: 'wedstrijdmentaliteit', label: 'Wedstrijdmentaliteit' },
+      { key: 'leiderschap', label: 'Leiderschap' },
+      { key: 'concentratie', label: 'Concentratie' },
+      { key: 'discipline', label: 'Discipline' },
+      { key: 'aanwezigheid', label: 'Aanwezigheid' },
+    ],
+  },
+];
+
+export const skillKeys: string[] = SKILL_GROUPS.flatMap(g => g.skills.map(s => s.key));
+
+export const SKILL_LABELS: Record<string, string> = Object.fromEntries(
+  SKILL_GROUPS.flatMap(g => g.skills.map(s => [s.key, s.label]))
+);
+
 export const evaluationPeriods: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
 export const DEFAULT_EVALUATION_PERIODS: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
 
@@ -65,7 +118,7 @@ export const TRAINING_THEMES = [
 ] as const;
 
 const makeEvaluation = (): Evaluation => ({
-  skills: { snelheid: 5, passing: 5, techniek: 5, schot: 5, verdedigen: 5, inzicht: 5, mentaliteit: 5 },
+  skills: Object.fromEntries(skillKeys.map(k => [k, 5])) as Evaluation['skills'],
   matchRating: 5,
   comments: '',
   fitness: { yoyo: '', cooper: '', sprint: '' },

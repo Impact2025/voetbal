@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { skillKeys, evaluationPeriods, createInitialEvaluations, NEON_COLOR } from './constants';
 
 describe('constants', () => {
-  it('skillKeys has 7 entries', () => {
-    expect(skillKeys).toHaveLength(7);
+  it('skillKeys has 17 entries', () => {
+    expect(skillKeys).toHaveLength(17);
   });
 
   it('evaluationPeriods has entries', () => {

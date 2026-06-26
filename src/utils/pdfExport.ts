@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Player } from '../types';
-import { skillKeys } from './constants';
+import { skillKeys, SKILL_GROUPS, SKILL_LABELS } from './constants';
 
 const NEON = [0, 255, 157] as const;
 
@@ -39,11 +39,15 @@ export function exportPlayerPdf(player: Player, teamName: string, periods: strin
   doc.text('Skillscores per periode', 14, 63);
 
   const skillHead = ['Skill', ...periods, 'Trend'];
-  const skillBody = skillKeys.map(key => {
-    const values = periods.map(p => String(player.evaluations?.[p]?.skills?.[key] ?? '-'));
-    const nums = values.map(v => Number(v)).filter(n => !isNaN(n));
-    const trend = nums.length >= 2 ? (nums[nums.length - 1] > nums[0] ? '↑' : nums[nums.length - 1] < nums[0] ? '↓' : '→') : '-';
-    return [key.charAt(0).toUpperCase() + key.slice(1), ...values, trend];
+  const skillBody = SKILL_GROUPS.flatMap(group => {
+    const groupRow = [`— ${group.label} —`, ...periods.map(() => ''), ''];
+    const skillRows = group.skills.map(skill => {
+      const values = periods.map(p => String(player.evaluations?.[p]?.skills?.[skill.key] ?? '-'));
+      const nums = values.map(v => Number(v)).filter(n => !isNaN(n));
+      const trend = nums.length >= 2 ? (nums[nums.length - 1] > nums[0] ? '↑' : nums[nums.length - 1] < nums[0] ? '↓' : '→') : '-';
+      return [skill.label, ...values, trend];
+    });
+    return [groupRow, ...skillRows];
   });
 
   autoTable(doc, {

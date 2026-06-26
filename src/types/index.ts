@@ -1,11 +1,25 @@
 export interface SkillScores {
+  [key: string]: number;
+  // Techniek
+  rechterbeen: number;
+  linkerbeen: number;
+  aannemen: number;
+  passen: number;
+  passeerbewegingen: number;
+  scoren: number;
+  aanvallend_1v1: number;
+  verdedigend_1v1: number;
+  // Fysiek
   snelheid: number;
-  passing: number;
-  techniek: number;
-  schot: number;
-  verdedigen: number;
-  inzicht: number;
-  mentaliteit: number;
+  wendbaarheid: number;
+  duelkracht: number;
+  // Mentaliteit
+  trainingsmentaliteit: number;
+  wedstrijdmentaliteit: number;
+  leiderschap: number;
+  concentratie: number;
+  discipline: number;
+  aanwezigheid: number;
 }
 
 export interface FitnessScores {
