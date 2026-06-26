@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut, Flame, Bell, BellOff, Loader2, MessageSquare,
   Calendar, TrendingUp, Home, Settings, CheckCircle2,
-  XCircle, Shield, Star, AlertTriangle, ChevronRight,
+  XCircle, Shield, Star, AlertTriangle, ChevronRight, Trophy,
 } from 'lucide-react';
 
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
@@ -38,9 +38,9 @@ const AXIS_LABELS: Record<StatAxis, string> = {
 const AXIS_ORDER: StatAxis[] = ['consistentie', 'werkethiek', 'techniek', 'focus', 'team_spirit'];
 
 function softLabel(v: number) {
-  if (v >= 67) return { text: 'Sterk',     emoji: '⭐', color: ACCENT };
-  if (v >= 34) return { text: 'Stevig',    emoji: '💪', color: '#d97706' };
-  return             { text: 'In Opbouw', emoji: '🌱', color: '#9ca3af' };
+  if (v >= 67) return { text: 'Sterk',     color: ACCENT };
+  if (v >= 34) return { text: 'Stevig',    color: '#d97706' };
+  return             { text: 'In Opbouw', color: '#9ca3af' };
 }
 
 const SOCKS_QUOTES = [
@@ -240,7 +240,9 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
   if (!player) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center bg-gray-50">
-        <div className="text-5xl">⚽</div>
+        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+          <Shield size={24} className="text-gray-300" />
+        </div>
         <h2 className="text-xl font-black text-gray-900">Nog geen koppeling</h2>
         <p className="text-sm text-gray-500 max-w-xs">Vraag de coach om een koppelcode en koppel jouw account opnieuw.</p>
         <button onClick={onLogout}
@@ -344,7 +346,9 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
               onClick={e => e.stopPropagation()}>
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
               <div className="text-center">
-                <p className="text-3xl mb-2">⭐</p>
+                <div className="flex justify-center mb-3">
+                  <Star size={28} style={{ color: '#d97706' }} />
+                </div>
                 <h2 className="text-lg font-black text-gray-900">Hoe tevreden ben jij?</h2>
                 <p className="text-sm text-gray-500 mt-1">Hoe blij ben jij met Skillkaart voor {firstName}?</p>
               </div>
@@ -433,7 +437,7 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
               )}
 
               <div className="rounded-2xl border border-gray-100 bg-white p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">⚽ Socks zegt</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Socks zegt</p>
                 <p className="text-sm text-gray-700 leading-relaxed italic">"{getSocksQuote(player.name)}"</p>
               </div>
 
@@ -456,14 +460,15 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                     </div>
                     <p className="text-sm font-bold text-gray-900">
                       {isComplete
-                        ? `${firstName} heeft het weekdoel behaald! 🎉`
+                        ? `${firstName} heeft het weekdoel behaald`
                         : weekCount === 0
                         ? `${firstName} is nog niet bezig deze week`
                         : `${firstName} deed ${weekCount} van ${weekGoal} acties`}
                     </p>
                     {(streak?.best_week_count ?? 0) > 1 && (
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        🏆 Record: {streak!.best_week_count} acties in één week
+                      <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                        <Trophy size={10} />
+                        Record: {streak!.best_week_count} acties in één week
                       </p>
                     )}
                   </div>
@@ -474,13 +479,14 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                 <div className="rounded-2xl border p-4"
                   style={{ borderColor: `${challMeta.color}40`, backgroundColor: `${challMeta.color}08` }}>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: challMeta.color }}>
-                    {challMeta.emoji} Samen doen deze week
+                    Samen doen deze week
                   </p>
                   <p className="text-sm font-bold text-gray-900 mb-1">{challenge.title}</p>
                   <p className="text-xs text-gray-500 leading-relaxed mb-3">{challenge.setup}</p>
-                  <div className="rounded-xl p-3 border text-xs font-semibold text-gray-700"
+                  <div className="rounded-xl p-3 border text-xs font-semibold text-gray-700 flex items-start gap-2"
                     style={{ backgroundColor: `${challMeta.color}12`, borderColor: `${challMeta.color}30` }}>
-                    🏆 {challenge.win_condition}
+                    <Trophy size={13} className="mt-0.5 shrink-0" style={{ color: challMeta.color }} />
+                    {challenge.win_condition}
                   </div>
                   <p className="text-[9px] text-gray-400 mt-2 leading-relaxed">
                     10 minuten in de tuin of het park is al genoeg.
@@ -526,7 +532,7 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                       </>
                     ) : (
                       <p className="text-xs font-bold" style={{ color: tierCfg.color }}>
-                        ✨ Hoogste niveau bereikt!
+                        Hoogste niveau bereikt
                       </p>
                     )}
                   </div>
@@ -556,8 +562,9 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                               transition={{ duration: 0.7, ease: 'easeOut' }}
                               style={{ backgroundColor: soft.color }} />
                           </div>
-                          <span className="text-[10px] text-gray-500 w-20 text-right shrink-0">
-                            {soft.emoji} {soft.text}
+                          <span className="text-[10px] font-semibold w-20 text-right shrink-0"
+                            style={{ color: soft.color }}>
+                            {soft.text}
                           </span>
                         </div>
                       );
@@ -586,10 +593,10 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {attendRate >= 80
-                          ? '🌟 Uitstekende aanwezigheid'
+                          ? 'Uitstekende aanwezigheid'
                           : attendRate >= 60
                           ? 'Er is ruimte voor verbetering'
-                          : '⚠️ Lage aanwezigheid — let op!'}
+                          : 'Lage aanwezigheid — let op'}
                       </p>
                     </div>
                   </div>
@@ -633,9 +640,15 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                           <span className="text-lg font-black text-gray-800 leading-none">{d.getDate()}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900">
-                            {isMatch ? '⚽ Wedstrijd' : '🏃 Training'}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                              style={{
+                                backgroundColor: isMatch ? '#fef3c7' : '#f0fdf4',
+                                color: isMatch ? '#92400e' : ACCENT,
+                              }}>
+                              {isMatch ? 'Wedstrijd' : 'Training'}
+                            </span>
+                          </div>
                           <p className="text-[10px] text-gray-400 mt-0.5 capitalize">
                             {d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}
                           </p>

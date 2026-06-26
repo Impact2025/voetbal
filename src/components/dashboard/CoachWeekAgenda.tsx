@@ -55,7 +55,7 @@ const CoachWeekAgenda = ({ clubId, isClubPro, coachName, teamName, onGoToTrainin
       {/* Greeting row */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-gray-900">{greeting}! 👋</h2>
+          <h2 className="text-xl font-black text-gray-900">{greeting}</h2>
           <p className="text-sm text-gray-500 mt-0.5">{teamName || 'Jouw team'} — klaar voor deze week?</p>
         </div>
         {weekPlan && (
