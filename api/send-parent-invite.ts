@@ -123,6 +123,10 @@ export default async function handler(req: Req, res: Res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
+  if (!process.env.RESEND_API_KEY) {
+    return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt in Vercel omgevingsvariabelen.' });
+  }
+
   const { to, playerName, linkCode, expiresAt, senderName } = req.body;
 
   if (!to?.includes('@') || !playerName || !linkCode || !expiresAt) {
@@ -130,17 +134,23 @@ export default async function handler(req: Req, res: Res) {
   }
 
   try {
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM,
       to: [to],
       subject: `Volg de voortgang van ${playerName} op Skillkaart`,
       html: renderHtml(playerName, linkCode, expiresAt, senderName ?? ''),
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('[send-parent-invite] Resend error:', JSON.stringify(error));
+      return res.status(500).json({ error: `Resend: ${error.message}` });
+    }
+
+    console.log('[send-parent-invite] Verstuurd naar', to, '| id:', (data as { id?: string } | null)?.id);
     res.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Onbekende fout';
+    console.error('[send-parent-invite] Exception:', message);
     res.status(500).json({ error: message });
   }
 }
