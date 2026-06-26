@@ -10,6 +10,11 @@ export default defineConfig({
       // gelockt zijn en lieten de file-watcher crashen (EBUSY).
       ignored: ['**/wetransfer_*/**', '**/*.pdf'],
     },
+    proxy: {
+      // Forward /api/* naar vercel dev (draait standaard op poort 3000).
+      // Start met: vercel dev (in plaats van vite) voor volledige API-functionaliteit.
+      '/api': 'http://localhost:3000',
+    },
   },
   test: {
     globals: true,

@@ -121,7 +121,7 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
               <UserPlus size={18} style={{ color: ACCENT }} className="shrink-0" />
               <div>
                 <p className="text-sm font-bold text-gray-900">Account aanmaken</p>
-                <p className="text-xs text-gray-500">Ik heb een koppelcode van de coach</p>
+                <p className="text-xs text-gray-500">Ik heb een koppelcode van de coach of club</p>
               </div>
             </button>
             {onDemo && (
@@ -172,7 +172,7 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
                 value={linkCode}
                 onChange={e => setLinkCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
               />
-              <p className="text-[9px] text-gray-400 text-center mt-1">Vraag de coach om jouw 6-cijferige koppelcode</p>
+              <p className="text-[9px] text-gray-400 text-center mt-1">Vraag de coach of club om jouw koppelcode</p>
             </div>
             <Input label="Jouw e-mailadres" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ouder@email.nl" />
             <Input label="Kies een wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimaal 6 tekens" />

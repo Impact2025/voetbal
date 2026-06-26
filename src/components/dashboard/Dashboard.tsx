@@ -27,6 +27,7 @@ const CoachProfileModal = lazy(() => import('../modals/CoachProfileModal'));
 const TestsModal = lazy(() => import('../modals/TestsModal'));
 const AttendanceModal = lazy(() => import('../modals/AttendanceModal'));
 const TeamSessionModal = lazy(() => import('../training/TeamSessionModal'));
+const ParentLinkModal  = lazy(() => import('../parent/ParentLinkModal'));
 import PlayerHomeworkCard from '../players/PlayerHomeworkCard';
 import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
@@ -87,6 +88,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [copied, setCopied] = useState(false);
   const [isAddPlayerVisible, setIsAddPlayerVisible] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [parentLinkTarget, setParentLinkTarget] = useState<Player | null>(null);
   const [isCoachProfileVisible, setIsCoachProfileVisible] = useState(false);
   const [isTeamSessionModalVisible, setIsTeamSessionModalVisible] = useState(false);
   const [teamSessions, setTeamSessions] = useState<TeamSession[]>(() => {
@@ -296,6 +298,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     const { error: updateError } = await supabase.from('players').update({ pin_hash: pinHash }).eq('id', data.id);
     if (updateError) throw new Error('Speler aangemaakt maar pincode niet opgeslagen. Probeer opnieuw in te loggen.');
 
+    setPlayers(prev => [...prev, {
+      ...newPlayer,
+      id: data.id,
+      weekly_question_responses: ['', '', ''],
+    }]);
+
     return { id: data.id, pin: plainPin };
   };
 
@@ -477,16 +485,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     return completion?.id ?? null;
   };
 
-  const handleGenerateLinkCode = async (playerId: string) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    await supabase.from('parent_links').insert({
-      player_id: playerId,
-      team_id: userData.teamId ?? '',
-      link_code: code,
-    });
-    await copyToClipboard(code);
-    toast.success(`Koppelcode: ${code} — gekopieerd naar klembord!`, { duration: 5000 });
-  };
 
   const handleRemovePlayer = (id) => setConfirmRemove({ isVisible: true, playerId: id });
 
@@ -494,6 +492,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     const { playerId } = confirmRemove;
     if (!playerId) return;
     await supabase.from('players').delete().eq('id', playerId);
+    setPlayers(prev => {
+      const remaining = prev.filter(p => p.id !== playerId);
+      if (activePlayerId === playerId) setActivePlayerId(remaining[0]?.id ?? null);
+      return remaining;
+    });
     setConfirmRemove({ isVisible: false, playerId: null });
   };
 
@@ -623,6 +626,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         <TestsModal isVisible={isTestsVisible} onClose={() => setIsTestsVisible(false)} player={activePlayer} period={activeTab} onUpdate={handleUpdateEvaluation} />
         <AttendanceModal isVisible={isAttendanceVisible} onClose={() => setIsAttendanceVisible(false)} players={players} teamId={userData.teamId ?? ''} onSaved={() => {}} />
         <TeamSessionModal isVisible={isTeamSessionModalVisible} teamId={userData.teamId ?? ''} onClose={() => setIsTeamSessionModalVisible(false)} onSave={handleSaveTeamSession} />
+        <ParentLinkModal isVisible={!!parentLinkTarget} onClose={() => setParentLinkTarget(null)} playerId={parentLinkTarget?.id ?? ''} teamId={userData.teamId ?? ''} playerName={parentLinkTarget?.name ?? ''} />
       </Suspense>
 
       <ConfirmModal isVisible={confirmAssign.isVisible} onClose={() => setConfirmAssign({ isVisible: false, homeworkIds: null })} onConfirm={executeAssignHomework} title="Huiswerk Toewijzen">
@@ -792,7 +796,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                           <button onClick={() => setEditingPlayer(activePlayer)} title="Profiel bewerken" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
                             <User size={15} />
                           </button>
-                          <button onClick={() => handleGenerateLinkCode(activePlayer.id)} title="Ouder koppelen" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                          <button onClick={() => setParentLinkTarget(activePlayer)} title="Ouder koppelen" className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
                             <Link2 size={15} />
                           </button>
                           <button onClick={() => handleRemovePlayer(activePlayer.id)} title="Speler verwijderen" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">

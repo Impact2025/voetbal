@@ -4,7 +4,7 @@ import {
   Users, Trophy, Copy, CheckCircle2, LogOut, Building2, Shield,
   TrendingUp, TrendingDown, Minus, ChevronLeft, CalendarCheck,
   ClipboardList, BarChart2, AlertTriangle, Star, Loader2,
-  LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare,
+  LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare, Heart,
 } from 'lucide-react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { NEON_COLOR, skillKeys } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import Card from '../ui/Card';
+import ParentLinkModal from '../parent/ParentLinkModal';
 import TrainersTab from './TrainersTab';
 import ClubTrainingTab from './ClubTrainingTab';
 import MessagingInbox from '../messaging/MessagingInbox';
@@ -121,6 +122,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>('overzicht');
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [parentLinkTarget, setParentLinkTarget] = useState<{ id: string; teamId: string; name: string } | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -431,6 +433,13 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                       <p className="text-[10px] text-gray-400">{player.position || '—'}{player.age ? ` · ${player.age}jr` : ''}</p>
                     </div>
                     <div className="text-xl font-black shrink-0" style={{ color: scoreColor(score) }}>{score}</div>
+                    <button
+                      onClick={() => setParentLinkTarget({ id: player.id, teamId: player.team_id, name: player.name })}
+                      title="Ouder koppelen"
+                      className="shrink-0 p-1.5 rounded-lg hover:bg-green-100 text-gray-300 hover:text-green-600 transition-colors"
+                    >
+                      <Heart size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -780,6 +789,14 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
           </div>
         </nav>
       )}
+
+      <ParentLinkModal
+        isVisible={!!parentLinkTarget}
+        onClose={() => setParentLinkTarget(null)}
+        playerId={parentLinkTarget?.id ?? ''}
+        teamId={parentLinkTarget?.teamId ?? ''}
+        playerName={parentLinkTarget?.name ?? ''}
+      />
     </div>
   );
 };
