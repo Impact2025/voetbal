@@ -212,7 +212,7 @@ export default function ParentLinkSection({ playerId, teamId, playerName, sender
           )}
 
           <p className="text-[9px] text-gray-400 text-center">
-            Ouder opent de app → Ouder-portaal → Account aanmaken
+            E-mail stuurt een directe inloglink · WhatsApp stuurt de code
           </p>
         </div>
       )}

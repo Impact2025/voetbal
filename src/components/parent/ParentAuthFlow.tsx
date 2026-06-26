@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, Heart, LogIn, UserPlus } from 'lucide-react';
+import { Loader2, ArrowLeft, Heart, LogIn, UserPlus, Mail, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Input from '../ui/Input';
 
@@ -10,7 +10,9 @@ interface ParentAuthFlowProps {
   onDemo?: () => void;
 }
 
-type View = 'choice' | 'login' | 'register';
+type View = 'choice' | 'login' | 'magic_sent' | 'register';
+
+const APP_URL = 'https://skills.weareimpact.nl';
 
 const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
   const [view, setView]         = useState<View>('choice');
@@ -21,18 +23,22 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
   const [loading, setLoading]   = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) { setError('Vul e-mail en wachtwoord in.'); return; }
+    if (!email.includes('@')) { setError('Vul een geldig e-mailadres in.'); return; }
     setError(''); setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) {
-      const m = err.message.toLowerCase();
-      if (m.includes('invalid') || m.includes('credentials') || m.includes('wrong')) {
-        setError('E-mailadres of wachtwoord klopt niet.');
-      } else if (m.includes('security purposes') || m.includes('after')) {
-        setError('Even geduld — wacht een minuutje en probeer het opnieuw.');
+    try {
+      const res = await fetch('/api/send-login-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data: { error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Versturen mislukt. Probeer het opnieuw.');
       } else {
-        setError('Inloggen mislukt. Controleer je gegevens.');
+        setView('magic_sent');
       }
+    } catch {
+      setError('Verbinding mislukt. Probeer het opnieuw.');
     }
     setLoading(false);
   };
@@ -157,11 +163,13 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
           </motion.div>
         )}
 
-        {/* Login view */}
+        {/* Login view — wachtwoordloos via magic link */}
         {view === 'login' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500 leading-relaxed">
+              Je ontvangt een inloglink per e-mail — geen wachtwoord nodig.
+            </div>
             <Input label="E-mailadres" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ouder@email.nl" />
-            <Input label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
             <button
               onClick={handleLogin}
@@ -169,11 +177,32 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
               className="w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ backgroundColor: ACCENT }}
             >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
-              Inloggen
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+              {loading ? 'Versturen...' : 'Stuur inloglink'}
             </button>
             <button onClick={() => { setView('choice'); setError(''); }} className="w-full text-xs text-gray-400 hover:text-gray-700 transition-colors">
               Terug naar keuze
+            </button>
+          </motion.div>
+        )}
+
+        {/* Magic sent confirmation */}
+        {view === 'magic_sent' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5 text-center">
+            <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style={{ backgroundColor: '#f0fdf4' }}>
+              <CheckCircle2 size={26} style={{ color: ACCENT }} />
+            </div>
+            <div>
+              <p className="text-base font-black text-gray-900 mb-1">Check je e-mail</p>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                We hebben een inloglink gestuurd naar<br />
+                <strong className="text-gray-800">{email}</strong>.<br />
+                Klik op de link om in te loggen.
+              </p>
+            </div>
+            <p className="text-xs text-gray-400">Geen e-mail ontvangen? Check je spamfolder of wacht een minuutje.</p>
+            <button onClick={() => { setView('login'); setError(''); }} className="w-full text-xs text-gray-400 hover:text-gray-700 transition-colors">
+              Ander e-mailadres gebruiken
             </button>
           </motion.div>
         )}

@@ -37,14 +37,16 @@ const hashError = (() => {
 // Always call it for recovery URLs (implicit: #type=recovery, PKCE: ?code=…).
 // For normal navigations, skip if there's no stored session to avoid cold-start delay.
 const hasRecoveryCode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('code');
+// Magic link via implicit flow: Supabase server-generated invite links redirect with #access_token=…
+const hasInviteHash = typeof window !== 'undefined' && window.location.hash.includes('access_token=');
 const getSessionSafe = () => {
   const isRecoveryUrl = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
   const hasStoredSession = Object.keys(localStorage).some(
     k => k.startsWith('sb-') && k.endsWith('-auth-token')
   );
-  if (!isRecoveryUrl && !hasRecoveryCode && !hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
-  // Give PKCE code exchange more time than a normal session refresh.
-  const timeout = hasRecoveryCode ? 10000 : 3000;
+  if (!isRecoveryUrl && !hasRecoveryCode && !hasInviteHash && !hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
+  // Give PKCE/invite flows more time than a normal session refresh.
+  const timeout = (hasRecoveryCode || hasInviteHash) ? 10000 : 3000;
   return Promise.race([
     supabase.auth.getSession(),
     new Promise<{ data: { session: null }; error: null }>(resolve =>
@@ -84,7 +86,7 @@ export default function Skillkaart() {
 
     const hardFallback = setTimeout(() => {
       if (!cancelled) { setSession(null); setUserData(null); setLoading(false); }
-    }, hasRecoveryCode ? 12000 : 4000);
+    }, (hasRecoveryCode || hasInviteHash) ? 12000 : 4000);
 
     const init = async () => {
       if (window.location.hash.includes('type=recovery')) {
@@ -117,6 +119,30 @@ export default function Skillkaart() {
 
         if (session?.user) {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+
+          // Magic link auto-claim: ouder klikt de link → ?parentCode=XYZ in URL + geen profiel
+          const parentCode = new URLSearchParams(window.location.search).get('parentCode');
+          if (parentCode && !data && !cancelled) {
+            try {
+              const code = parentCode.trim().toUpperCase();
+              const { data: link } = await supabase
+                .from('parent_links').select('*')
+                .eq('link_code', code).eq('verified', false).maybeSingle();
+              if (link) {
+                await supabase.from('profiles').insert({ id: session.user.id, role: 'parent', team_id: link.team_id });
+                await supabase.from('parent_links').update({ parent_id: session.user.id, verified: true }).eq('link_code', code);
+                await supabase.from('notification_prefs').insert({ parent_id: session.user.id, weekly_digest: true, critical_alerts: true, channel: 'email', detail_level: 'light' });
+                setSession(session);
+                setUserData({ id: session.user.id, uid: session.user.id, role: 'parent', team_id: link.team_id, teamId: link.team_id, linkedPlayerId: link.player_id });
+                lastKnownUserId.current = session.user.id;
+                window.history.replaceState({}, '', window.location.pathname);
+                return;
+              }
+            } catch (claimErr) {
+              console.error('Parent auto-claim mislukt:', claimErr);
+            }
+          }
+
           if (!cancelled) {
             setSession(session);
             if (data?.role === 'parent') {
@@ -161,6 +187,30 @@ export default function Skillkaart() {
         if (lastKnownUserId.current === session.user.id) { setSession(session); return; }
         try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+
+          // Magic link auto-claim: ouder klikt link → SIGNED_IN → geen profiel → auto-claim
+          const parentCode = new URLSearchParams(window.location.search).get('parentCode');
+          if (parentCode && !data) {
+            try {
+              const code = parentCode.trim().toUpperCase();
+              const { data: link } = await supabase
+                .from('parent_links').select('*')
+                .eq('link_code', code).eq('verified', false).maybeSingle();
+              if (link) {
+                await supabase.from('profiles').insert({ id: session.user.id, role: 'parent', team_id: link.team_id });
+                await supabase.from('parent_links').update({ parent_id: session.user.id, verified: true }).eq('link_code', code);
+                await supabase.from('notification_prefs').insert({ parent_id: session.user.id, weekly_digest: true, critical_alerts: true, channel: 'email', detail_level: 'light' });
+                setSession(session);
+                setUserData({ id: session.user.id, uid: session.user.id, role: 'parent', team_id: link.team_id, teamId: link.team_id, linkedPlayerId: link.player_id });
+                lastKnownUserId.current = session.user.id;
+                window.history.replaceState({}, '', window.location.pathname);
+                return;
+              }
+            } catch (claimErr) {
+              console.error('Parent auto-claim mislukt:', claimErr);
+            }
+          }
+
           setSession(session);
           if (data?.role === 'parent') {
             const { data: link } = await supabase
