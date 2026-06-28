@@ -378,6 +378,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
     currentLevel[path[path.length - 1]] = value;
 
+    setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, evaluations: newEvaluations } : p));
+
     const { error } = await supabase.from('players').update({ evaluations: newEvaluations }).eq('id', activePlayer.id);
     if (error) console.error('Error updating evaluation:', error);
   };
