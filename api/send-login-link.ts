@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 
-const APP_URL = 'https://skills.weareimpact.nl';
+const APP_URL = 'https://skillkaart.nl';
 
 interface Req { method: string; body: { email?: string } }
 interface Res {

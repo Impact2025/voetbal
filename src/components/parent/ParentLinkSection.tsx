@@ -18,7 +18,7 @@ interface ParentLinkSectionProps {
   senderName?: string;
 }
 
-const APP_URL = 'https://skills.weareimpact.nl';
+const APP_URL = 'https://skillkaart.nl';
 const ACCENT = '#16A34A';
 const WA_GREEN = '#25D366';
 

@@ -18,10 +18,10 @@ const AdminLogin         = lazy(() => import('./components/admin/AdminLogin'));
 // True wanneer de gebruiker /admin bezoekt — rol-gated platform-admin.
 const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
-// Redirect old voetbal-flame.vercel.app links to the canonical domain,
-// preserving the full hash (access_token, error, etc.) so Supabase can still handle them.
-if (typeof window !== 'undefined' && window.location.hostname === 'voetbal-flame.vercel.app') {
-  window.location.replace('https://skills.weareimpact.nl' + window.location.pathname + window.location.search + window.location.hash);
+// Redirect old domains to canonical domain, preserving hash (access_token, etc.) and search params.
+const OLD_HOSTNAMES = ['voetbal-flame.vercel.app', 'skills.weareimpact.nl'];
+if (typeof window !== 'undefined' && OLD_HOSTNAMES.includes(window.location.hostname)) {
+  window.location.replace('https://skillkaart.nl' + window.location.pathname + window.location.search + window.location.hash);
 }
 
 // Detect error in hash (e.g. expired OTP: #error=access_denied&error_code=otp_expired)

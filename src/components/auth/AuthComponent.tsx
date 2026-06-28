@@ -226,7 +226,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
     setLoading(true); setError(''); setSuccess('');
     try {
       if (!email.trim()) throw new Error('Vul je e-mailadres in.');
-      const redirectTo = window.location.hostname === 'localhost' ? window.location.origin : 'https://skills.weareimpact.nl';
+      const redirectTo = window.location.hostname === 'localhost' ? window.location.origin : 'https://skillkaart.nl';
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (error) throw error;
       setSuccess('Reset-link verstuurd! Controleer je inbox (en spammap).');

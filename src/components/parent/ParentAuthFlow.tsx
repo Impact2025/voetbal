@@ -12,7 +12,7 @@ interface ParentAuthFlowProps {
 
 type View = 'choice' | 'login' | 'magic_sent' | 'register';
 
-const APP_URL = 'https://skills.weareimpact.nl';
+const APP_URL = 'https://skillkaart.nl';
 
 const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
   const [view, setView]         = useState<View>('choice');
