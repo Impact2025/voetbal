@@ -115,7 +115,7 @@ function renderHtml(
                   </p>
                   <div style="margin-top:12px;background:#f0fdf4;border:2px dashed #86efac;border-radius:10px;padding:12px 16px;text-align:center;">
                     <div style="font-size:11px;font-weight:700;color:#16A34A;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">Koppelcode</div>
-                    <div style="font-size:28px;font-weight:900;color:#111827;letter-spacing:8px;font-family:Courier New,monospace;">${linkCode.split('').join(' ')}</div>
+                    <div style="font-size:28px;font-weight:900;color:#111827;letter-spacing:3px;font-family:Courier New,monospace;">${linkCode}</div>
                   </div>
                 </td>
               </tr>
@@ -126,7 +126,7 @@ function renderHtml(
               <tr>
                 <td style="background:#f0fdf4;border:2px dashed #86efac;border-radius:14px;padding:20px 24px;text-align:center;">
                   <div style="font-size:11px;font-weight:700;color:#16A34A;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">Jouw koppelcode</div>
-                  <div style="font-size:38px;font-weight:900;color:#111827;letter-spacing:10px;font-family:Courier New,monospace;">${linkCode.split('').join(' ')}</div>
+                  <div style="font-size:38px;font-weight:900;color:#111827;letter-spacing:3px;font-family:Courier New,monospace;">${linkCode}</div>
                   <div style="font-size:11px;color:#6b7280;margin-top:8px;">Geldig t/m ${expiry}</div>
                 </td>
               </tr>
