@@ -113,6 +113,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isClubPro, setIsClubPro] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const skipRealtimeRef = useRef(false);
 
   useEffect(() => {
     if (!userData.teamId) return;
@@ -174,7 +175,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     fetchData().catch(err => { console.error('fetchData fout:', err); setFetchError(true); setDataLoaded(true); });
 
     supabase.channel(`public:players:team_id=eq.${userData.teamId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
+        if (skipRealtimeRef.current) { skipRealtimeRef.current = false; return; }
+        fetchData();
+      })
       .subscribe();
 
     supabase.channel(`public:teams:id=eq.${userData.teamId}`)
@@ -379,9 +383,15 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     currentLevel[path[path.length - 1]] = value;
 
     setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, evaluations: newEvaluations } : p));
+    skipRealtimeRef.current = true;
 
     const { error } = await supabase.from('players').update({ evaluations: newEvaluations }).eq('id', activePlayer.id);
-    if (error) console.error('Error updating evaluation:', error);
+    if (error) {
+      console.error('Error updating evaluation:', error);
+      skipRealtimeRef.current = false;
+      toast.error('Opslaan mislukt: ' + error.message);
+      setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, evaluations: activePlayer.evaluations } : p));
+    }
   };
 
   const handleSaveHomework = async (newHomework) => {
