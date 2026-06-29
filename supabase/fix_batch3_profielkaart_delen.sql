@@ -1,0 +1,33 @@
+-- Update het artikel over profielkaart delen
+-- Voer uit in Supabase SQL Editor
+UPDATE blog_posts
+SET
+  title = 'Kan ik mijn Skillkaart-profielkaart delen?',
+  excerpt = 'Je Skillkaart-profielkaart delen met vrienden, familie of scouts. Het is veilig, je bepaalt zelf wat anderen zien. Lees hoe profielkaart delen werkt.',
+  body = '<h2>Een voetbalpaspoort dat je kunt laten zien</h2>
+<p>Stel je voor: je hebt keihard getraind, je level gaat omhoog, je radardiagram wordt steeds voller — en niemand ziet het. Dat vond ik zonde. Daarom zit er in Skillkaart een functie waarmee je jouw profielkaart kunt delen. Niet je hele dashboard, niet al je geheime data, maar een mooie samenvatting van wie jij bent als voetballer.</p>
+<p>Danny zei laatst: ''Het is net een voetbalpaspoort. Scouts hoeven geen heel dossier te lezen, ze zien in een oogopslag waar een speler staat.'' En zo hebben we het ook gebouwd: een overzichtelijke kaart met je naam, je level, je XP en je radardiagram. Klaar.</p>
+
+<h3>Hoe deel je jouw profielkaart?</h3>
+<p>Het is simpeler dan je denkt. In je dashboard zit een knop ''Deel profiel''. Je klikt erop en krijgt een unieke link. Die link stuur je naar wie je maar wilt: via WhatsApp naar je vrienden, via een berichtje naar opa en oma, of naar een scout die je een kans wil geven. De link is leesbaar — zoiets als <strong>skillkaart.nl/p/voornaam-achternaam</strong>. Geen wirwar van letters die niemand kan onthouden.</p>
+<p>Wat ik ook handig vind: je kunt de link gewoon typen in een browser. Geen app nodig, geen inloggen. Wie de link krijgt, ziet jouw profielkaart zonder zelf een account te hebben. Dat was een bewuste keuze — delen moet laagdrempelig zijn.</p>
+
+<h3>Wat ziet iemand die de link opent?</h3>
+<p>Dit is het belangrijkste stuk. Anderen zien alleen wat jij en de club ok vinden om te delen. Concreet: je naam, je radardiagram met de vijf skills, je level en je XP. Ze zien <strong>niet</strong> of je huiswerk wel of niet is gemaakt. Ze zien niet wat je trainer in vertrouwen over jou heeft geschreven. Ze zien geen adres, telefoonnummer of e-mailadres. Alleen de voetbaldingen. En ze kunnen niks veranderen — geen scores aanpassen, geen XP verdienen, niet inloggen. Het is puur een kijkje.</p>
+
+<h3>Privacy-instellingen</h3>
+<p>Niet iedereen wil zijn profielkaart zomaar delen. Dat snap ik. Daarom kun je zelf instellen of jouw profielkaart zichtbaar is. In het dashboard staat een schuifje: ''Profiel zichtbaar voor anderen''. Zet je die uit? Dan werkt de link niet meer. Alleen jij en je trainer zien je gegevens. Zet je hem aan? Dan kan iedereen met de link jouw profielkaart bekijken. Jij bepaalt, niemand anders.</p>
+<p>Danny vond dit in het begin overdreven. ''Waarom zou een kind zijn profiel uitzetten?'' Maar ik legde uit dat een speler ook recht heeft op privacy. Misschien wil een kind nog even wachten tot zijn diagram er beter uitziet. Of wil een ouder eerst checken wat er precies gedeeld wordt. Het is een bewustwording, geen obstakel.</p>
+
+<h3>Waarom zou je delen?</h3>
+<p>Om te laten zien waar je trots op bent. Een profielkaart is een bewijs van je inzet. Het laat zien dat je traint, dat je vooruitgaat, dat je serieus bezig bent. Scouts van grotere clubs gebruiken het weleens, maar ook voor de gewone competitie is het handig. Stel dat je overstapt naar een andere club — dan kan de nieuwe trainer in een paar seconden zien wat voor speler je bent. Zonder dat je alles opnieuw hoeft uit te leggen.</p>
+<p>En ook gewoon voor de leuk: je vrienden kunnen zien hoe jij ervoor staat. ''Hé, jij hebt al level 8!'' Dat motiveert. En motivatie is waar Skillkaart om draait. Als je een profielkaart deelt, inspireer je ook anderen om beter te worden. Dat zie ik zelf bij de teams van Danny terug: spelers die hun profiel delen, gaan zelf ook vaker trainen. Omdat ze weten dat anderen meekijken. Een beetje gezonde trots is geen slechte motivator.</p>
+<p>Wil je meer weten over wat er nog meer in je dashboard zit? Lees dan <a href="/blog/wat-ziet-mijn-kind-in-het-skillkaart-dashboard">wat je kind ziet in het Skillkaart-dashboard</a> of ontdek <a href="/blog/hoe-verdien-ik-xp-en-stijg-ik-in-level">hoe je XP verdient en stijgt in level</a>.</p>
+
+<p>Heb je vragen over delen of privacy? Mail me dan — ik lees elke mail zelf en antwoord binnen 24 uur. Geen chatbot, geen doorstuuradres. Gewoon ik, Vincent. <a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a>.</p>',
+  meta_title = 'Skillkaart profielkaart delen: zo werkt het | Skillkaart',
+  meta_description = 'Je Skillkaart-profielkaart delen met vrienden, familie en scouts. Veilig en eenvoudig. Lees wat anderen zien en hoe je privacy-instellingen werkt.',
+  keywords = ARRAY['skillkaart profielkaart delen', 'skillkaart profiel delen', 'skillkaart delen met vrienden', 'skillkaart privacy instellingen'],
+  seo_score = 95,
+  updated_at = now()
+WHERE slug = 'kan-ik-mijn-skillkaart-profielkaart-delen';

@@ -1,9 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      includeAssets: ['logo.png', 'icon-*.png'],
+      manifest: false,
+    }),
+  ],
   server: {
     watch: {
       // Negeer geüploade trainingsmappen/PDF's — die kunnen door een viewer

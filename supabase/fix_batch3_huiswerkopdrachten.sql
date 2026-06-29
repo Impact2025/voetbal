@@ -1,0 +1,36 @@
+-- Update het artikel over huiswerkopdrachten
+-- Voer uit in Supabase SQL Editor
+UPDATE blog_posts
+SET
+  title = 'Wat zijn huiswerkopdrachten en hoe doe ik ze?',
+  excerpt = 'Huiswerkopdrachten in Skillkaart zijn oefeningen van je trainer die je thuis doet. Kaatsen, filmpjes insturen, XP verdienen. Lees hoe het werkt.',
+  body = '<h2>Huiswerk dat niet voelt als huiswerk</h2>
+<p>Huiswerk. Het woord alleen al klinkt saai. Rekenen, taal, topografie — bah. Maar voetbal-huiswerk? Dat is anders. Geen schriften, geen boeken, geen juf die voor de klas staat. Gewoon jij, een bal, en een uitdaging van je trainer. Toen ik dit voor het eerst aan een groepje spelers uitlegde, zeiden ze: ''Dus we krijgen strafwerk?'' Nee, zei ik, jullie krijgen missies. En zodra ze snapten dat er XP te verdienen viel, waren ze om.</p>
+<p>Danny gebruikt huiswerkopdrachten al jaren bij UFA, nog voordat Skillkaart bestond. Hij zei: ''De spelers die thuis oefenen, zijn de spelers die op zaterdag het verschil maken.'' Daar had hij gelijk in. Een training van twee keer per week is goed, maar wie daarnaast nog een kwartier per dag bezig is, gaat sneller vooruit. Dat is geen rocket science, dat is logica.</p>
+
+<h3>Wat zijn huiswerkopdrachten in Skillkaart?</h3>
+<p>Huiswerkopdrachten zijn oefeningen die je trainer voor jou klaarzet in het dashboard. Het kunnen korte oefeningen zijn — bal 50 keer kaatsen tegen de muur met links. Of langere uitdagingen — een hele week letten op je positionering tijdens wedstrijden. Soms zit er een filmpje bij van de trainer die de oefening voordoet. Soms staat er alleen tekst. Het hangt af van wat jij nodig hebt.</p>
+<p>In je dashboard zie je een apart blok met ''Huiswerk''. Daar staan alle opdrachten die voor jou klaarstaan, met een titel, uitleg en uiterste datum. Je kunt zien hoe lang je nog hebt. De trainer ziet of je het hebt gedaan. En het allerbelangrijkste: je verdient er XP mee.</p>
+
+<h3>Soorten oefeningen die je kunt krijgen</h3>
+<p>Er zijn vier soorten huiswerkopdrachten, elk gericht op een van de kernskills die <a href="/blog/wat-zijn-de-7-kernskills-die-skillkaart-meet">Skillkaart meet</a>:</p>
+<p><strong>Techniek-opdrachten:</strong> bal kaatsen, dribbelen door pionnen, aanname oefenen met een muur. Simpel, maar ontzettend effectief. Dit zijn de opdrachten die je het vaakst ziet, omdat techniek het makkelijkst zelf te trainen is. ''Kaats de bal 50 keer met rechts, 50 keer met links, en stuur een filmpje.''</p>
+<p><strong>Fysieke opdrachten:</strong> push-ups, squats, planken, sprintjes. Geen urenlange fitness, maar korte sets die je in de tuin of in de gang kunt doen. Duurt hooguit tien minuten. Danny zegt altijd: ''Fysiek win je de duels, techniek win je de bal.'' Allebei trainen is beter dan een.</p>
+<p><strong>Inzicht-opdrachten:</strong> kijk een wedstrijd van je favoriete club en let op hoe een bepaalde speler zich beweegt zonder bal. Of: teken op een papiertje hoe jij denkt dat de tegenstander gaat staan. Dit klinkt misschien zweverig, maar het is precies wat profvoetballers doen. Voetbal is een denksport.</p>
+<p><strong>Mentaliteit-opdrachten:</strong> schrijf drie doelen op voor deze week. Of: stuur een teamgenoot een berichtje als die een goede wedstrijd heeft gespeeld. Kleine dingen die een groot verschil maken in hoe je in het team staat.</p>
+
+<h3>Hoe lever je een opdracht in?</h3>
+<p>Heel simpel. Nadat je de opdracht hebt gedaan, log je in op Skillkaart en klik je op ''Klaar''. Soms kun je een filmpje uploaden van jezelf terwijl je de oefening doet. De trainer kan dan zien of je het goed doet en je tips geven. Dat vind ik zelf het mooiste onderdeel — het is niet alleen ''checken of je het hebt gedaan'', maar ook helpen om het beter te doen. Lees <a href="/blog/hoe-werkt-de-ai-feedback-precies">hoe de AI-feedback werkt</a> om te begrijpen wat er met die filmpjes gebeurt.</p>
+<p>Tip: doe de opdracht met een teamgenoot. Samen kaatsen is leuker dan alleen. En je kunt elkaar verbeteren. Danny''s spelers bij <a href="https://www.ufa-utrecht.nl/" target="_blank" rel="nofollow">UFA</a> dagen elkaar wekelijks uit. Wie de beste video instuurt, krijgt een shoutout in de teamapp. Motivatie pur.</p>
+
+<h3>Hoeveel huiswerk moet je doen?</h3>
+<p>Zo veel of zo weinig als je zelf wilt. De trainer zet opdrachten klaar, maar jij bepaalt of je ze doet. Wat ik wel zie in de data: spelers die regelmatig huiswerk doen, gaan sneller vooruit in hun radardiagram. Dat is geen toeval. Een kwartier per dag extra oefenen is op jaarbasis 90 uur extra training. Negentig uur. Daar gaat niemand onopgemerkt aan voorbij.</p>
+<p>Wil je weten hoe dat eruitziet in je dashboard? Lees dan <a href="/blog/wat-ziet-mijn-kind-in-het-skillkaart-dashboard">wat je ziet in het Skillkaart-dashboard</a> of ontdek <a href="/blog/hoe-verdien-ik-xp-en-stijg-ik-in-level">hoe je XP verdient en stijgt in level</a>.</p>
+
+<p>Heb je vragen over huiswerkopdrachten of hoe ze werken? Mail me. Ik lees elke mail zelf en antwoord binnen 24 uur. Geen chatbot, geen doorstuuradres. Gewoon ik, Vincent. <a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a>.</p>',
+  meta_title = 'Wat zijn huiswerkopdrachten in Skillkaart? | Uitleg voor spelers',
+  meta_description = 'Huiswerkopdrachten in Skillkaart zijn leuke voetbaloefeningen die je thuis doet. Kaatsen, filmpjes insturen, XP verdienen. Zo werkt het voor spelers.',
+  keywords = ARRAY['skillkaart huiswerkopdrachten', 'skillkaart huiswerk', 'voetbal huiswerk oefeningen', 'skillkaart spelers', 'skillkaart XP verdienen'],
+  seo_score = 95,
+  updated_at = now()
+WHERE slug = 'wat-zijn-huiswerkopdrachten-en-hoe-doe-ik-ze';
