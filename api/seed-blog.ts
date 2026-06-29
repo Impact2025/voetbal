@@ -77,12 +77,12 @@ const ARTICLES = [
 ];
 
 export default async function handler(req: Req, res: Res) {
-  // Protected by CRON_SECRET — disabled temporarily for seed
-  // const auth = req.headers['authorization'] || '';
-  // const expected = process.env.CRON_SECRET;
-  // if (expected && auth !== `Bearer ${expected}`) {
-  //   return res.status(401).send('Unauthorized');
-  // }
+  // Protected by CRON_SECRET
+  const auth = req.headers['authorization'] || '';
+  const expected = process.env.CRON_SECRET;
+  if (expected && auth !== `Bearer ${expected}`) {
+    return res.status(401).send('Unauthorized');
+  }
 
   try {
     const db = getAdminClient();
