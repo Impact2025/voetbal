@@ -5,7 +5,7 @@ const navItems = [
   { label: 'Product', href: '#features' },
   { label: 'Het Verhaal', href: '#verhaal' },
   { label: 'Tarieven', href: '#tarieven' },
-  { label: 'Veelgestelde vragen', href: '#faq' },
+  { label: 'Veelgestelde vragen', href: '/faq' },
 ]
 
 export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void; onParentLogin?: () => void }) {

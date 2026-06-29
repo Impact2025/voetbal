@@ -66,6 +66,16 @@ export default function FAQ() {
           ))}
         </div>
 
+        {/* Meer vragen link */}
+        <div className="mt-6 text-center">
+          <a
+            href="/faq"
+            className="inline-flex items-center gap-1 text-sm text-neon-ink font-semibold hover:underline"
+          >
+            Bekijk alle 20+ vragen voor clubs, coaches, ouders en spelers →
+          </a>
+        </div>
+
         {/* CTA */}
         <div className="mt-12 text-center bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
           <p className="text-slate-600 mb-2 text-sm">Klaar om te starten?</p>

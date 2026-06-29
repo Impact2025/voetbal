@@ -57,7 +57,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#faq" className="text-slate-500 hover:text-slate-900 text-sm transition-colors">
+                <a href="/faq" className="text-slate-500 hover:text-slate-900 text-sm transition-colors">
                   Veelgestelde vragen
                 </a>
               </li>

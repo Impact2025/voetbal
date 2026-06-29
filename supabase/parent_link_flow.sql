@@ -56,13 +56,14 @@ DECLARE
 BEGIN
   -- Kijk of er al een actieve link is (verified of nog niet verlopen)
   SELECT EXISTS(
-    SELECT 1 FROM parent_links
-    WHERE player_id = p_player_id
-      AND (verified = true OR expires_at > now())
+    SELECT 1 FROM parent_links pl_chk
+    WHERE pl_chk.player_id = p_player_id
+      AND (pl_chk.verified = true OR pl_chk.expires_at > now())
   ) INTO v_active;
 
   IF v_active THEN
-    RETURN QUERY SELECT * FROM get_parent_link_status(p_player_id);
+    RETURN QUERY SELECT s.link_code, s.expires_at, s.verified, s.parent_email
+                 FROM get_parent_link_status(p_player_id) s;
     RETURN;
   END IF;
 
@@ -73,13 +74,14 @@ BEGIN
       ''
     ) INTO v_code
     FROM generate_series(1, 6);
-    EXIT WHEN NOT EXISTS (SELECT 1 FROM parent_links WHERE link_code = v_code);
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM parent_links pl_u WHERE pl_u.link_code = v_code);
   END LOOP;
 
   INSERT INTO parent_links (player_id, team_id, link_code)
   VALUES (p_player_id, p_team_id, v_code);
 
-  RETURN QUERY SELECT * FROM get_parent_link_status(p_player_id);
+  RETURN QUERY SELECT s.link_code, s.expires_at, s.verified, s.parent_email
+               FROM get_parent_link_status(p_player_id) s;
 END;
 $$;
 

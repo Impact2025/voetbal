@@ -1,5 +1,4 @@
 import { getAdminClient } from './_lib/supabaseAdmin.js';
-import { renderSitemap } from './_lib/blogRender.js';
 
 interface Req { method: string; headers: Record<string, string | undefined> }
 interface Res {
@@ -19,5 +18,21 @@ export default async function handler(req: Req, res: Res) {
     .eq('status', 'published')
     .order('updated_at', { ascending: false });
 
-  res.status(200).send(renderSitemap((data ?? []) as { slug: string; updated_at: string }[], baseUrl));
+  const posts = (data ?? []) as { slug: string; updated_at: string }[];
+  const today = new Date().toISOString();
+  const staticPages = [
+    { path: '/', updated_at: today },
+    { path: '/blog', updated_at: today },
+    { path: '/faq', updated_at: today },
+  ];
+
+  const urls = [
+    ...staticPages.map((p) => `  <url><loc>${baseUrl}${p.path}</loc><lastmod>${p.updated_at}</lastmod></url>`),
+    ...posts.map((s) => `  <url><loc>${baseUrl}/blog/${s.slug}</loc><lastmod>${new Date(s.updated_at).toISOString()}</lastmod></url>`),
+  ];
+
+  res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`);
 }

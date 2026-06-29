@@ -2,6 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/faq", "destination": "/api/faq-page" },
     { "source": "/blog", "destination": "/api/blog-page" },
     { "source": "/blog/:slug", "destination": "/api/blog-page?slug=:slug" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
