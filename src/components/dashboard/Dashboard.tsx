@@ -924,12 +924,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         </button>
                       </Textarea>
                     </Card>
-                        <CoachCharts
-                          players={players}
-                          activePlayer={activePlayer}
-                          activeTab={activeTab}
-                        />
-                      </>
+                    <CoachCharts
+                      players={players}
+                      activePlayer={activePlayer}
+                      activeTab={activeTab}
+                    />
+                  </>
+                )}
               </div>
             )}
 
