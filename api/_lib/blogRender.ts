@@ -108,13 +108,17 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
     description: 'AI-gedreven skill tracking platform voor jeugdvoetbal',
   });
 
+  const coverImageHtml = post.cover_image_url
+    ? `<img class="cover" src="` + esc(post.cover_image_url) + `" alt="` + esc(post.title) + `">`
+    : '';
+
   return `${head({ title, description, canonical, image: post.cover_image_url, type: 'article', publishedAt: post.published_at, jsonLd: breadcrumbLd })}
 <script type="application/ld+json">${postLd}</script>
 <script type="application/ld+json">${orgLd}</script>
 <body>
   <div class="wrap">
     <a class="brand" href="${baseUrl}/blog">SKILLKAART</a>
-    ${post.cover_image_url ? `<img class="cover" src="${esc(post.cover_image_url)}" alt="${esc(post.title)}">` : ''}`
+    ${coverImageHtml}
     <h1>${esc(post.title)}</h1>
     <div class="meta">${post.category ? `${esc(post.category)} · ` : ''}${dateStr ? `${dateStr} · ` : ''}${esc(post.author)}</div>
     <article>${post.body}</article>
