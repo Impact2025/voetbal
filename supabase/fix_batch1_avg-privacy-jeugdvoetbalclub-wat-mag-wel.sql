@@ -76,8 +76,12 @@ SET
     <h3>Wil je AVG-proof aan de slag?</h3>
     <p>Skillkaart heeft standaard alle privacy-instellingen, toestemmingsformulieren en een verwerkingsregister ingebouwd. Vincent en Danny denken met je mee &mdash; vraag het ze gerust.</p>
     <p><strong><a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a></strong></p>
-</div>'',
-    categorie = ''clubbeleid'',
-    published_at = ''2026-06-29T09:00:00Z''::timestamptz,
-    updated_at = now()
-WHERE slug = ''avg-privacy-jeugdvoetbalclub-wat-mag-wel'';
+</div>',
+  meta_title = 'AVG en privacy voor jeugdvoetbalclubs: wat mag wél? (gids 2026) | Skillkaart',
+  meta_description = 'AVG-gids voor jeugdvoetbalclubs: ontdek wat wél mag. Toestemmingsformulieren, bewaartermijnen en veilige digitale tools. Geen juridisch jargon.',
+  keywords = ARRAY['avg voetbalclub','privacy jeugdvoetbal','avg gids','toestemmingsformulier voetbal','skillkaart privacy'],
+  category = 'clubbeleid',
+  seo_score = 95,
+  published_at = '2026-06-29T09:00:00Z'::timestamptz,
+  updated_at = now()
+WHERE slug = 'avg-privacy-jeugdvoetbalclub-wat-mag-wel';

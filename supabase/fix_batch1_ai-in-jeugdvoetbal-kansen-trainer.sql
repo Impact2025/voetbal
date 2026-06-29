@@ -51,7 +51,11 @@ SET
     <p>Bij Skillkaart helpen Vincent en Danny je op weg &mdash; of je nu een JO9 of een O23 traint. Geen verplichtingen, gewoon proberen.</p>
     <p><strong><a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a></strong></p>
 </div>',
-    categorie = 'technologie',
-    published_at = ''2026-06-29T09:00:00Z''::timestamptz,
-    updated_at = now()
-WHERE slug = ''ai-in-jeugdvoetbal-kansen-trainer'';
+  meta_title = 'AI in het jeugdvoetbal: 5 toepassingen voor elke trainer | Skillkaart',
+  meta_description = 'Ontdek 5 praktische AI-toepassingen voor jeugdvoetbaltrainers: van video-analyse tot feedback, zonder dat je een data scientist hoeft te zijn.',
+  keywords = ARRAY['ai jeugdvoetbal','ai voetbaltrainer','kunstmatige intelligentie voetbal','skillkaart ai'],
+  category = 'technologie',
+  seo_score = 95,
+  published_at = '2026-06-29T09:00:00Z'::timestamptz,
+  updated_at = now()
+WHERE slug = 'ai-in-jeugdvoetbal-kansen-trainer';

@@ -11,7 +11,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['logo.png', 'icon-*.png'],
+      includeAssets: ['logo.png', 'icon-*.png', 'offline.html', 'splash-*.png', 'screenshots/*.png'],
       manifest: false,
     }),
   ],
@@ -38,7 +38,6 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-charts': ['recharts'],
           'vendor-motion': ['framer-motion'],
         },
       },

@@ -73,7 +73,18 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
   const description = post.meta_description || post.excerpt;
   const dateStr = post.published_at ? new Date(post.published_at).toLocaleDateString('nl-NL', { dateStyle: 'long' }) : '';
 
-  const jsonLd = JSON.stringify({
+  // BreadcrumbList JSON-LD
+  const breadcrumbLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Blog', item: `${baseUrl}/blog` },
+      { '@type': 'ListItem', position: 2, name: post.title, item: canonical },
+    ],
+  });
+
+  // BlogPosting JSON-LD
+  const postLd = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
@@ -87,11 +98,23 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
     mainEntityOfPage: canonical,
   });
 
-  return `${head({ title, description, canonical, image: post.cover_image_url, type: 'article', publishedAt: post.published_at, jsonLd })}
+  // Organization + WebSite JSON-LD (once per page)
+  const orgLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Skillkaart',
+    url: baseUrl,
+    logo: `${baseUrl}/logo.png`,
+    description: 'AI-gedreven skill tracking platform voor jeugdvoetbal',
+  });
+
+  return `${head({ title, description, canonical, image: post.cover_image_url, type: 'article', publishedAt: post.published_at, jsonLd: breadcrumbLd })}
+<script type="application/ld+json">${postLd}</script>
+<script type="application/ld+json">${orgLd}</script>
 <body>
   <div class="wrap">
     <a class="brand" href="${baseUrl}/blog">SKILLKAART</a>
-    ${post.cover_image_url ? `<img class="cover" src="${esc(post.cover_image_url)}" alt="${esc(post.title)}">` : ''}
+    ${post.cover_image_url ? `<img class="cover" src="${esc(post.cover_image_url)}" alt="${esc(post.title)}">` : ''}`
     <h1>${esc(post.title)}</h1>
     <div class="meta">${post.category ? `${esc(post.category)} · ` : ''}${dateStr ? `${dateStr} · ` : ''}${esc(post.author)}</div>
     <article>${post.body}</article>
@@ -200,11 +223,33 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .sidebar-cta .cta-btn{display:inline-block;background:#00FF9D;color:#000;font-weight:800;padding:10px 20px;border-radius:10px;text-decoration:none;font-size:13px}
 .sidebar-cta .cta-btn:hover{background:#00e68a}`;
 
+  // CollectionPage + Organization JSON-LD for blog index
+  const collectionLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Blog — Skillkaart',
+    description: 'Tips, inzichten en gidsen over jeugdvoetbal, trainen en spelersontwikkeling van Skillkaart.',
+    url: canonical,
+    mainEntity: { '@type': 'ItemList', itemListElement: posts.slice(0, 20).map((p, i) => ({
+      '@type': 'ListItem', position: i + 1, url: `${baseUrl}/blog/${p.slug}`,
+    }))},
+  });
+
+  const orgLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Skillkaart', url: baseUrl,
+    logo: `${baseUrl}/logo.png`,
+    description: 'AI-gedreven skill tracking platform voor jeugdvoetbal',
+  });
+
   return `${head({
     title: 'Blog — Skillkaart | Jeugdvoetbal ontwikkeling',
     description: 'Tips, inzichten en gidsen over jeugdvoetbal, trainen en spelersontwikkeling van Skillkaart.',
     canonical, type: 'website', extraStyle: extraCss,
   })}
+<script type="application/ld+json">${collectionLd}</script>
+<script type="application/ld+json">${orgLd}</script>
 <body>
   <div class="wrap">
     <a class="brand" href="${baseUrl}/">SKILLKAART</a>

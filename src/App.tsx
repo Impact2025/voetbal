@@ -8,6 +8,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ConsentModal, { hasConsented } from './components/modals/ConsentModal';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import LandingPage from './components/landing/LandingPage';
+import OnlineBanner from './components/OnlineBanner';
+import SWUpdateToast from './components/SWUpdateToast';
 
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
 const ParentDashboard    = lazy(() => import('./components/parent/ParentDashboard'));
@@ -350,6 +352,8 @@ export default function Skillkaart() {
           <Dashboard user={session.user} userData={userData} onPlayerLogout={handlePlayerLogout} />
         )}
       </ErrorBoundary>
+      <OnlineBanner />
+      <SWUpdateToast />
     </div>
   );
 }

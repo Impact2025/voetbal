@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0D0D0D" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Skillkaart — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0D0D0D;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: contain;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+      gap: 24px;
+    }
+    .icon-wrapper {
+      width: 80px;
+      height: 80px;
+      border-radius: 24px;
+      background: rgba(0, 255, 157, 0.08);
+      border: 1px solid rgba(0, 255, 157, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 900;
+      color: #00FF9D;
+      line-height: 1.3;
+    }
+    p {
+      color: #9ca3af;
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 320px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+    .retry-btn {
+      margin-top: 8px;
+      padding: 14px 32px;
+      border-radius: 16px;
+      border: none;
+      background: #00FF9D;
+      color: #000;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .retry-btn:active {
+      opacity: 0.7;
+      transform: scale(0.97);
+    }
+    .retry-btn:disabled {
+      opacity: 0.4;
+    }
+    .footer {
+      padding: 16px 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #4b5563;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .checking {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon-wrapper">⚽</div>
+    <h1>Geen internetverbinding</h1>
+    <p>
+      Jouw skills en kaart blijven bewaard.
+      We proberen automatisch opnieuw zodra je verbinding hebt.
+    </p>
+    <div class="badge" id="status">
+      <span id="statusDot" style="width:6px;height:6px;border-radius:50%;background:#f87171;display:inline-block"></span>
+      <span id="statusText">Offline</span>
+    </div>
+    <button class="retry-btn" id="retryBtn" onclick="retry()">
+      Probeer opnieuw
+    </button>
+  </div>
+  <div class="footer">
+    Skillkaart &mdash; offline modus
+  </div>
+  <script>
+    // Luister naar SW-berichten
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SW_ACTIVATED') {
+          retry();
+        }
+      });
+    }
+
+    function retry() {
+      const btn = document.getElementById('retryBtn');
+      const statusText = document.getElementById('statusText');
+      const statusDot = document.getElementById('statusDot');
+      btn.disabled = true;
+      btn.textContent = 'Bezig...';
+      statusText.textContent = 'Verbinden...';
+      statusText.className = 'checking';
+      statusDot.style.background = '#fbbf24';
+
+      // Probeer de root pagina te fetchen
+      fetch('/', { cache: 'no-store', mode: 'same-origin' })
+        .then(res => {
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            throw new Error('Niet online');
+          }
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = 'Probeer opnieuw';
+          statusText.textContent = 'Offline';
+          statusText.className = '';
+          statusDot.style.background = '#f87171';
+        });
+    }
+
+    // Auto-retry elke 10s als we in offline.html zijn
+    let attempts = 0;
+    const autoRetry = setInterval(() => {
+      if (attempts < 30) { // max 5 min
+        attempts++;
+        fetch('/', { cache: 'no-store', mode: 'same-origin' })
+          .then(res => {
+            if (res.ok) window.location.reload();
+          })
+          .catch(() => {});
+      } else {
+        clearInterval(autoRetry);
+      }
+    }, 10000);
+  </script>
+</body>
+</html>

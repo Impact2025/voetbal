@@ -8,6 +8,29 @@
   "background_color": "#0D0D0D",
   "theme_color": "#0D0D0D",
   "categories": ["sports", "education", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshots/vandaag.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vandaag — jouw dagelijkse focus"
+    },
+    {
+      "src": "/screenshots/kaart.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mijn Kaart — Inzet-DNA en XP"
+    },
+    {
+      "src": "/screenshots/ik.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Ik — skills, badges en groei"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

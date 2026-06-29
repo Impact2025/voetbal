@@ -57,7 +57,11 @@ SET
     <p>Bij Skillkaart zitten radarcharts standaard in het platform. Vincent en Danny helpen je met de eerste meting &mdash; gratis en vrijblijvend.</p>
     <p><strong><a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a></strong></p>
 </div>',
-    categorie = ''methodiek'',
-    published_at = ''2026-06-29T09:00:00Z''::timestamptz,
-    updated_at = now()
-WHERE slug = ''radarchart-spelersontwikkeling-coach'';
+  meta_title = 'Radarchart voor spelersgroei: zo visualiseer je ontwikkeling | Skillkaart',
+  meta_description = 'Een radarchart geeft in één oogopslag inzicht in spelersontwikkeling. Ontdek waarom het de beste manier is om groei te visualiseren en hoe coaches het gebruiken.',
+  keywords = ARRAY['radarchart voetbal','spelersontwikkeling','spindiagram voetbal','skillkaart radarchart'],
+  category = 'methodiek',
+  seo_score = 95,
+  published_at = '2026-06-29T09:00:00Z'::timestamptz,
+  updated_at = now()
+WHERE slug = 'radarchart-spelersontwikkeling-coach';

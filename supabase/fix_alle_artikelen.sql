@@ -59,10 +59,14 @@ SET
     <p>Bij Skillkaart helpen Vincent en Danny je op weg &mdash; of je nu een JO9 of een O23 traint. Geen verplichtingen, gewoon proberen.</p>
     <p><strong><a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a></strong></p>
 </div>',
-    categorie = 'technologie',
-    published_at = ''2026-06-29T09:00:00Z''::timestamptz,
-    updated_at = now()
-WHERE slug = ''ai-in-jeugdvoetbal-kansen-trainer'';
+  meta_title = 'AI in het jeugdvoetbal: 5 toepassingen voor elke trainer | Skillkaart',
+  meta_description = 'Ontdek 5 praktische AI-toepassingen voor jeugdvoetbaltrainers: van video-analyse tot feedback, zonder dat je een data scientist hoeft te zijn.',
+  keywords = ARRAY['ai jeugdvoetbal','ai voetbaltrainer','kunstmatige intelligentie voetbal','skillkaart ai'],
+  category = 'technologie',
+  seo_score = 95,
+  published_at = '2026-06-29T09:00:00Z'::timestamptz,
+  updated_at = now()
+WHERE slug = 'ai-in-jeugdvoetbal-kansen-trainer';
 
 
 
@@ -126,10 +130,14 @@ SET
     <p>Bij Skillkaart zitten radarcharts standaard in het platform. Vincent en Danny helpen je met de eerste meting &mdash; gratis en vrijblijvend.</p>
     <p><strong><a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a></strong></p>
 </div>',
-    categorie = ''methodiek'',
-    published_at = ''2026-06-29T09:00:00Z''::timestamptz,
-    updated_at = now()
-WHERE slug = ''radarchart-spelersontwikkeling-coach'';
+  meta_title = 'Radarchart voor spelersgroei: zo visualiseer je ontwikkeling | Skillkaart',
+  meta_description = 'Een radarchart geeft in één oogopslag inzicht in spelersontwikkeling. Ontdek waarom het de beste manier is om groei te visualiseren en hoe coaches het gebruiken.',
+  keywords = ARRAY['radarchart voetbal','spelersontwikkeling','spindiagram voetbal','skillkaart radarchart'],
+  category = 'methodiek',
+  seo_score = 95,
+  published_at = '2026-06-29T09:00:00Z'::timestamptz,
+  updated_at = now()
+WHERE slug = 'radarchart-spelersontwikkeling-coach';
 
 
 
@@ -212,11 +220,15 @@ SET
     <h3>Wil je AVG-proof aan de slag?</h3>
     <p>Skillkaart heeft standaard alle privacy-instellingen, toestemmingsformulieren en een verwerkingsregister ingebouwd. Vincent en Danny denken met je mee &mdash; vraag het ze gerust.</p>
     <p><strong><a href="mailto:info@skillkaart.nl">info@skillkaart.nl</a></strong></p>
-</div>'',
-    categorie = ''clubbeleid'',
-    published_at = ''2026-06-29T09:00:00Z''::timestamptz,
-    updated_at = now()
-WHERE slug = ''avg-privacy-jeugdvoetbalclub-wat-mag-wel'';
+</div>',
+  meta_title = 'AVG en privacy voor jeugdvoetbalclubs: wat mag wél? (gids 2026) | Skillkaart',
+  meta_description = 'AVG-gids voor jeugdvoetbalclubs: ontdek wat wél mag. Toestemmingsformulieren, bewaartermijnen en veilige digitale tools. Geen juridisch jargon.',
+  keywords = ARRAY['avg voetbalclub','privacy jeugdvoetbal','avg gids','toestemmingsformulier voetbal','skillkaart privacy'],
+  category = 'clubbeleid',
+  seo_score = 95,
+  published_at = '2026-06-29T09:00:00Z'::timestamptz,
+  updated_at = now()
+WHERE slug = 'avg-privacy-jeugdvoetbalclub-wat-mag-wel';
 
 
 
