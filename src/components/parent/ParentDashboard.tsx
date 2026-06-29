@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
+const TeamChatLazy = lazy(() => import('../chat/TeamChat'));
 import { supabase } from '../../lib/supabase';
 import { COACH_COLOR } from '../../utils/constants';
 import { TIER_CONFIG, tierProgress } from '../../lib/cardTier';
@@ -734,23 +735,43 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
           {activeTab === 'berichten' && (
             <motion.div key="berichten"
               initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              style={{ height: 'calc(100vh - 200px)' }}>
+              transition={{ duration: 0.15 }}>
               {demo ? (
                 <div className="flex flex-col items-center justify-center h-48 border border-dashed border-gray-200 rounded-2xl bg-white">
                   <MessageSquare size={28} className="mb-2 text-gray-200" />
                   <p className="text-sm font-bold text-gray-400">Berichten niet beschikbaar in demo</p>
                 </div>
               ) : (
-                <Suspense fallback={<div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />}>
-                  <MessagingInbox
-                    currentUserId={userData.uid}
-                    currentUserName={`Ouder van ${firstName}`}
-                    currentUserRole="parent"
-                    className="h-full"
-                    onUnreadChange={setUnreadMessages}
-                  />
-                </Suspense>
+                <div className="space-y-6">
+                  <Suspense fallback={<div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />}>
+                    <MessagingInbox
+                      currentUserId={userData.uid}
+                      currentUserName={`Ouder van ${firstName}`}
+                      currentUserRole="parent"
+                      className="h-72"
+                      onUnreadChange={setUnreadMessages}
+                    />
+                  </Suspense>
+
+                  {userData.teamId && (
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="flex-1 h-px bg-gray-100" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                          <MessageSquare size={11} /> Teamchat
+                        </span>
+                        <div className="flex-1 h-px bg-gray-100" />
+                      </div>
+                      <Suspense fallback={<div className="h-48 bg-gray-100 rounded-2xl animate-pulse" />}>
+                        <TeamChatLazy
+                          teamId={userData.teamId}
+                          userData={{ uid: userData.uid, role: 'parent' }}
+                          userName={`Ouder van ${firstName}`}
+                        />
+                      </Suspense>
+                    </div>
+                  )}
+                </div>
               )}
             </motion.div>
           )}

@@ -383,3 +383,36 @@ export interface Streak {
   flame_state: 'active' | 'sleep' | 'complete';
   updated_at: string;
 }
+
+// ── Team Chat ────────────────────────────────────────────────────────────────
+
+export interface TeamChannel {
+  id: string;
+  team_id: string;
+  name: string;
+  description: string;
+  created_by: string | null;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface TeamChannelMember {
+  channel_id: string;
+  user_id: string;
+  user_type: 'player' | 'parent' | 'coach' | 'club_admin';
+  last_read_at: string;
+  muted: boolean;
+}
+
+export interface TeamChannelMessage {
+  id: string;
+  channel_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: 'player' | 'parent' | 'coach' | 'club_admin';
+  content: string;
+  mentions: string[] | null;
+  reply_to: string | null;
+  edited_at: string | null;
+  created_at: string;
+}

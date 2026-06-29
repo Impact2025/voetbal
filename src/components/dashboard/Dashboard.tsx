@@ -1362,6 +1362,26 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     onUnreadChange={setUnreadMessages}
                   />
                 </Suspense>
+
+                {/* Team chat (groepschat per channel) */}
+                {userData.teamId && (
+                  <div className="mt-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-px flex-1 bg-gray-200" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                        <MessageSquare size={11} /> Teamchat
+                      </span>
+                      <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+                    <Suspense fallback={<div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />}>
+                      <TeamChatLazy
+                        teamId={userData.teamId}
+                        userData={{ uid: user.id, role: userData.role === 'club_admin' ? 'club_admin' : 'coach' }}
+                        userName={(teamData as { coach_name?: string }).coach_name || teamData.team_name || 'Coach'}
+                      />
+                    </Suspense>
+                  </div>
+                )}
               </div>
             )}
           </main>
