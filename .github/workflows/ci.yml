@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  NODE_VERSION: 20
+  NODE_VERSION: 22
 
 jobs:
   # ─── player-hub (hoofd-app) ──────────────────────────────────────────────
@@ -54,8 +54,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: player-pwa/package-lock.json
 
       - run: npm ci
 
