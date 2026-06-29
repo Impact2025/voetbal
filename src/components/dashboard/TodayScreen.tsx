@@ -67,7 +67,7 @@ const TodayScreen = ({
     | { kind: 'done' };
 
   const focus: Focus = nextHomework
-    ? { kind: 'homework', title: nextHomework.title, sub: nextHomework.description || 'Oefening van je coach' }
+    ? { kind: 'homework', title: nextHomework.title, sub: 'Film jezelf tijdens de oefening en krijg AI-feedback' }
     : challengeOfWeek
       ? {
           kind: 'challenge',
@@ -164,7 +164,7 @@ const TodayScreen = ({
                 className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-black text-black"
                 style={{ backgroundColor: accent, boxShadow: `0 6px 0 ${accent}50, 0 0 24px ${accent}40` }}
               >
-                {focus.kind === 'homework' ? 'Doe je oefening' : 'Start de uitdaging'}
+                {focus.kind === 'homework' ? 'Upload je video voor feedback' : 'Start de uitdaging'}
                 <ArrowDown size={18} />
               </motion.button>
             </>

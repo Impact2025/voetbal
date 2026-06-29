@@ -445,20 +445,29 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
   };
 
-  const handleToggleHomeworkStatus = async (homeworkId) => {
-    if (userData.role !== 'player' || !activePlayer) return;
-    const isCompleted = activePlayer.completed_homework_ids.includes(homeworkId);
-    const newCompletedIds = isCompleted
-      ? activePlayer.completed_homework_ids.filter(id => id !== homeworkId)
-      : [...activePlayer.completed_homework_ids, homeworkId];
-    await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.id);
-    setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, completed_homework_ids: newCompletedIds } : p));
+  const handleSubmissionComplete = async (submission: HomeworkSubmission) => {
+    setSubmissions(prev => {
+      const idx = prev.findIndex(s => s.id === submission.id);
+      if (idx !== -1) return prev.map(s => s.id === submission.id ? submission : s);
+      return [submission, ...prev];
+    });
 
-    // Award XP + streak when marking done (not when toggling off)
-    if (!isCompleted && userData.teamId) {
+    if (userData.role !== 'player' || !userData.teamId || !activePlayer) return;
+
+    const hwId = submission.homework_id;
+    const isAlreadyDone = activePlayer.completed_homework_ids.includes(hwId);
+
+    if (!isAlreadyDone) {
+      // Markeer huiswerk automatisch als voltooid na video + AI feedback
+      const newCompletedIds = [...activePlayer.completed_homework_ids, hwId];
+      await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.id);
+      setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, completed_homework_ids: newCompletedIds } : p));
+
+      // Award XP + streak (zelfde logica als handleToggleHomeworkStatus)
       const oldTier = playerStats?.tier ?? 'brons';
       await Promise.all([
-        insertStatEvents(user.id, userData.teamId, 'homework_done', { homework_id: homeworkId }),
+        insertStatEvents(user.id, userData.teamId, 'homework_done', { homework_id: hwId }),
+        insertStatEvents(user.id, userData.teamId, 'video_submitted', { homework_id: hwId }),
         incrementStreak(user.id).then(s => { if (s) setStreak(s); }),
       ]);
       const updated = await fetchAndRecomputeStats(user.id, userData.teamId);
@@ -466,21 +475,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         setPlayerStats(updated);
         if (updated.tier !== oldTier) setPendingTierUp(updated.tier);
       }
-    }
-  };
-
-  const handleSubmissionComplete = (submission: HomeworkSubmission) => {
-    setSubmissions(prev => {
-      const idx = prev.findIndex(s => s.id === submission.id);
-      if (idx !== -1) return prev.map(s => s.id === submission.id ? submission : s);
-      return [submission, ...prev];
-    });
-    // Award XP for new video submission
-    if (userData.role === 'player' && userData.teamId) {
-      insertStatEvents(user.id, userData.teamId, 'video_submitted', { homework_id: submission.homework_id })
-        .then(() => fetchAndRecomputeStats(user.id, userData.teamId!))
-        .then(updated => { if (updated) setPlayerStats(updated); })
-        .catch(() => {/* silently skip if table not migrated yet */});
     }
   };
 
@@ -1464,7 +1458,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   customHomework={customHomework}
                   assignedHomeworkIds={teamData.assigned_homework_ids || []}
                   submissions={submissions}
-                  onToggleStatus={handleToggleHomeworkStatus}
                   onSubmissionComplete={handleSubmissionComplete}
                   focusedId={focusedHomeworkId}
                 />
