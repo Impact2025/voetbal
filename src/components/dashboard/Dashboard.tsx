@@ -48,6 +48,7 @@ const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
 import PushNotificationSender from '../notifications/PushNotificationSender';
 import InstallModal from '../modals/InstallModal';
+import { usePWA } from '../../lib/usePWA';
 import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
 import { getActiveTeamChallenge } from '../../lib/teamChallenge';
@@ -113,6 +114,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'player' ? 'vandaag' : 'overzicht');
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const { canInstall, showInstallPrompt } = usePWA();
   const [isClubPro, setIsClubPro] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const skipRealtimeRef = useRef(false);
@@ -1399,7 +1401,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
               </h1>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowInstallModal(true)}
+                  onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
                   style={{ borderColor: `${NEON_COLOR}40`, color: NEON_COLOR, backgroundColor: `${NEON_COLOR}10` }}
                 >
