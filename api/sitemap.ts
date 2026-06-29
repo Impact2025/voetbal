@@ -18,7 +18,7 @@ export default async function handler(req: Req, res: Res) {
     .eq('status', 'published')
     .order('updated_at', { ascending: false });
 
-  const posts = (data ?? []) as { slug: string; updated_at: string }[];
+  const posts = (data ?? []) as { slug: string; updated_at: string; published_at?: string }[];
   const today = new Date().toISOString();
   const staticPages = [
     { path: '/', updated_at: today },
@@ -28,7 +28,7 @@ export default async function handler(req: Req, res: Res) {
 
   const urls = [
     ...staticPages.map((p) => `  <url><loc>${baseUrl}${p.path}</loc><lastmod>${p.updated_at}</lastmod></url>`),
-    ...posts.map((s) => `  <url><loc>${baseUrl}/blog/${s.slug}</loc><lastmod>${new Date(s.updated_at).toISOString()}</lastmod></url>`),
+    ...posts.map((s) => `  <url><loc>${baseUrl}/blog/${s.slug}</loc><lastmod>${new Date(s.published_at || s.updated_at).toISOString()}</lastmod></url>`),
   ];
 
   res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
