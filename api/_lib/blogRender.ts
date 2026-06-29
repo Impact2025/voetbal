@@ -205,6 +205,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
     description: 'Tips, inzichten en gidsen over jeugdvoetbal, trainen en spelersontwikkeling van Skillkaart.',
     canonical, type: 'website', extraStyle: extraCss,
   })}
+<body>
   <div class="wrap">
     <a class="brand" href="${baseUrl}/">SKILLKAART</a>
 
