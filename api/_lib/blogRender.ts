@@ -44,7 +44,7 @@ const SHELL_CSS = `
 
 function head(opts: {
   title: string; description: string; canonical: string; image?: string | null; type: string;
-  publishedAt?: string | null; jsonLd?: string;
+  publishedAt?: string | null; jsonLd?: string; extraStyle?: string;
 }): string {
   return `<!DOCTYPE html><html lang="nl"><head>
 <meta charset="utf-8">
@@ -63,6 +63,7 @@ ${opts.image ? `<meta property="og:image" content="${esc(opts.image)}">` : ''}
 ${opts.image ? `<meta name="twitter:image" content="${esc(opts.image)}">` : ''}
 ${opts.jsonLd ? `<script type="application/ld+json">${opts.jsonLd}</script>` : ''}
 <style>${SHELL_CSS}</style>
+${opts.extraStyle ? `<style>${opts.extraStyle}</style>` : ''}
 </head>`;
 }
 
@@ -153,13 +154,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
       </div>
     </a>`).join('');
 
-  return `${head({
-    title: 'Blog — Skillkaart | Jeugdvoetbal ontwikkeling',
-    description: 'Tips, inzichten en gidsen over jeugdvoetbal, trainen en spelersontwikkeling van Skillkaart.',
-    canonical, type: 'website',
-  })}
-<style>
-.hero{background:linear-gradient(135deg,#00FF9D08,#00FF9D15);border-radius:20px;padding:32px 28px;margin:0 0 32px}
+  const extraCss = `.hero{background:linear-gradient(135deg,#00FF9D08,#00FF9D15);border-radius:20px;padding:32px 28px;margin:0 0 32px}
 .hero h1{font-size:32px;margin:0 0 6px}
 .hero p{color:#64748b;margin:0 0 20px;font-size:15px}
 .search-wrap{position:relative;margin:0 0 28px}
@@ -177,12 +172,8 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .cat-pill.active .count{color:#64748b}
 .no-results{text-align:center;padding:48px 0;color:#94a3b8;display:none}
 .no-results.show{display:block}
-
 .grid{display:grid;grid-template-columns:1fr;gap:24px}
 @media(min-width:768px){.grid{grid-template-columns:1fr 280px}}
-
-/* Hoofdkolom */
-.main-col{}
 .featured{border:2px solid #00FF9D40;border-radius:16px;padding:24px;display:block;text-decoration:none;color:inherit;margin:0 0 20px;transition:border-color .2s;background:linear-gradient(135deg,#00FF9D04,#00FF9D10)}
 .featured:hover{border-color:#00FF9D}
 .featured-body h2{font-size:22px;margin:10px 0 8px}
@@ -195,8 +186,6 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .card .tag{margin-bottom:4px}
 .card .card-footer{display:flex;justify-content:space-between;align-items:center;font-size:12px}
 .card.search-hidden{display:none}
-
-/* Zijbalk */
 .sidebar{position:sticky;top:32px;align-self:start}
 .sidebar-section{border:1px solid #e2e8f0;border-radius:14px;padding:20px;margin:0 0 16px}
 .sidebar-section h3{font-size:14px;margin:0 0 14px;color:#0f172a;text-transform:uppercase;letter-spacing:.5px}
@@ -209,10 +198,13 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .sidebar-cta h3{color:#fff;font-size:16px;margin:0 0 6px;text-transform:none;letter-spacing:0}
 .sidebar-cta p{color:#94a3b8;font-size:12px;margin:0 0 16px}
 .sidebar-cta .cta-btn{display:inline-block;background:#00FF9D;color:#000;font-weight:800;padding:10px 20px;border-radius:10px;text-decoration:none;font-size:13px}
-.sidebar-cta .cta-btn:hover{background:#00e68a}
-</style>
-</head>
-<body>
+.sidebar-cta .cta-btn:hover{background:#00e68a}`;
+
+  return `${head({
+    title: 'Blog — Skillkaart | Jeugdvoetbal ontwikkeling',
+    description: 'Tips, inzichten en gidsen over jeugdvoetbal, trainen en spelersontwikkeling van Skillkaart.',
+    canonical, type: 'website', extraStyle: extraCss,
+  })}
   <div class="wrap">
     <a class="brand" href="${baseUrl}/">SKILLKAART</a>
 
