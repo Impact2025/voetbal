@@ -14,6 +14,7 @@ import type { TeamSession } from '../../types';
 import Card from '../ui/Card';
 import ToolButton from '../ui/ToolButton';
 import Slider from '../ui/Slider';
+import SkillRater from '../ui/SkillRater';
 import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -880,18 +881,14 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: group.color }} />
                                 <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: group.color }}>{group.label}</span>
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
                                 {group.skills.map(skill => (
-                                  <Slider
+                                  <SkillRater
                                     key={skill.key}
-                                    light
                                     label={skill.label}
                                     value={activePlayer.evaluations[activeTab]?.skills[skill.key] ?? 5}
-                                    onChange={e => {
-                                      const v = parseInt(e.target.value);
-                                      if (!isNaN(v)) handleUpdateEvaluation(`skills.${skill.key}`, Math.max(0, Math.min(10, v)));
-                                    }}
-                                    disabled={false}
+                                    onChange={v => handleUpdateEvaluation(`skills.${skill.key}`, v)}
+                                    color={group.color}
                                   />
                                 ))}
                               </div>
@@ -926,15 +923,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                           Genereer
                         </button>
                       </Textarea>
-                    {activePlayer && (
-                      <>
+                    </Card>
                         <CoachCharts
                           players={players}
                           activePlayer={activePlayer}
                           activeTab={activeTab}
                         />
                       </>
-                    )}
               </div>
             )}
 

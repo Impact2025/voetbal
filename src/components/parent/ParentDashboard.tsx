@@ -6,8 +6,6 @@ import {
   XCircle, Shield, Star, AlertTriangle, ChevronRight, Trophy, Video, Zap,
 } from 'lucide-react';
 
-const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
-const TeamChatLazy = lazy(() => import('../chat/TeamChat'));
 import { supabase } from '../../lib/supabase';
 import { COACH_COLOR } from '../../utils/constants';
 import { TIER_CONFIG, tierProgress } from '../../lib/cardTier';
@@ -16,6 +14,9 @@ import type {
   Player, PlayerStats, Streak, NotificationPrefs,
   StatAxis, UserData, AttendanceRecord,
 } from '../../types';
+
+const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
+const TeamChatLazy = lazy(() => import('../chat/TeamChat'));
 
 const ACCENT = COACH_COLOR;
 
