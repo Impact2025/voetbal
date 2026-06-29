@@ -203,6 +203,24 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       })
       .subscribe();
 
+    // Realtime voor stat_events (XP updates live)
+    supabase.channel(`public:stat_events:team_id=eq.${userData.teamId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stat_events' }, () => {
+        // Herbereken stats voor alle spelers — 1 query, geen race condition
+        setDataLoaded(false);
+        fetchData().catch(() => setDataLoaded(true));
+      })
+      .subscribe();
+
+    // Realtime voor challenge_completions (team challenge voortgang live)
+    if (userData.role !== 'player') {
+      supabase.channel(`public:challenge_completions:team_id=eq.${userData.teamId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_completions' }, () => {
+          getActiveTeamChallenge(userData.teamId!).then(setTeamChallenge);
+        })
+        .subscribe();
+    }
+
     return () => supabase.removeAllChannels();
   }, [userData, user.id]);
 
