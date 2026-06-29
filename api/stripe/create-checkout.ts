@@ -1,6 +1,7 @@
 import type Stripe from 'stripe';
 import { getStripe, stripeConfigured } from '../_lib/stripe.js';
 import { getAdminClient } from '../_lib/supabaseAdmin.js';
+import { CreateCheckoutSchema, validateOrError } from '../_lib/validate.js';
 
 interface Req {
   method: string;
@@ -23,6 +24,9 @@ export default async function handler(req: Req, res: Res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
   if (!stripeConfigured()) return res.status(400).json({ error: 'Stripe is niet geconfigureerd.' });
+
+  // Input-validatie met zod
+  if (!validateOrError(CreateCheckoutSchema, req.body, res)) return;
 
   const priceId = req.body?.priceId || process.env.STRIPE_PRICE_ID;
   if (!priceId) return res.status(400).json({ error: 'priceId of STRIPE_PRICE_ID ontbreekt.' });

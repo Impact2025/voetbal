@@ -1,5 +1,6 @@
 import { verifySuperadmin } from '../_lib/adminGuard.js';
 import { getAdminClient, logAdminAction } from '../_lib/supabaseAdmin.js';
+import { GenerateBlogSchema, validateOrError } from '../_lib/validate.js';
 
 interface Req {
   method: string;
@@ -24,6 +25,9 @@ export default async function handler(req: Req, res: Res) {
 
   const admin = await verifySuperadmin(req.headers['authorization']);
   if (!admin) return res.status(401).json({ error: 'Geen toegang.' });
+
+  // Input-validatie met zod
+  if (!validateOrError(GenerateBlogSchema, req.body, res)) return;
 
   const topic = req.body?.topic?.trim();
   if (!topic) return res.status(400).json({ error: 'Onderwerp is verplicht.' });

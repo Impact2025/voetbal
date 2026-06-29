@@ -1,9 +1,12 @@
 import { Resend } from 'resend';
+import { getAdminClient } from './_lib/supabaseAdmin.js';
+import { SendEmailSchema, validateOrError } from './_lib/validate.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface Req {
   method: string;
+  headers: Record<string, string | undefined>;
   body: {
     to: string[];
     toNames: string[];
@@ -21,13 +24,44 @@ interface Res {
   setHeader: (name: string, value: string) => void;
 }
 
+// Verifieer dat de gebruiker is ingelogd en club_admin of superadmin is.
+// Zonder geldige token: 401. Zonder juiste rol: 403.
+async function verifyAuth(authHeader?: string): Promise<{ id: string; role: string } | null> {
+  const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return null;
+  try {
+    const admin = getAdminClient();
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data?.user) return null;
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .maybeSingle();
+    const role = (profile as { role: string } | null)?.role || '';
+    if (role !== 'club_admin' && role !== 'superadmin') return null;
+    return { id: data.user.id, role };
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: Req, res: Res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Auth-check: club_admin of superadmin vereist
+  const user = await verifyAuth(req.headers['authorization']);
+  if (!user) {
+    return res.status(401).json({ error: 'Geen toegang. Alleen club-beheerders kunnen e-mail versturen.' });
+  }
+
+  // Input-validatie met zod
+  if (!validateOrError(SendEmailSchema, req.body, res)) return;
 
   const { to, toNames, subject, body, clubName, senderEmail } = req.body;
 

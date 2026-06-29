@@ -87,9 +87,11 @@ const MessageComposer = ({ recipient, allTrainers, clubName, senderEmail, clubId
     }
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ to: toEmails, toNames, subject, body, clubName, senderEmail }),
       });
       const data = await res.json() as { error?: string };

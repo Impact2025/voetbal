@@ -1,0 +1,62 @@
+/**
+ * Error wrapper voor Vercel Serverless Functions.
+ * Vangt alle errors, stuurt naar Sentry (indien geconfigureerd),
+ * en retourneert een consistente JSON-error response.
+ *
+ * Gebruik:
+ *   export default async function handler(req, res) {
+ *     await withError(res, async () => {
+ *       // jouw code — throw mag, return is optioneel
+ *     });
+ *   }
+ */
+
+/** Dynamische import van Sentry — werkt pas als SENTRY_DSN is gezet */
+let sentryModule: Promise<unknown> | null = null;
+function getSentry(): typeof import('@sentry/vercel-edge') | null {
+  if (!process.env.SENTRY_DSN) return null;
+  if (!sentryModule) {
+    sentryModule = import('@sentry/vercel-edge').then(
+      (m) => {
+        try { m.init({ dsn: process.env.SENTRY_DSN, environment: process.env.VERCEL_ENV || 'development', tracesSampleRate: 0.1 }); } catch { /* ignore */ }
+        return m;
+      },
+      () => null,
+    );
+  }
+  return null;  // lazy — first call triggers init
+}
+
+/** Capture een exception naar Sentry (fire-and-forget) */
+function capture(err: Error): void {
+  if (!process.env.SENTRY_DSN) { console.error('[withError]', err); return; }
+  import('@sentry/vercel-edge').then(
+    (sentry) => { try { sentry.captureException(err, { level: 'error' }); } catch { /* ignore */ } },
+    () => console.error('[withError]', err),
+  );
+}
+
+interface Res {
+  status: (code: number) => { json: (data: unknown) => void };
+}
+
+export async function withError<T>(
+  res: Res,
+  fn: () => Promise<T>,
+  opts?: { status?: (e: Error) => number },
+): Promise<void> {
+  try {
+    await fn();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    const statusCode = opts?.status?.(error) ?? 500;
+
+    capture(error);
+
+    const message = process.env.VERCEL_ENV === 'production'
+      ? 'Er is een fout opgetreden.'
+      : error.message || 'Onbekende fout';
+
+    res.status(statusCode).json({ error: message });
+  }
+}
