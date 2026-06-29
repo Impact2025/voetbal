@@ -149,6 +149,89 @@ Schrijf in eenvoudig, enthousiast Nederlands. Max 60 woorden totaal. NOOIT negat
   return callAI(prompt, 2, 1000, { max_tokens: 200, temperature: 0.65 });
 };
 
+interface ChallengeVideoOptions {
+  challenge: { title: string; setup: string; win_condition: string };
+  player: { name: string; age: string; position: string };
+  frames: string[];
+}
+
+export const analyzeChallengeVideo = async (
+  { challenge, player, frames }: ChallengeVideoOptions
+): Promise<string> => {
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+
+  if (!apiKey || apiKey.startsWith('***')) {
+    return 'AI-functie niet beschikbaar: configureer VITE_OPENROUTER_API_KEY in .env.local';
+  }
+
+  const ageLabel = player.age ? `${player.age} jaar` : 'jeugdspeler';
+  const positionLabel = player.position || 'speler';
+
+  const textPrompt = `Je bent een enthousiaste jeugdvoetbalcoach die video-feedback geeft aan kinderen na een uitdaging.
+
+SPELER: ${player.name}, ${ageLabel}, ${positionLabel}
+UITDAGING: "${challenge.title}"
+SETUP: ${challenge.setup}
+WIN-CONDITIE: ${challenge.win_condition}
+
+Ik stuur je ${frames.length} beelden uit de video van de speler. Analyseer de beweging/techniek en geef feedback in dit EXACTE formaat:
+
+⭐ WAT GAAT GOED
+[Noem 1-2 concrete dingen die je ziet dat goed gaat. Wees specifiek over de techniek.]
+
+🎯 ÉÉN VERBETERPUNT
+[Noem SLECHTS 1 ding om aan te werken. Concreet en uitvoerbaar.]
+
+💡 TIP VOOR VOLGENDE KEER
+[1 praktische tip hoe ze het volgende keer beter kunnen doen.]
+
+🔥 MOTIVATIE
+[1 korte aanmoedigingszin, persoonlijk en enthousiast. Koppel aan de uitdaging.]
+
+Schrijf in eenvoudig Nederlands voor een ${ageLabel}. Max 120 woorden totaal.`;
+
+  const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+    { type: 'text', text: textPrompt },
+    ...frames.map(b64 => ({
+      type: 'image_url',
+      image_url: { url: `data:image/jpeg;base64,${b64}` },
+    })),
+  ];
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Skillkaart',
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [{ role: 'user', content }],
+          max_tokens: 600,
+          temperature: 0.6,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+      const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+      const text = result.choices?.[0]?.message?.content;
+      if (!text) throw new Error('Leeg API-antwoord');
+      return text;
+    } catch (error) {
+      console.error(`Challenge video analyse poging ${attempt + 1} mislukt:`, error);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
+      else return `Feedback genereren mislukt: ${error instanceof Error ? error.message : 'onbekende fout'}. Probeer het later opnieuw.`;
+    }
+  }
+
+  return 'Feedback genereren mislukt. Probeer het later opnieuw.';
+};
+
 export const analyzeMovementVideo = async (
   { homework, player, frames }: MovementAnalysisOptions
 ): Promise<string> => {

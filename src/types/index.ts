@@ -264,6 +264,7 @@ export interface Challenge {
   youtube_url?: string;
   reflection_prompt?: string;
   ai_feedback_hint?: string;
+  supports_video?: boolean;
 }
 
 export interface ChallengeCompletion {
@@ -273,6 +274,8 @@ export interface ChallengeCompletion {
   team_id: string;
   reflection?: string;
   ai_feedback?: string;
+  video_url?: string;
+  video_ai_feedback?: string;
   completed_at: string;
 }
 

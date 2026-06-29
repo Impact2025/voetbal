@@ -11,6 +11,7 @@ export const CHALLENGES: Challenge[] = [
     win_condition: 'Dribble langs alle 3 pionnen heen en terug — 5x achter elkaar zonder de bal te verliezen.',
     reflection_prompt: 'Welke kant voelde sterker: links of rechts?',
     ai_feedback_hint: 'Focus on whether the player mentions control with weak foot or change of direction',
+    supports_video: true,
   },
   {
     id: 'muurpasseur',
@@ -22,6 +23,7 @@ export const CHALLENGES: Challenge[] = [
     win_condition: 'Passeer de bal 30x met je zwakste voet tegen de muur en vang hem goed op.',
     reflection_prompt: 'Hoeveel pogingen had je nodig voor je 30 haalde?',
     ai_feedback_hint: 'Encourage persistence, note if player struggled and kept going',
+    supports_video: true,
   },
   {
     id: 'blinde-balmeester',
@@ -33,6 +35,7 @@ export const CHALLENGES: Challenge[] = [
     win_condition: 'Hou de bal 30 seconden rollend aan je voet zonder hem te verliezen. Doe dit 3x.',
     reflection_prompt: 'Wat was het moeilijkst: begin, midden of einde van de 30 seconden?',
     ai_feedback_hint: 'Ball mastery drill — reward focus and touch quality',
+    supports_video: true,
   },
   {
     id: 'sprint-kanon',
@@ -44,6 +47,7 @@ export const CHALLENGES: Challenge[] = [
     win_condition: 'Sprint 5x de 20 meter zo snel mogelijk. Rust 30 seconden tussen elke sprint.',
     reflection_prompt: 'Voelde je dat sprint 5 anders was dan sprint 1? Wat veranderde er?',
     ai_feedback_hint: 'Speed and recovery drill — note if player observes fatigue or form breakdown',
+    supports_video: true,
   },
   {
     id: 'explosieve-start',
@@ -55,6 +59,7 @@ export const CHALLENGES: Challenge[] = [
     win_condition: 'Op het teken: spring op, pak de bal en sprint 10 meter. Doe dit 8x met 20 seconden rust.',
     reflection_prompt: 'Hoe snel kon jij reageren? Na welke sprint voelde je dat je er echt "in" zat?',
     ai_feedback_hint: 'Reaction time and explosiveness — praise quick first step',
+    supports_video: true,
   },
   {
     id: 'matrix-scanner',
@@ -110,12 +115,13 @@ export const CHALLENGES: Challenge[] = [
     win_condition: 'Schiet vanuit elke markering en maak van alle 5 posities raak — ook al heb je meerdere pogingen nodig.',
     reflection_prompt: 'Welke positie was het makkelijkst? Welke het moeilijkst en waarom?',
     ai_feedback_hint: 'Finishing from various angles — note consistency and weak foot usage',
+    supports_video: true,
   },
 ];
 
 export const CATEGORY_META = {
-  techniek:    { label: 'Techniek',    emoji: '🎯', color: '#38bdf8', bg: '#0c1a2e' },
-  inzicht:     { label: 'Inzicht',     emoji: '🧠', color: '#a78bfa', bg: '#1a0c2e' },
-  snelheid:    { label: 'Snelheid',    emoji: '⚡', color: '#f97316', bg: '#2e1a0c' },
-  mentaliteit: { label: 'Mentaliteit', emoji: '💚', color: '#4ade80', bg: '#0c2e1a' },
+  techniek:    { label: 'Techniek',    emoji: '\u{1F3AF}', color: '#38bdf8', bg: '#0c1a2e' },
+  inzicht:     { label: 'Inzicht',     emoji: '\u{1F9E0}', color: '#a78bfa', bg: '#1a0c2e' },
+  snelheid:    { label: 'Snelheid',    emoji: '\u26A1', color: '#f97316', bg: '#2e1a0c' },
+  mentaliteit: { label: 'Mentaliteit', emoji: '\u{1F49A}', color: '#4ade80', bg: '#0c2e1a' },
 } as const;

@@ -478,7 +478,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
   };
 
-  const handleChallengeComplete = async (challengeId: string, reflection: string): Promise<string | null> => {
+  const handleChallengeComplete = async (challengeId: string, reflection: string, videoUrl?: string, videoAIFeedback?: string): Promise<string | null> => {
     if (!userData.teamId || !activePlayer) return null;
 
     // Zoek de challenge op voor de category
@@ -488,10 +488,17 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
     const oldTier = playerStats?.tier ?? 'brons';
 
-    // Sla completion op in DB
+    // Sla completion op in DB met video data
     const { data: completion } = await supabase
       .from('challenge_completions')
-      .insert({ challenge_id: challengeId, player_id: user.id, team_id: userData.teamId, reflection: reflection || null })
+      .insert({
+        challenge_id: challengeId,
+        player_id: user.id,
+        team_id: userData.teamId,
+        reflection: reflection || null,
+        video_url: videoUrl || null,
+        video_ai_feedback: videoAIFeedback || null,
+      })
       .select()
       .single();
 
