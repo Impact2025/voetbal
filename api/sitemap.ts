@@ -14,7 +14,7 @@ export default async function handler(req: Req, res: Res) {
   const baseUrl = (process.env.PUBLIC_BASE_URL || `https://${req.headers['host'] || ''}`).trim();
   const { data } = await getAdminClient()
     .from('blog_posts')
-    .select('slug, updated_at')
+    .select('slug, updated_at, published_at')
     .eq('status', 'published')
     .order('updated_at', { ascending: false });
 
