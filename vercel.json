@@ -11,6 +11,7 @@
   ],
   "crons": [
     { "path": "/api/cron/daily-report", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/monthly-report", "schedule": "0 7 1 * *" }
+    { "path": "/api/cron/monthly-report", "schedule": "0 7 1 * *" },
+    { "path": "/api/cron/notify-parents", "schedule": "*/5 * * * *" }
   ]
 }

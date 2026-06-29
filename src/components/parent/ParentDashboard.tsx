@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut, Flame, Bell, BellOff, Loader2, MessageSquare,
   Calendar, TrendingUp, Home, Settings, CheckCircle2,
-  XCircle, Shield, Star, AlertTriangle, ChevronRight, Trophy,
+  XCircle, Shield, Star, AlertTriangle, ChevronRight, Trophy, Video, Zap,
 } from 'lucide-react';
 
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
@@ -130,6 +130,7 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
   const [loading, setLoading]         = useState(!demo);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [recentEvents, setRecentEvents]     = useState<{ title: string; body: string; event_type: string; created_at: string }[]>([]);
 
   const [npsScore, setNpsScore]         = useState<number | null>(null);
   const [npsFeedback, setNpsFeedback]   = useState('');
@@ -173,6 +174,34 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
             const days = (Date.now() - new Date(link.created_at).getTime()) / 86400000;
             if (days >= 7) setShowNpsModal(true);
           });
+      });
+
+    // Recente activiteit van kind (laatste 3 stat_events)
+    supabase.from('stat_events')
+      .select('event_type, meta, created_at')
+      .eq('player_id', pid)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data: events }) => {
+        if (!events?.length) return;
+        const labels: Record<string, { title: string; body: string }> = {
+          homework_done:  { title: '✅ Huiswerk ingeleverd',   body: 'Huiswerkopdracht afgerond' },
+          video_submitted: { title: '🎥 Video ingestuurd',    body: 'Nieuwe trainingsvideo' },
+          challenge_done: { title: '🏆 Uitdaging voltooid',   body: 'Voetbal-uitdaging afgerond' },
+          reflection:     { title: '💭 Reflectie gedeeld',    body: 'Gedachten over training' },
+          teamspirit:     { title: '🤝 Teamspirit getoond',   body: 'Positieve bijdrage aan team' },
+        };
+        setRecentEvents(
+          events
+            .filter((e: { event_type: string }) => labels[e.event_type])
+            .map((e: { event_type: string; created_at: string }) => ({
+              title: labels[e.event_type]?.title ?? '📢 Activiteit',
+              body: labels[e.event_type]?.body ?? 'Nieuwe activiteit',
+              event_type: e.event_type,
+              created_at: e.created_at,
+            }))
+            .slice(0, 3)
+        );
       });
 
     // VPC consent
@@ -475,6 +504,41 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                 </div>
               </div>
 
+              {recentEvents.length > 0 && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Recente activiteit</p>
+                  <div className="space-y-2.5">
+                    {recentEvents.map((ev, idx) => {
+                      const ago = () => {
+                        const diff = Date.now() - new Date(ev.created_at).getTime();
+                        const mins = Math.round(diff / 60000);
+                        if (mins < 60) return `${mins} min geleden`;
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs < 24) return `${hrs}u geleden`;
+                        return new Date(ev.created_at).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric' });
+                      };
+                      const eventIcon = ev.event_type === 'video_submitted' ? Video
+                        : ev.event_type === 'challenge_done' ? Zap
+                        : ev.event_type === 'homework_done' ? CheckCircle2
+                        : Bell;
+                      const Icon = eventIcon;
+                      return (
+                        <div key={idx} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 min-h-[48px]">
+                          <div className="p-1.5 rounded-lg shrink-0"
+                            style={{ backgroundColor: `${ACCENT}10` }}>
+                            <Icon size={14} style={{ color: ACCENT }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-900 truncate">{ev.title}</p>
+                            <p className="text-[10px] text-gray-400">{ago()}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {challenge && challMeta && (
                 <div className="rounded-2xl border p-4"
                   style={{ borderColor: `${challMeta.color}40`, backgroundColor: `${challMeta.color}08` }}>
@@ -723,16 +787,16 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                   className="w-full flex items-center justify-between py-3.5 min-h-[56px]">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl"
-                      style={{ backgroundColor: notifPrefs?.critical_alerts ? '#fef2f2' : '#f9fafb' }}>
-                      <AlertTriangle size={16}
-                        style={{ color: notifPrefs?.critical_alerts ? '#ef4444' : '#9ca3af' }} />
+                      style={{ backgroundColor: notifPrefs?.critical_alerts ? `${ACCENT}12` : '#f9fafb' }}>
+                      <Bell size={16}
+                        style={{ color: notifPrefs?.critical_alerts ? ACCENT : '#9ca3af' }} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-gray-900">Signaalberichten</p>
-                      <p className="text-[10px] text-gray-400">Melding als {firstName} langere tijd inactief is</p>
+                      <p className="text-sm font-bold text-gray-900">Directe updates</p>
+                      <p className="text-[10px] text-gray-400">Melding als {firstName} huiswerk, video of uitdagingen doet</p>
                     </div>
                   </div>
-                  <Toggle on={!!notifPrefs?.critical_alerts} color="#ef4444" />
+                  <Toggle on={!!notifPrefs?.critical_alerts} />
                 </button>
               </div>
 
