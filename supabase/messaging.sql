@@ -146,12 +146,13 @@ begin
   -- 1. Club admin(s) of this club
   return query
     select
-      p.id                as contact_id,
-      c.name              as contact_name,
-      'club_admin'::text  as contact_role,
-      'Club Admin'::text  as subtitle
+      p.id                              as contact_id,
+      coalesce(p.email, u.email)        as contact_name,
+      'club_admin'::text                as contact_role,
+      c.name                            as subtitle
     from profiles p
     join clubs c on c.id = p.club_id
+    join auth.users u on u.id = p.id
     where p.role = 'club_admin'
       and p.club_id = v_club_id;
 
