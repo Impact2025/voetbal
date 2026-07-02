@@ -697,6 +697,21 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   <span className="font-mono font-bold text-gray-900">{userData.teamId}</span>
                   {copied ? <CheckCircle2 size={13} style={{ color: COACH_COLOR }} /> : <Copy size={13} className="text-gray-400" />}
                 </button>
+                <button
+                  onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
+                  style={{ borderColor: `${COACH_COLOR}40`, color: COACH_COLOR, backgroundColor: `${COACH_COLOR}10` }}
+                >
+                  <Download size={14} /> App
+                </button>
+                <button onClick={() => setMobileSection('berichten')} title="Berichten" className="sm:hidden relative p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
+                  <MessageSquare size={16} />
+                  {unreadMessages > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
+                      {unreadMessages}
+                    </span>
+                  )}
+                </button>
                 <button onClick={() => setIsCoachProfileVisible(true)} title="Instellingen" className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
                   <Settings2 size={16} />
                 </button>
@@ -1358,13 +1373,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             )}
           </main>
 
+          {/* Install modal */}
+          <InstallModal
+            open={showInstallModal}
+            onClose={() => setShowInstallModal(false)}
+            role={userData.role === 'club_admin' ? 'club_admin' : 'coach'}
+          />
+
           {/* Mobile bottom nav */}
           <nav
             className="fixed bottom-0 left-0 right-0 sm:hidden z-30"
             style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="flex">
-              {COACH_SECTIONS.map(({ id, label, icon: Icon }) => {
+              {COACH_SECTIONS.filter(({ id }) => id !== 'berichten').map(({ id, label, icon: Icon }) => {
                 const isActive = mobileSection === id;
                 return (
                   <button
@@ -1378,11 +1400,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     )}
                     <Icon size={20} />
                     <span className="text-[9px] font-bold tracking-wide uppercase">{label}</span>
-                    {id === 'berichten' && unreadMessages > 0 && (
-                      <span className="absolute top-1.5 right-1/4 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] flex items-center justify-center font-black">
-                        {unreadMessages}
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -1580,6 +1597,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             playerId={userData.role === 'player' ? user.id : undefined}
             open={showInstallModal}
             onClose={() => setShowInstallModal(false)}
+            role="player"
           />
 
           {/* Player bottom nav */}
