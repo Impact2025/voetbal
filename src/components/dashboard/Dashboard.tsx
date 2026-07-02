@@ -46,6 +46,7 @@ import OnboardingTour from '../OnboardingTour';
 import ProGate from '../ui/ProGate';
 const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
+const TeamChatLazy = lazy(() => import('../chat/TeamChat'));
 import PushNotificationSender from '../notifications/PushNotificationSender';
 import InstallModal from '../modals/InstallModal';
 import { usePWA } from '../../lib/usePWA';
