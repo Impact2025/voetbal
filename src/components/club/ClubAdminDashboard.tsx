@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, Trophy, Copy, CheckCircle2, LogOut, Building2, Shield,
-  TrendingUp, TrendingDown, Minus, ChevronLeft, CalendarCheck,
+  TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronDown, CalendarCheck,
   ClipboardList, BarChart2, AlertTriangle, Star, Loader2,
-  LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare, Heart,
+  LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare, Heart, Download,
 } from 'lucide-react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -19,6 +19,8 @@ import ParentLinkModal from '../parent/ParentLinkModal';
 import TrainersTab from './TrainersTab';
 import ClubTrainingTab from './ClubTrainingTab';
 import MessagingInbox from '../messaging/MessagingInbox';
+import { usePWA } from '../../lib/usePWA';
+import InstallModal from '../modals/InstallModal';
 import type { UserData } from '../../types';
 
 const ACCENT = '#16A34A';
@@ -81,6 +83,15 @@ const scoreColor = (score: number) =>
 const pctColor = (pct: number) =>
   pct >= 80 ? '#16A34A' : pct >= 60 ? '#7c3aed' : pct >= 40 ? '#d97706' : '#dc2626';
 
+// Leidt een leeftijdscategorie (bv. "O12") af uit de KNVB-teamnaam (bv. "JO12-2").
+// Groepeert op de categorie waarin het team uitkomt, niet op de eigen leeftijd van de speler —
+// zo blijft een speler die in een hogere categorie speelt zichtbaar bij die categorie.
+const deriveAgeCategory = (teamClass: string): string => {
+  const match = (teamClass || '').match(/(?:JO|O)?\s*(\d{1,2})/i);
+  if (match) return `O${match[1]}`;
+  return teamClass?.trim() || 'Overig';
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatBar = ({ value, color }: { value: number; color: string }) => (
@@ -123,6 +134,9 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const [section, setSection] = useState<SectionId>('overzicht');
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [parentLinkTarget, setParentLinkTarget] = useState<{ id: string; teamId: string; name: string } | null>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [expandedAges, setExpandedAges] = useState<Set<string>>(new Set());
+  const { canInstall, showInstallPrompt } = usePWA();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -222,6 +236,42 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     }, 0) / group.skills.length;
     return { subject: group.label, value: +avg.toFixed(1), fullMark: 10 };
   }), [allPlayers, teams]);
+
+  const playersByAge = useMemo(() => {
+    const groups = new Map<string, { catNum: number | null; rows: { player: PlayerRow; team: TeamEnriched; score: number }[] }>();
+    allPlayers.forEach(p => {
+      const team = teams.find(t => t.id === p.team_id);
+      if (!team) return;
+      const score = toScore(calcSkillAvg(p, team.evaluation_periods.at(-1)!));
+      const category = deriveAgeCategory(team.team_class);
+      if (!groups.has(category)) {
+        const m = category.match(/^O(\d{1,2})$/);
+        groups.set(category, { catNum: m ? Number(m[1]) : null, rows: [] });
+      }
+      groups.get(category)!.rows.push({ player: p, team, score });
+    });
+    return [...groups.entries()]
+      .sort(([catA, a], [catB, b]) => {
+        if (a.catNum !== null && b.catNum !== null) return a.catNum - b.catNum;
+        if (a.catNum !== null) return -1;
+        if (b.catNum !== null) return 1;
+        return catA.localeCompare(catB);
+      })
+      .map(([category, { catNum, rows }]) => ({
+        category,
+        catNum,
+        rows: rows.sort((a, b) => b.score - a.score),
+        avgScore: Math.round(rows.reduce((s, r) => s + r.score, 0) / rows.length),
+      }));
+  }, [allPlayers, teams]);
+
+  const toggleAgeGroup = (category: string) => {
+    setExpandedAges(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category); else next.add(category);
+      return next;
+    });
+  };
 
   const topPerformers = useMemo(() =>
     allPlayers.map(p => {
@@ -339,12 +389,25 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               <span className="font-mono font-bold text-gray-900">{userData.clubId}</span>
               {copied ? <CheckCircle2 size={13} className="text-green-600" /> : <Copy size={13} className="text-gray-400" />}
             </button>
+            <button
+              onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
+              style={{ borderColor: `${ACCENT}40`, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+            >
+              <Download size={14} /> App
+            </button>
             <button onClick={async () => { await supabase.auth.signOut(); onLogout(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-500">
               <LogOut size={16} />
             </button>
           </div>
         </div>
       </header>
+
+      <InstallModal
+        open={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        role="club_admin"
+      />
 
       {/* Desktop section tabs */}
       {!selectedTeam && (
@@ -619,6 +682,60 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         ) : section === 'spelers' ? (
           /* ── Spelers ── */
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+
+            <Card light>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-1.5">
+                <Users size={11} style={{ color: ACCENT }} /> Spelers per leeftijdscategorie
+              </p>
+              {playersByAge.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">Nog geen spelers.</p>
+              ) : (
+                <div className="space-y-2">
+                  {playersByAge.map(({ category, catNum, rows, avgScore }) => {
+                    const isOpen = expandedAges.has(category);
+                    return (
+                      <div key={category} className="rounded-xl bg-gray-50 overflow-hidden">
+                        <button onClick={() => toggleAgeGroup(category)} className="w-full flex items-center gap-3 p-3 text-left">
+                          <span className="text-sm font-black text-gray-900 shrink-0 w-16">{category}</span>
+                          <span className="text-xs text-gray-400 flex-1">
+                            {rows.length} speler{rows.length === 1 ? '' : 's'}
+                          </span>
+                          <span className="text-sm font-black shrink-0" style={{ color: scoreColor(avgScore) }}>{avgScore}</span>
+                          <ChevronDown size={14} className={`text-gray-300 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {isOpen && (
+                          <div className="px-3 pb-3 space-y-1.5">
+                            {rows.map(({ player, team, score }) => {
+                              const playerAgeNum = parseInt((player.age || '').trim(), 10);
+                              const playsUp = catNum !== null && Number.isFinite(playerAgeNum) && playerAgeNum < catNum;
+                              return (
+                                <div key={player.id} className="flex items-center gap-3 p-2 rounded-lg bg-white">
+                                  <img src={player.avatar_url} alt={player.name} className="w-7 h-7 rounded-full shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{player.name}</p>
+                                    <p className="text-[10px] text-gray-400 truncate">{team.team_name}{player.position ? ` · ${player.position}` : ''}</p>
+                                  </div>
+                                  {Number.isFinite(playerAgeNum) && (
+                                    <span
+                                      className="flex items-center gap-0.5 text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded-md"
+                                      style={playsUp ? { color: ACCENT, backgroundColor: `${ACCENT}15` } : { color: '#9ca3af' }}
+                                      title={playsUp ? 'Speelt boven zijn leeftijd' : undefined}
+                                    >
+                                      {playsUp && <TrendingUp size={10} />}{playerAgeNum} jr
+                                    </span>
+                                  )}
+                                  <div className="text-base font-black shrink-0" style={{ color: scoreColor(score) }}>{score}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
 
             <Card light>
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-1.5">
