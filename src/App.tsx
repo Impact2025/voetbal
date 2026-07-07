@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { NEON_COLOR } from './utils/constants';
+import { applyManifestForRole } from './lib/pwaManifest';
 import AuthComponent from './components/auth/AuthComponent';
 import Dashboard from './components/dashboard/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
-import ConsentModal, { hasConsented } from './components/modals/ConsentModal';
+import ConsentModal from './components/modals/ConsentModal';
+import { hasConsented } from './lib/consent';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import LandingPage from './components/landing/LandingPage';
 import OnlineBanner from './components/OnlineBanner';
@@ -83,6 +85,12 @@ export default function Skillkaart() {
     void ping();
   }, []);
 
+  // Koppel de install-manifest (naam, beschrijving, screenshots) aan de rol
+  // van de ingelogde gebruiker, zodra die bekend is.
+  useEffect(() => {
+    applyManifestForRole(showParentDemo ? 'parent' : userData?.role);
+  }, [userData?.role, showParentDemo]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -122,20 +130,28 @@ export default function Skillkaart() {
         if (session?.user) {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
 
-          // Magic link auto-claim: ouder klikt de link → ?parentCode=XYZ in URL + geen profiel
+          // Magic link auto-claim: ouder klikt de link → ?parentCode=XYZ in URL.
+          // Claim onafhankelijk van profiel-existentie zodat een 2e/3e kind ook
+          // geclaimd kan worden door een ouder die al een account heeft.
           const parentCode = new URLSearchParams(window.location.search).get('parentCode');
-          if (parentCode && !data && !cancelled) {
+          if (parentCode && !cancelled) {
             try {
               const code = parentCode.trim().toUpperCase();
               const { data: link } = await supabase
                 .from('parent_links').select('*')
                 .eq('link_code', code).eq('verified', false).maybeSingle();
               if (link) {
-                await supabase.from('profiles').insert({ id: session.user.id, role: 'parent', team_id: link.team_id });
+                if (!data) {
+                  await supabase.from('profiles').insert({ id: session.user.id, role: 'parent', team_id: link.team_id });
+                  await supabase.from('notification_prefs').insert({ parent_id: session.user.id, weekly_digest: true, critical_alerts: true, channel: 'email', detail_level: 'light' });
+                }
                 await supabase.from('parent_links').update({ parent_id: session.user.id, verified: true }).eq('link_code', code);
-                await supabase.from('notification_prefs').insert({ parent_id: session.user.id, weekly_digest: true, critical_alerts: true, channel: 'email', detail_level: 'light' });
+                const { data: links } = await supabase
+                  .from('parent_links').select('player_id')
+                  .eq('parent_id', session.user.id).eq('verified', true).order('created_at');
+                const linkedPlayerIds = (links ?? []).map(l => l.player_id);
                 setSession(session);
-                setUserData({ id: session.user.id, uid: session.user.id, role: 'parent', team_id: link.team_id, teamId: link.team_id, linkedPlayerId: link.player_id });
+                setUserData({ id: session.user.id, uid: session.user.id, role: 'parent', team_id: link.team_id, teamId: link.team_id, linkedPlayerId: linkedPlayerIds[0] ?? link.player_id, linkedPlayerIds });
                 lastKnownUserId.current = session.user.id;
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
@@ -148,10 +164,11 @@ export default function Skillkaart() {
           if (!cancelled) {
             setSession(session);
             if (data?.role === 'parent') {
-              const { data: link } = await supabase
+              const { data: links } = await supabase
                 .from('parent_links').select('player_id')
-                .eq('parent_id', session.user.id).eq('verified', true).maybeSingle();
-              setUserData({ ...data, teamId: data.team_id, linkedPlayerId: link?.player_id ?? null });
+                .eq('parent_id', session.user.id).eq('verified', true).order('created_at');
+              const linkedPlayerIds = (links ?? []).map(l => l.player_id);
+              setUserData({ ...data, teamId: data.team_id, linkedPlayerId: linkedPlayerIds[0] ?? null, linkedPlayerIds });
             } else {
               setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
             }
@@ -186,24 +203,33 @@ export default function Skillkaart() {
       if (_event === 'INITIAL_SESSION') return;
 
       if (session?.user) {
-        if (lastKnownUserId.current === session.user.id) { setSession(session); return; }
+        const parentCode = new URLSearchParams(window.location.search).get('parentCode');
+        // Bij een nieuwe koppelcode niet vroegtijdig stoppen, ook niet als deze
+        // ouder al ingelogd was — anders wordt een 2e/3e kind nooit geclaimd.
+        if (lastKnownUserId.current === session.user.id && !parentCode) { setSession(session); return; }
         try {
           const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
 
-          // Magic link auto-claim: ouder klikt link → SIGNED_IN → geen profiel → auto-claim
-          const parentCode = new URLSearchParams(window.location.search).get('parentCode');
-          if (parentCode && !data) {
+          // Magic link auto-claim: ouder klikt link → SIGNED_IN → claim onafhankelijk
+          // van profiel-existentie (idempotent) zodat een 2e kind ook werkt.
+          if (parentCode) {
             try {
               const code = parentCode.trim().toUpperCase();
               const { data: link } = await supabase
                 .from('parent_links').select('*')
                 .eq('link_code', code).eq('verified', false).maybeSingle();
               if (link) {
-                await supabase.from('profiles').insert({ id: session.user.id, role: 'parent', team_id: link.team_id });
+                if (!data) {
+                  await supabase.from('profiles').insert({ id: session.user.id, role: 'parent', team_id: link.team_id });
+                  await supabase.from('notification_prefs').insert({ parent_id: session.user.id, weekly_digest: true, critical_alerts: true, channel: 'email', detail_level: 'light' });
+                }
                 await supabase.from('parent_links').update({ parent_id: session.user.id, verified: true }).eq('link_code', code);
-                await supabase.from('notification_prefs').insert({ parent_id: session.user.id, weekly_digest: true, critical_alerts: true, channel: 'email', detail_level: 'light' });
+                const { data: links } = await supabase
+                  .from('parent_links').select('player_id')
+                  .eq('parent_id', session.user.id).eq('verified', true).order('created_at');
+                const linkedPlayerIds = (links ?? []).map(l => l.player_id);
                 setSession(session);
-                setUserData({ id: session.user.id, uid: session.user.id, role: 'parent', team_id: link.team_id, teamId: link.team_id, linkedPlayerId: link.player_id });
+                setUserData({ id: session.user.id, uid: session.user.id, role: 'parent', team_id: link.team_id, teamId: link.team_id, linkedPlayerId: linkedPlayerIds[0] ?? link.player_id, linkedPlayerIds });
                 lastKnownUserId.current = session.user.id;
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
@@ -215,10 +241,11 @@ export default function Skillkaart() {
 
           setSession(session);
           if (data?.role === 'parent') {
-            const { data: link } = await supabase
+            const { data: links } = await supabase
               .from('parent_links').select('player_id')
-              .eq('parent_id', session.user.id).eq('verified', true).maybeSingle();
-            setUserData({ ...data, teamId: data.team_id, linkedPlayerId: link?.player_id ?? null });
+              .eq('parent_id', session.user.id).eq('verified', true).order('created_at');
+            const linkedPlayerIds = (links ?? []).map(l => l.player_id);
+            setUserData({ ...data, teamId: data.team_id, linkedPlayerId: linkedPlayerIds[0] ?? null, linkedPlayerIds });
           } else {
             setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
           }
@@ -299,7 +326,7 @@ export default function Skillkaart() {
     );
   }
 
-  const isLightTheme = !!(session && userData && userData.role !== 'player');
+  const isLightTheme = !!(session && userData);
 
   return (
     <div className={isLightTheme ? 'bg-white text-gray-900 font-sans min-h-screen' : 'bg-gradient-to-b from-[#0D0D0D] to-[#1A1A1A] text-white font-sans'} style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>

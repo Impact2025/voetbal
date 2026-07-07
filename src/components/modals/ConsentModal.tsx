@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, X } from 'lucide-react';
-import { NEON_COLOR } from '../../utils/constants';
-
-const CONSENT_KEY = 'gdpr_consent_v1';
+import { COACH_COLOR } from '../../utils/constants';
+import { CONSENT_KEY } from '../../lib/consent';
 
 interface ConsentModalProps {
   onAccept: () => void;
@@ -33,19 +32,19 @@ const ConsentModal = ({ onAccept, onShowPrivacy }: ConsentModalProps) => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 60, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-            className="w-full max-w-lg bg-[#111318] border border-gray-700 rounded-2xl p-6 shadow-2xl"
+            className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-6 shadow-2xl"
           >
             <div className="flex items-start gap-4 mb-4">
-              <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: `${NEON_COLOR}15` }}>
-                <ShieldCheck size={24} style={{ color: NEON_COLOR }} />
+              <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: `${COACH_COLOR}15` }}>
+                <ShieldCheck size={24} style={{ color: COACH_COLOR }} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Privacy & Gegevensbescherming</h2>
-                <p className="text-sm text-gray-400 mt-0.5">Lees hoe we omgaan met persoonsgegevens</p>
+                <h2 className="text-lg font-bold text-gray-900">Privacy & Gegevensbescherming</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Lees hoe we omgaan met persoonsgegevens</p>
               </div>
             </div>
 
-            <div className="text-sm text-gray-300 space-y-3 leading-relaxed mb-6">
+            <div className="text-sm text-gray-600 space-y-3 leading-relaxed mb-6">
               <p>
                 Skillkaart slaat gegevens op van voetbalspelers, waaronder naam, leeftijd, positie en prestatie-evaluaties. Deze gegevens worden uitsluitend gebruikt om de sportieve ontwikkeling te ondersteunen.
               </p>
@@ -54,7 +53,7 @@ const ConsentModal = ({ onAccept, onShowPrivacy }: ConsentModalProps) => {
               </p>
               <p className="text-gray-500 text-xs">
                 Gegevens worden bewaard zolang het team actief is en worden op verzoek verwijderd. Zie onze{' '}
-                <button onClick={onShowPrivacy} className="underline hover:text-white transition-colors" style={{ color: NEON_COLOR }}>
+                <button onClick={onShowPrivacy} className="underline hover:text-gray-900 transition-colors" style={{ color: COACH_COLOR }}>
                   privacyverklaring
                 </button>{' '}
                 voor meer informatie.
@@ -64,14 +63,14 @@ const ConsentModal = ({ onAccept, onShowPrivacy }: ConsentModalProps) => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleAccept}
-                className="flex-1 py-3 rounded-xl font-bold text-black text-sm hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: NEON_COLOR }}
+                className="flex-1 py-3 rounded-xl font-bold text-white text-sm hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: COACH_COLOR }}
               >
                 Akkoord — doorgaan
               </button>
               <button
                 onClick={onShowPrivacy}
-                className="flex-1 py-3 rounded-xl font-semibold text-sm text-gray-300 bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors"
+                className="flex-1 py-3 rounded-xl font-semibold text-sm text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
               >
                 Meer lezen
               </button>
@@ -82,7 +81,5 @@ const ConsentModal = ({ onAccept, onShowPrivacy }: ConsentModalProps) => {
     </AnimatePresence>
   );
 };
-
-export const hasConsented = () => !!localStorage.getItem(CONSENT_KEY);
 
 export default ConsentModal;
