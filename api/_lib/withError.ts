@@ -11,22 +11,6 @@
  *   }
  */
 
-/** Dynamische import van Sentry — werkt pas als SENTRY_DSN is gezet */
-let sentryModule: Promise<unknown> | null = null;
-function getSentry(): typeof import('@sentry/vercel-edge') | null {
-  if (!process.env.SENTRY_DSN) return null;
-  if (!sentryModule) {
-    sentryModule = import('@sentry/vercel-edge').then(
-      (m) => {
-        try { m.init({ dsn: process.env.SENTRY_DSN, environment: process.env.VERCEL_ENV || 'development', tracesSampleRate: 0.1 }); } catch { /* ignore */ }
-        return m;
-      },
-      () => null,
-    );
-  }
-  return null;  // lazy — first call triggers init
-}
-
 /** Capture een exception naar Sentry (fire-and-forget) */
 function capture(err: Error): void {
   if (!process.env.SENTRY_DSN) { console.error('[withError]', err); return; }

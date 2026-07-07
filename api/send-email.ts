@@ -63,7 +63,7 @@ export default async function handler(req: Req, res: Res) {
   // Input-validatie met zod
   if (!validateOrError(SendEmailSchema, req.body, res)) return;
 
-  const { to, toNames, subject, body, clubName, senderEmail } = req.body;
+  const { to, subject, body, clubName, senderEmail } = req.body;
 
   if (!to?.length || !subject?.trim() || !body?.trim()) {
     return res.status(400).json({ error: 'Ontbrekende verplichte velden.' });

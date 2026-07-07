@@ -4,7 +4,6 @@ import {
   Loader2, Send, MessageSquare, Hash, Plus, X, ChevronDown,
   CheckCheck, Reply, Bell, BellOff, Users, AtSign,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import {
   fetchMessages, sendMessage, subscribeToChannel,
   fetchChannels, ensureChannels, joinChannel,
@@ -72,7 +71,6 @@ export default function TeamChat({
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [replyTo, setReplyTo] = useState<TeamChannelMessageRow | null>(null);
   const [showChannelList, setShowChannelList] = useState(false);
-  const [joinedChannels, setJoinedChannels] = useState<Set<string>>(new Set());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,8 +91,7 @@ export default function TeamChat({
         const joinPromises = chs.map((ch) =>
           joinChannel(ch.id, userData.uid, role).then(() => ch.id),
         );
-        Promise.all(joinPromises).then((ids) => {
-          setJoinedChannels(new Set(ids));
+        Promise.all(joinPromises).then(() => {
           if (!activeChannel && chs.length > 0) {
             setActiveChannel(chs[0].id);
           }
@@ -202,7 +199,6 @@ export default function TeamChat({
       const isMe = m.sender_id === userData.uid;
       const showDate = !lastDate || !sameDay(m.created_at, lastDate);
       const showSender = m.sender_name !== lastSender;
-      const showAvatar = showSender || (i > 0 && messages[i - 1].sender_id !== m.sender_id);
 
       if (showDate) {
         elements.push(

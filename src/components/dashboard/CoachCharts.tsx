@@ -10,7 +10,7 @@ interface CoachChartsProps {
   activeTab: string;
 }
 
-export default function CoachCharts({ players, activePlayer, activeTab }: CoachChartsProps) {
+export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProps) {
   const [chartsReady, setChartsReady] = useState(false);
   const [Charts, setCharts] = useState<any>(null);
 

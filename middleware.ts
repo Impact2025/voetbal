@@ -16,6 +16,7 @@ const STRICT: Record<string, number> = {
   '/api/send-parent-invite': 15,
   '/api/admin/send-campaign': 5,
   '/api/send-login-link': 10,
+  '/api/ai': 20,
 };
 
 // ─── State (in-memory per edge node) ───────────────────────────────────────
@@ -80,10 +81,8 @@ export default function middleware(request: Request): Response | undefined {
     });
   }
 
-  // Doorgestuurd — voeg rate limit headers toe
-  const response = new Response(null, { status: 102 }); // 102 = interim
-  // We can't modify the actual response here for Vite SPA, but we log the limit info
-  return undefined; // undefined = passthrough
+  // Doorgestuurd (passthrough) — rate limit is al gecontroleerd hierboven.
+  return undefined;
 }
 
 export const config = {

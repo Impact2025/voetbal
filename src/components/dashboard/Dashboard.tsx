@@ -47,6 +47,7 @@ import ProGate from '../ui/ProGate';
 const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
 const TeamChatLazy = lazy(() => import('../chat/TeamChat'));
+const PlayerNotificationsInbox = lazy(() => import('../notifications/PlayerNotificationsInbox'));
 import PushNotificationSender from '../notifications/PushNotificationSender';
 import InstallModal from '../modals/InstallModal';
 import { usePWA } from '../../lib/usePWA';
@@ -118,6 +119,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const { canInstall, showInstallPrompt } = usePWA();
   const [isClubPro, setIsClubPro] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadPlayerNotifications, setUnreadPlayerNotifications] = useState(0);
   const skipRealtimeRef = useRef(false);
 
   useEffect(() => {
@@ -555,19 +557,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     setIsGenerating(prev => ({ ...prev, comments: false }));
   };
 
-  const handleGeneratePlan = async () => {
-    if (!activePlayer) return;
-    setIsGenerating(prev => ({ ...prev, plan: true }));
-    const currentEval = activePlayer.evaluations[activeTab];
-    const sortedSkills = Object.entries(currentEval.skills).sort(([, a], [, b]) => b - a);
-    const topSkills = sortedSkills.slice(0, 2).map(s => s[0]).join(', ');
-    const bottomSkills = sortedSkills.slice(-2).map(s => s[0]).join(', ');
-    const prompt = `Genereer een beknopt, positief en motiverend persoonlijk trainingsplan in het Nederlands voor een jonge voetballer (7-12 jaar). Focus op het verbeteren van zwakke punten en benutten van sterke punten. Sterke punten: ${topSkills}. Zwakke punten: ${bottomSkills}. Coach opmerkingen: "${currentEval.comments}". Het plan moet bestaan uit 2-3 leuke, uitvoerbare oefeningen voor thuis. Formatteer het als een lijst met koppeltekens.`;
-    const result = await callAI(prompt);
-    handleUpdateEvaluation('trainingPlan', result);
-    setIsGenerating(prev => ({ ...prev, plan: false }));
-  };
-
   const handleGeneratePlanForPlayer = async (player: Player) => {
     const currentEval = player.evaluations[activeTab];
     if (!currentEval) return;
@@ -603,45 +592,26 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     toast.success('Teamsessie opgeslagen.');
   };
 
-  const radarChartData = useMemo(() => {
-    if (!activePlayer) return [];
-    const skills = activePlayer.evaluations[activeTab]?.skills ?? {};
-    return SKILL_GROUPS.map(group => {
-      const avg = group.skills.reduce((sum, s) => sum + (skills[s.key] ?? 5), 0) / group.skills.length;
-      return { subject: group.label, value: parseFloat(avg.toFixed(1)), fullMark: 10 };
-    });
-  }, [activePlayer, activeTab]);
-
-  const lineChartData = useMemo(() => {
-    if (!activePlayer) return [];
-    return teamPeriods.map(period => {
-      const evalData = activePlayer.evaluations?.[period];
-      if (!evalData) return { name: period, 'Gem. Skill': 0, 'Wedstrijdcijfer': 0 };
-      const skillAverage = skillKeys.reduce((sum, key) => sum + (evalData.skills[key] || 0), 0) / skillKeys.length;
-      return { name: period, 'Gem. Skill': parseFloat(skillAverage.toFixed(1)), 'Wedstrijdcijfer': evalData.matchRating };
-    });
-  }, [activePlayer, teamPeriods]);
-
   if (!activePlayer && userData.role === 'player') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center px-6" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+      <div className="flex flex-col items-center justify-center min-h-screen text-center px-6 text-gray-900">
         {fetchError ? (
           <>
-            <h2 className="text-2xl font-bold text-red-400 mb-2">Verbinding mislukt</h2>
-            <p className="text-gray-400 mb-6">Kan geen verbinding maken met de server. Controleer je internet en probeer opnieuw.</p>
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Verbinding mislukt</h2>
+            <p className="text-gray-500 mb-6">Kan geen verbinding maken met de server. Controleer je internet en probeer opnieuw.</p>
             <button
               onClick={() => { setFetchError(false); window.location.reload(); }}
-              className="px-6 py-2 rounded-xl font-bold text-black hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: NEON_COLOR }}
+              className="px-6 py-2 rounded-xl font-bold text-white hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: COACH_COLOR }}
             >
               Opnieuw proberen
             </button>
           </>
         ) : (
           <>
-            <Loader2 className="animate-spin h-12 w-12 text-[--neon-color] mb-4" />
+            <Loader2 className="animate-spin h-12 w-12 mb-4" style={{ color: COACH_COLOR }} />
             <h2 className="text-2xl font-bold">Laden van spelerdata...</h2>
-            <p className="text-gray-400">Een ogenblik geduld.</p>
+            <p className="text-gray-500">Een ogenblik geduld.</p>
           </>
         )}
       </div>
@@ -651,7 +621,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   return (
     <div className="min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
       <OnboardingTour role={(userData.role === 'player' ? 'player' : 'coach')} />
-      <Toaster position="bottom-center" toastOptions={{ style: { background: '#1A1A1A', color: '#fff', border: '1px solid #333' }, success: { iconTheme: { primary: '#00FF9D', secondary: '#000' } } }} />
+      <Toaster position="bottom-center" toastOptions={{ style: { background: '#fff', color: '#111827', border: '1px solid #e5e7eb' }, success: { iconTheme: { primary: COACH_COLOR, secondary: '#fff' } } }} />
       <AnimatePresence>
         {pendingTierUp && (
           <TierUpModal tier={pendingTierUp} onClose={() => setPendingTierUp(null)} />
@@ -1413,20 +1383,28 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         <div className="flex flex-col min-h-screen">
 
           {/* Sticky header */}
-          <header className="sticky top-0 z-20 bg-[#090B0F]/90 backdrop-blur-xl border-b border-white/[0.06] px-4 py-3">
+          <header className="sticky top-0 z-20 bg-white/98 backdrop-blur-md border-b border-gray-200 px-4 py-3">
             <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-              <h1 className="text-xl font-black tracking-wide truncate" style={{ color: NEON_COLOR, textShadow: `0 0 20px ${NEON_COLOR}40` }}>
+              <h1 className="text-xl font-black tracking-wide truncate text-gray-900">
                 {teamData.team_name || 'Skillkaart'}
               </h1>
               <div className="flex items-center gap-2">
+                <button onClick={() => setMobileSection('berichten')} title="Berichten" className="relative p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
+                  <MessageSquare size={16} />
+                  {unreadPlayerNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
+                      {unreadPlayerNotifications}
+                    </span>
+                  )}
+                </button>
                 <button
                   onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
-                  style={{ borderColor: `${NEON_COLOR}40`, color: NEON_COLOR, backgroundColor: `${NEON_COLOR}10` }}
+                  style={{ borderColor: `${COACH_COLOR}40`, color: COACH_COLOR, backgroundColor: `${COACH_COLOR}10` }}
                 >
                   <Download size={14} /> App
                 </button>
-                <button onClick={onPlayerLogout} className="p-2 rounded-lg bg-gray-800/80 border border-gray-700 hover:bg-red-900/40 transition-colors text-red-400">
+                <button onClick={onPlayerLogout} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-400">
                   <LogOut size={16} />
                 </button>
               </div>
@@ -1434,7 +1412,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           </header>
 
           {/* Desktop section tabs */}
-          <nav className="hidden sm:block border-b border-white/[0.06] bg-[#090B0F]/60 px-4">
+          <nav className="hidden sm:block border-b border-gray-200 bg-white px-4">
             <div className="max-w-6xl mx-auto flex">
               {PLAYER_SECTIONS.map(({ id, label, icon: Icon }) => (
                 <button
@@ -1442,9 +1420,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   onClick={() => setMobileSection(id)}
                   className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all relative ${
                     mobileSection === id
-                      ? 'border-[--neon-color] text-white'
-                      : 'border-transparent text-gray-500 hover:text-gray-200'
+                      ? 'text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
+                  style={mobileSection === id ? { borderColor: COACH_COLOR, color: '#111827' } : {}}
                 >
                   <Icon size={15} />
                   {label}
@@ -1488,7 +1467,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 />
               </div>
 
-              <div id="today-challenges" className="scroll-mt-24 rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4">
+              <div id="today-challenges" className="scroll-mt-24 rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <ChallengeLibrary
                   player={activePlayer}
                   completions={challengeCompletions}
@@ -1501,8 +1480,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 <div id="today-questions" className="scroll-mt-24">
                   <Card>
                     <div className="flex items-center gap-2 mb-4">
-                      <ShieldCheck size={18} className="text-[--neon-color]" />
-                      <h3 className="text-lg font-black text-white">Vragen van je coach</h3>
+                      <ShieldCheck size={18} style={{ color: COACH_COLOR }} />
+                      <h3 className="text-lg font-black text-gray-900">Vragen van je coach</h3>
                     </div>
                     <QuestionPager
                       questions={visibleQuestions}
@@ -1537,12 +1516,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
               {/* Coach-evaluatie per periode (alleen-lezen) */}
               <Card>
-                <div className="flex justify-between items-center border-b border-gray-700 mb-4">
+                <div className="flex justify-between items-center border-b border-gray-200 mb-4">
                   <div className="flex">
                     {teamPeriods.map(period => (
-                      <button key={period} onClick={() => setActiveTab(period)} className={`px-4 py-3 text-sm sm:text-base font-medium transition-colors duration-200 relative ${activeTab === period ? 'text-white' : 'text-gray-400 hover:text-white'}`}>
+                      <button key={period} onClick={() => setActiveTab(period)} className={`px-4 py-3 text-sm sm:text-base font-medium transition-colors duration-200 relative ${activeTab === period ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
                         {period}
-                        {activeTab === period && (<motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[--neon-color]" layoutId="underline" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />)}
+                        {activeTab === period && (<motion.div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: COACH_COLOR }} layoutId="underline" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />)}
                       </button>
                     ))}
                   </div>
@@ -1552,12 +1531,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                       <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         {skillKeys.map(key => (
-                          <Slider key={key} label={key} value={activePlayer.evaluations[activeTab]?.skills[key] || 5} onChange={() => {}} disabled={true} />
+                          <Slider key={key} label={key} value={activePlayer.evaluations[activeTab]?.skills[key] || 5} onChange={() => {}} disabled={true} light />
                         ))}
                       </div>
-                      <hr className="md:col-span-2 border-gray-700" />
-                      <Input label="Wedstrijdcijfer (0-10)" type="number" value={activePlayer.evaluations[activeTab]?.matchRating || ''} onChange={() => {}} disabled={true} />
-                      <Textarea label="Opmerkingen Coach" placeholder="Nog geen opmerkingen" value={activePlayer.evaluations[activeTab]?.comments || ''} onChange={() => {}} disabled={true} />
+                      <hr className="md:col-span-2 border-gray-200" />
+                      <Input light label="Wedstrijdcijfer (0-10)" type="number" value={activePlayer.evaluations[activeTab]?.matchRating || ''} onChange={() => {}} disabled={true} />
+                      <Textarea light label="Opmerkingen Coach" placeholder="Nog geen opmerkingen" value={activePlayer.evaluations[activeTab]?.comments || ''} onChange={() => {}} disabled={true} />
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -1568,7 +1547,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
                   <Card>
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-1.5">
-                      <Target size={11} style={{ color: NEON_COLOR }} /> Jouw Trainingsplan
+                      <Target size={11} style={{ color: COACH_COLOR }} /> Jouw Trainingsplan
                     </p>
                     {activePlayer.evaluations[activeTab]?.structuredPlan ? (
                       <TrainingPlanCard
@@ -1577,7 +1556,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         period={activeTab}
                       />
                     ) : (
-                      <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-gray-800/40 rounded-xl p-4 border border-gray-700/40">
+                      <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line bg-gray-50 rounded-xl p-4 border border-gray-100">
                         {activePlayer.evaluations[activeTab]?.trainingPlan}
                       </div>
                     )}
@@ -1587,6 +1566,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
               {/* Fysieke testresultaten */}
               <TestResultsCard player={activePlayer} period={activeTab} />
+            </div>
+          )}
+
+          {/* ── BERICHTEN ── */}
+          {mobileSection === 'berichten' && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-lg font-black text-gray-900">Berichten</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Berichten van je trainer.</p>
+              </div>
+              <Suspense fallback={<div className="h-52 bg-gray-100 rounded-2xl animate-pulse" />}>
+                <PlayerNotificationsInbox playerId={user.id} onUnreadChange={setUnreadPlayerNotifications} />
+              </Suspense>
             </div>
           )}
 
@@ -1601,17 +1593,17 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           />
 
           {/* Player bottom nav */}
-          <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(9,11,15,0.97)', backdropFilter: 'blur(20px) saturate(180%)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex">
-              <button onClick={() => setMobileSection('vandaag')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'vandaag' ? NEON_COLOR : '#6b7280' }}>
+              <button onClick={() => setMobileSection('vandaag')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'vandaag' ? COACH_COLOR : '#9ca3af' }}>
                 <Flame size={20} />
                 <span className="text-[9px] font-semibold tracking-wider uppercase">Vandaag</span>
               </button>
-              <button onClick={() => setMobileSection('kaart')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'kaart' ? NEON_COLOR : '#6b7280' }}>
+              <button onClick={() => setMobileSection('kaart')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'kaart' ? COACH_COLOR : '#9ca3af' }}>
                 <Trophy size={20} />
                 <span className="text-[9px] font-semibold tracking-wider uppercase">Kaart</span>
               </button>
-              <button onClick={() => setMobileSection('ik')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'ik' ? NEON_COLOR : '#6b7280' }}>
+              <button onClick={() => setMobileSection('ik')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'ik' ? COACH_COLOR : '#9ca3af' }}>
                 <User size={20} />
                 <span className="text-[9px] font-semibold tracking-wider uppercase">Ik</span>
               </button>

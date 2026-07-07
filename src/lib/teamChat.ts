@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
 import type { TeamChannel, TeamChannelMember, TeamChannelMessage } from '../types';
 
-// ─── Types (lokaal, ook in types/index.ts) ──────────────────────────────────
+// ─── Types (hergebruik de generieke types uit ../types) ─────────────────────
 
-export interface TeamChannelRow extends TeamChannel {}
-export interface TeamChannelMemberRow extends TeamChannelMember {}
-export interface TeamChannelMessageRow extends TeamChannelMessage {}
+export type TeamChannelRow = TeamChannel;
+export type TeamChannelMemberRow = TeamChannelMember;
+export type TeamChannelMessageRow = TeamChannelMessage;
 
 // ─── Channels ───────────────────────────────────────────────────────────────
 
@@ -86,7 +86,6 @@ export async function sendMessage(
   replyTo?: string,
 ): Promise<TeamChannelMessageRow | null> {
   // Parse @mentions uit de content
-  const mentionRegex = /@([a-zA-Z0-9\s]+)/g;
   const detectedMentions = mentions?.map(m => m) ?? [];
 
   const { data } = await supabase

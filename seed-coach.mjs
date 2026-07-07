@@ -18,7 +18,7 @@ async function run() {
   console.log(`\n🔐 Aanmaken / inloggen als ${COACH_EMAIL}...`);
 
   // Try signup first
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  const { error: signUpError } = await supabase.auth.signUp({
     email: COACH_EMAIL,
     password: COACH_PASSWORD,
   });

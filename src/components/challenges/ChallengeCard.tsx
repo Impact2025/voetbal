@@ -4,8 +4,7 @@ import { ChevronDown, ChevronUp, CheckCircle2, Loader2, Wand2, Video, Upload, Ro
 import { CATEGORY_META } from '../../data/challenges';
 import { getChallengeAIFeedback, extractVideoFrames, analyzeChallengeVideo } from '../../lib/ai';
 import { uploadChallengeVideo } from '../../lib/storage';
-import { supabase } from '../../lib/supabase';
-import { NEON_COLOR } from '../../utils/constants';
+import { COACH_COLOR } from '../../utils/constants';
 import type { Challenge, ChallengeCompletion, Player } from '../../types';
 
 interface ChallengeCardProps {
@@ -152,8 +151,8 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
       layout
       className="rounded-2xl border overflow-hidden"
       style={{
-        borderColor: done ? `${meta.color}40` : 'rgba(255,255,255,0.06)',
-        background: done ? meta.bg : '#0d0f14',
+        borderColor: done ? `${meta.color}40` : '#e5e7eb',
+        background: done ? meta.bg : '#ffffff',
       }}
     >
       {/* Header row */}
@@ -170,9 +169,9 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-white leading-tight">{challenge.title}</span>
+            <span className="text-sm font-bold text-gray-900 leading-tight">{challenge.title}</span>
             {hasVideo && !done && videoStep === 'done' && (
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${NEON_COLOR}15`, color: NEON_COLOR }}>
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${COACH_COLOR}15`, color: COACH_COLOR }}>
                 Video klaar
               </span>
             )}
@@ -189,11 +188,11 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
             >
               {meta.label}
             </span>
-            <span className="text-[9px] text-gray-600">{challenge.age_min}-{challenge.age_max} jaar</span>
+            <span className="text-[9px] text-gray-400">{challenge.age_min}-{challenge.age_max} jaar</span>
           </div>
         </div>
 
-        <span className="shrink-0 text-gray-600">
+        <span className="shrink-0 text-gray-400">
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       </button>
@@ -208,12 +207,12 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-4 border-t border-white/[0.04]">
+            <div className="px-4 pb-4 space-y-4 border-t border-gray-100">
 
               {/* Setup */}
               <div className="pt-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">Setup</p>
-                <p className="text-sm text-gray-300 leading-relaxed">{challenge.setup}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Setup</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{challenge.setup}</p>
               </div>
 
               {/* Win condition */}
@@ -221,18 +220,18 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                 className="rounded-xl p-3 border"
                 style={{ backgroundColor: `${meta.color}0a`, borderColor: `${meta.color}25` }}
               >
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: `${meta.color}90` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: meta.color }}>
                   Win-conditie
                 </p>
-                <p className="text-sm font-semibold text-white leading-relaxed">{challenge.win_condition}</p>
+                <p className="text-sm font-semibold text-gray-900 leading-relaxed">{challenge.win_condition}</p>
               </div>
 
               {/* ── VIDEO UPLOAD (voor challenges die het ondersteunen) ── */}
               {hasVideo && !done && (
                 <div className="space-y-3 pt-1">
                   <div className="flex items-center gap-2">
-                    <Camera size={14} style={{ color: NEON_COLOR }} />
-                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: NEON_COLOR }}>
+                    <Camera size={14} style={{ color: COACH_COLOR }} />
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: COACH_COLOR }}>
                       Upload je uitvoering voor AI feedback
                     </span>
                   </div>
@@ -253,16 +252,16 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                       onClick={() => fileInputRef.current?.click()}
                       whileTap={{ scale: 0.98 }}
                       className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left"
-                      style={{ background: 'linear-gradient(135deg, rgba(0,255,157,0.08) 0%, rgba(0,255,157,0.03) 100%)', border: `1px solid ${NEON_COLOR}25` }}
+                      style={{ background: `linear-gradient(135deg, ${COACH_COLOR}0d 0%, ${COACH_COLOR}05 100%)`, border: `1px solid ${COACH_COLOR}30` }}
                     >
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `linear-gradient(135deg, ${NEON_COLOR}25, ${NEON_COLOR}10)`, border: `1px solid ${NEON_COLOR}30` }}>
-                        <Video size={18} style={{ color: NEON_COLOR }} />
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `linear-gradient(135deg, ${COACH_COLOR}25, ${COACH_COLOR}10)`, border: `1px solid ${COACH_COLOR}30` }}>
+                        <Video size={18} style={{ color: COACH_COLOR }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white leading-tight">Film je uitvoering</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Krijg persoonlijke AI-videoanalyse</p>
+                        <p className="text-sm font-bold text-gray-900 leading-tight">Film je uitvoering</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Krijg persoonlijke AI-videoanalyse</p>
                       </div>
-                      <div className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shrink-0" style={{ backgroundColor: `${NEON_COLOR}15`, color: NEON_COLOR }}>
+                      <div className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shrink-0" style={{ backgroundColor: `${COACH_COLOR}15`, color: COACH_COLOR }}>
                         AI
                       </div>
                     </motion.button>
@@ -275,10 +274,10 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                         <video src={previewUrl} className="w-full h-full object-contain" controls playsInline />
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={handleVideoReset} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-400 hover:text-white transition-colors">
+                        <button onClick={handleVideoReset} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 border border-gray-200 text-sm text-gray-500 hover:text-gray-900 transition-colors">
                           <RotateCcw size={14} /> Opnieuw
                         </button>
-                        <button onClick={handleVideoUpload} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold text-black hover:opacity-90 transition-opacity" style={{ backgroundColor: NEON_COLOR }}>
+                        <button onClick={handleVideoUpload} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: COACH_COLOR }}>
                           <Upload size={15} /> Upload & Analyseer
                         </button>
                       </div>
@@ -288,8 +287,8 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                   {/* PROGRESS: uploading / extracting / analyzing */}
                   {(videoStep === 'uploading' || videoStep === 'extracting' || videoStep === 'analyzing') && (
                     <motion.div key="progress" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                      <div className="flex items-center gap-2.5 text-sm text-gray-300">
-                        <Loader2 size={16} className="animate-spin shrink-0" style={{ color: NEON_COLOR }} />
+                      <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                        <Loader2 size={16} className="animate-spin shrink-0" style={{ color: COACH_COLOR }} />
                         <span>{VIDEO_STEPS.find(s => s.key === videoStep)?.label}</span>
                       </div>
                       <div className="space-y-1.5">
@@ -298,19 +297,19 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                           const isActive = s.key === videoStep;
                           return (
                             <div key={s.key} className="flex items-center gap-2.5">
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${isDone ? 'bg-green-500' : isActive ? '' : 'bg-gray-800'}`}
-                                style={isActive ? { backgroundColor: `${NEON_COLOR}30`, border: `1px solid ${NEON_COLOR}` } : {}}>
+                              <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${isDone ? 'bg-green-500' : isActive ? '' : 'bg-gray-100'}`}
+                                style={isActive ? { backgroundColor: `${COACH_COLOR}30`, border: `1px solid ${COACH_COLOR}` } : {}}>
                                 {isDone ? <CheckCircle2 size={12} className="text-white" />
-                                  : isActive ? <Loader2 size={9} className="animate-spin" style={{ color: NEON_COLOR }} /> : null}
+                                  : isActive ? <Loader2 size={9} className="animate-spin" style={{ color: COACH_COLOR }} /> : null}
                               </div>
-                              <span className={`text-xs ${isDone ? 'text-green-400' : isActive ? 'text-white font-medium' : 'text-gray-600'}`}>{s.label}</span>
+                              <span className={`text-xs ${isDone ? 'text-green-600' : isActive ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>{s.label}</span>
                             </div>
                           );
                         })}
                       </div>
                       {videoStep === 'uploading' && (
-                        <div className="bg-gray-800 rounded-full h-1.5 overflow-hidden">
-                          <motion.div className="h-1.5 rounded-full" style={{ backgroundColor: NEON_COLOR }} animate={{ width: `${uploadPct}%` }} transition={{ duration: 0.3 }} />
+                        <div className="bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <motion.div className="h-1.5 rounded-full" style={{ backgroundColor: COACH_COLOR }} animate={{ width: `${uploadPct}%` }} transition={{ duration: 0.3 }} />
                         </div>
                       )}
                     </motion.div>
@@ -318,14 +317,14 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
 
                   {/* VIDEO DONE */}
                   {videoStep === 'done' && videoAIFeedback && (
-                    <motion.div key="video-done" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl p-3 border" style={{ backgroundColor: `${NEON_COLOR}08`, borderColor: `${NEON_COLOR}25` }}>
+                    <motion.div key="video-done" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl p-3 border" style={{ backgroundColor: `${COACH_COLOR}08`, borderColor: `${COACH_COLOR}25` }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
-                          <CheckCircle2 size={13} className="text-green-400" />
-                          <span className="text-[10px] font-bold text-green-400 uppercase tracking-wide">Video-analyse ontvangen</span>
+                          <CheckCircle2 size={13} className="text-green-600" />
+                          <span className="text-[10px] font-bold text-green-600 uppercase tracking-wide">Video-analyse ontvangen</span>
                         </div>
                         {submittedVideoUrl && (
-                          <button onClick={() => setShowVideo(v => !v)} className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                          <button onClick={() => setShowVideo(v => !v)} className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-700 transition-colors">
                             <Play size={10} /> {showVideo ? 'Verberg' : 'Bekijk'}
                           </button>
                         )}
@@ -335,18 +334,18 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                           <video src={submittedVideoUrl} controls playsInline className="w-full max-h-40 object-contain" />
                         </div>
                       )}
-                      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{videoAIFeedback}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{videoAIFeedback}</p>
                     </motion.div>
                   )}
 
                   {/* VIDEO ERROR */}
                   {videoStep === 'error' && (
                     <motion.div key="video-error" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-950/30 border border-red-800/40">
-                        <div><p className="text-xs font-bold text-red-400">Er ging iets mis</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{videoErrorMsg || 'Onbekende fout'}</p></div>
+                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-50 border border-red-200">
+                        <div><p className="text-xs font-bold text-red-600">Er ging iets mis</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{videoErrorMsg || 'Onbekende fout'}</p></div>
                       </div>
-                      <button onClick={handleVideoReset} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-gray-700 text-xs text-gray-400 hover:text-white transition-colors">
+                      <button onClick={handleVideoReset} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:text-gray-900 transition-colors">
                         <RotateCcw size={12} /> Opnieuw proberen
                       </button>
                     </motion.div>
@@ -358,8 +357,8 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
               {done && hasVideo && completion?.video_url && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">Jouw video</span>
-                    <button onClick={() => setShowVideo(v => !v)} className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Jouw video</span>
+                    <button onClick={() => setShowVideo(v => !v)} className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-700 transition-colors">
                       <Play size={10} /> {showVideo ? 'Verberg' : 'Bekijk'}
                     </button>
                   </div>
@@ -370,8 +369,8 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                   )}
                   {completion.video_ai_feedback && (
                     <div className="rounded-xl p-3 border" style={{ backgroundColor: `${meta.color}08`, borderColor: `${meta.color}20` }}>
-                      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: `${meta.color}80` }}>Video-analyse</p>
-                      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{completion.video_ai_feedback}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: meta.color }}>Video-analyse</p>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{completion.video_ai_feedback}</p>
                     </div>
                   )}
                 </div>
@@ -382,16 +381,16 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                 <div className="space-y-3">
                   {challenge.reflection_prompt && (
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1.5">
-                        Reflectie <span className="font-normal normal-case text-gray-700">(optioneel)</span>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
+                        Reflectie <span className="font-normal normal-case text-gray-500">(optioneel)</span>
                       </p>
-                      <p className="text-xs text-gray-400 mb-2 italic">"{challenge.reflection_prompt}"</p>
+                      <p className="text-xs text-gray-500 mb-2 italic">"{challenge.reflection_prompt}"</p>
                       <textarea
                         value={reflection}
                         onChange={e => setReflection(e.target.value)}
                         placeholder="Schrijf hier je antwoord..."
                         rows={2}
-                        className="w-full bg-gray-900/60 border border-gray-700/50 rounded-xl px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 resize-none focus:outline-none focus:border-gray-500 transition-colors"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:border-gray-400 transition-colors"
                       />
                     </div>
                   )}
@@ -400,7 +399,7 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                     onClick={handleComplete}
                     disabled={completing || (hasVideo && !isCompletable)}
                     whileTap={{ scale: 0.95 }}
-                    className="w-full py-3 rounded-xl text-sm font-black text-black flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="w-full py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60"
                     style={{ backgroundColor: meta.color }}
                   >
                     {completing ? (
@@ -415,9 +414,9 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
               ) : (
                 <div className="space-y-3">
                   {reflection && (
-                    <div className="rounded-xl p-3 bg-white/[0.03] border border-white/[0.06]">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">Jouw reflectie</p>
-                      <p className="text-sm text-gray-300 italic">"{reflection || completion?.reflection}"</p>
+                    <div className="rounded-xl p-3 bg-gray-50 border border-gray-200">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Jouw reflectie</p>
+                      <p className="text-sm text-gray-600 italic">"{reflection || completion?.reflection}"</p>
                     </div>
                   )}
 
@@ -435,11 +434,11 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                     >
                       <div className="flex items-center gap-1.5 mb-2">
                         <Wand2 size={11} style={{ color: meta.color }} />
-                        <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${meta.color}80` }}>
+                        <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: meta.color }}>
                           Coach AI
                         </p>
                       </div>
-                      <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-line">{aiFeedback}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{aiFeedback}</p>
                     </motion.div>
                   ) : null}
 

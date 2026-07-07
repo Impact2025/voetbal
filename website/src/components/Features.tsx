@@ -144,7 +144,7 @@ export default function Features() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {features.map((f, i) => (
+          {features.map((f) => (
             <div
               key={f.tag}
               className="gradient-border rounded-2xl p-6 lg:p-8 hover:shadow-neon transition-all group"

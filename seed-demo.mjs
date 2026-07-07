@@ -183,7 +183,7 @@ async function run() {
   let authData;
 
   // Try signup first, then always try signin to get a fresh session
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  const { error: signUpError } = await supabase.auth.signUp({
     email: DEMO_EMAIL,
     password: DEMO_PASSWORD,
   });

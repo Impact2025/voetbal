@@ -8,6 +8,7 @@ import { NEON_COLOR } from '../../utils/constants';
 import type { UserData } from '../../types';
 import { hashPin } from '../../utils/crypto';
 import { checkRateLimit, recordFailedAttempt, clearAttempts } from '../../utils/rateLimit';
+import { fetchInviteByToken, acceptCoachInvite, type TeamCoachInvite } from '../../lib/teamManagement';
 
 interface AuthComponentProps {
   onPlayerLogin: (playerData: UserData & Record<string, unknown>) => void;
@@ -48,8 +49,21 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   const [rememberCoach, setRememberCoach] = useState(false);
   const [forgotPasswordOrigin, setForgotPasswordOrigin] = useState<'coachLogin' | 'clubAdminLogin'>('coachLogin');
   const [slowHint, setSlowHint] = useState(false);
+  const [invite, setInvite] = useState<TeamCoachInvite | null>(null);
 
   useEffect(() => { if (isRecovering) setView('resetPassword'); }, [isRecovering]);
+
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get('coachInvite');
+    if (!token) return;
+    fetchInviteByToken(token).then(found => {
+      if (found) {
+        setInvite(found);
+        setEmail(found.email);
+        setView('coachRegister');
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (view === 'playerLogin') {
@@ -68,36 +82,56 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       const t = setTimeout(() => setSlowHint(true), 8000);
       try {
         if (isRegistering) {
-          if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
-          const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
-          if (teamData) throw new Error('Deze Team ID is al in gebruik. Kies een andere.');
+          if (invite) {
+            const { data, error } = await withTimeout(
+              supabase.auth.signUp({ email: invite.email, password }),
+              45000, 'Registratie duurt te lang. Controleer je verbinding.'
+            );
+            if (error) throw error;
+            await acceptCoachInvite(invite.invite_token!, data.user!.id, invite.email);
+          } else {
+            if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
+            const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
+            if (teamData) throw new Error('Deze Team ID is al in gebruik. Kies een andere.');
 
-          if (clubIdInput.trim()) {
-            const { data: clubData } = await supabase.from('clubs').select('id').eq('id', clubIdInput.trim()).single();
-            if (!clubData) throw new Error('Club ID niet gevonden. Controleer het ID bij je club admin.');
+            if (clubIdInput.trim()) {
+              const { data: clubData } = await supabase.from('clubs').select('id').eq('id', clubIdInput.trim()).single();
+              if (!clubData) throw new Error('Club ID niet gevonden. Controleer het ID bij je club admin.');
+            }
+
+            const { data, error } = await withTimeout(
+              supabase.auth.signUp({ email, password }),
+              45000, 'Registratie duurt te lang. Controleer je verbinding.'
+            );
+            if (error) throw error;
+
+            const teamPayload: Record<string, unknown> = {
+              id: newTeamId,
+              coach_id: data.user!.id,
+              team_name: `${email.split('@')[0]}'s Team`,
+            };
+            if (clubIdInput.trim()) teamPayload.club_id = clubIdInput.trim();
+
+            await supabase.from('teams').insert(teamPayload);
+            await supabase.from('profiles').insert({
+              id: data.user!.id,
+              role: 'coach',
+              team_id: newTeamId,
+              email: email.trim().toLowerCase(),
+              ...(clubIdInput.trim() ? { club_id: clubIdInput.trim() } : {}),
+            });
+            if (clubIdInput.trim()) {
+              await supabase.from('team_coaches').insert({
+                team_id: newTeamId,
+                club_id: clubIdInput.trim(),
+                coach_id: data.user!.id,
+                email: email.trim().toLowerCase(),
+                role: 'head',
+                status: 'active',
+                joined_at: new Date().toISOString(),
+              });
+            }
           }
-
-          const { data, error } = await withTimeout(
-            supabase.auth.signUp({ email, password }),
-            45000, 'Registratie duurt te lang. Controleer je verbinding.'
-          );
-          if (error) throw error;
-
-          const teamPayload: Record<string, unknown> = {
-            id: newTeamId,
-            coach_id: data.user!.id,
-            team_name: `${email.split('@')[0]}'s Team`,
-          };
-          if (clubIdInput.trim()) teamPayload.club_id = clubIdInput.trim();
-
-          await supabase.from('teams').insert(teamPayload);
-          await supabase.from('profiles').insert({
-            id: data.user!.id,
-            role: 'coach',
-            team_id: newTeamId,
-            email: email.trim().toLowerCase(),
-            ...(clubIdInput.trim() ? { club_id: clubIdInput.trim() } : {}),
-          });
         } else {
           if (rememberCoach) localStorage.setItem('rememberedCoachEmail', email);
           else localStorage.removeItem('rememberedCoachEmail');
@@ -278,7 +312,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   };
 
   const btnClass = 'w-full py-3 font-bold text-black rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center disabled:opacity-50';
-  const isLightMode = !['playerLogin', 'resetPassword'].includes(view);
+  const isLightMode = view !== 'resetPassword';
 
   const renderForm = () => {
     if (view === 'resetPassword') return (
@@ -317,11 +351,11 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
 
     if (view === 'playerLogin') return (
       <form onSubmit={handlePlayerLogin} className="space-y-4">
-        <h2 className="text-2xl font-bold text-center mb-4" style={{ textShadow: `0 0 8px ${NEON_COLOR}` }}>SPELER LOGIN</h2>
-        <Input label="Team ID" value={teamId} onChange={e => setTeamId(e.target.value)} placeholder="Vraag je coach" />
-        <Input label="Jouw Pincode" value={pin} onChange={e => setPin(e.target.value)} placeholder="6-cijferige code" />
+        <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>SPELER LOGIN</h2>
+        <Input light={isLightMode} label="Team ID" value={teamId} onChange={e => setTeamId(e.target.value)} placeholder="Vraag je coach" />
+        <Input light={isLightMode} label="Jouw Pincode" value={pin} onChange={e => setPin(e.target.value)} placeholder="6-cijferige code" />
         <div className="flex items-center">
-          <input id="remember-me" type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800" />
+          <input id="remember-me" type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className={`h-4 w-4 rounded ${isLightMode ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`} />
           <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">Bewaar mijn gegevens</label>
         </div>
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
@@ -374,9 +408,17 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>
           {view === 'coachLogin' ? 'COACH LOGIN' : 'COACH REGISTRATIE'}
         </h2>
-        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" />
+        {view === 'coachRegister' && invite && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg border ${isLightMode ? 'bg-green-50 border-green-200' : 'bg-green-900/30 border-green-700'}`}>
+            <CheckCircle2 size={18} className={`shrink-0 ${isLightMode ? 'text-green-600' : 'text-green-400'}`} />
+            <p className={`text-sm ${isLightMode ? 'text-green-700' : 'text-green-300'}`}>
+              Je bent uitgenodigd als coach voor <strong>{invite.team_name}</strong>.
+            </p>
+          </div>
+        )}
+        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" disabled={!!invite} />
         <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-        {view === 'coachRegister' && (
+        {view === 'coachRegister' && !invite && (
           <>
             <Input light={isLightMode} label="Kies een unieke Team ID" value={newTeamId} onChange={e => setNewTeamId(e.target.value)} placeholder="bv. VVC11-1" />
             <Input light={isLightMode} label="Club ID (optioneel)" value={clubIdInput} onChange={e => setClubIdInput(e.target.value)} placeholder="Vraag je club admin" />
@@ -400,8 +442,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       </form>
     );
   };
-
-  const isCoachView = view === 'coachLogin' || view === 'coachRegister' || view === 'clubAdminLogin' || view === 'clubAdminRegister';
 
   const tabActive = isLightMode
     ? 'border-green-600 bg-green-50 text-gray-900'
@@ -435,7 +475,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
                 onClick={() => { setView('playerLogin'); setError(''); }}
                 className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'playerLogin' ? tabActive : tabInactive}`}
               >
-                <User size={20} style={{ color: view === 'playerLogin' ? NEON_COLOR : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
+                <User size={20} style={{ color: view === 'playerLogin' ? (isLightMode ? '#16A34A' : NEON_COLOR) : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
                 <div className="text-center">
                   <div className="font-bold text-xs leading-none">Speler</div>
                   <div className="text-[9px] text-gray-500 mt-0.5">Team + PIN</div>

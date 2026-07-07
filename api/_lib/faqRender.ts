@@ -150,7 +150,7 @@ function ctaForCategory(cat: FaqItem['category']): string {
   }
 }
 
-function renderFaqItem(item: FaqItem, idx: number): string {
+function renderFaqItem(item: FaqItem): string {
   return `
     <div class="item" data-category="${item.category}" data-question="${esc(item.question.toLowerCase())}" data-answer="${esc(item.answer.replace(/<[^>]+>/g, '').toLowerCase().slice(0, 200))}" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
       <button class="q" onclick="toggleAccordeon(this)" itemprop="name">
@@ -179,7 +179,7 @@ function renderCategory(cat: FaqItem['category'], items: FaqItem[]): string {
         <span class="cat-icon ${categoryClass(cat)}">${categoryIcon(cat)}</span>
         ${categoryLabel(cat)}
       </div>
-      ${items.map((item, i) => renderFaqItem(item, i)).join('')}
+      ${items.map((item) => renderFaqItem(item)).join('')}
       <div class="cta" style="margin-top:24px">
         <h2>Nog vragen over dit onderwerp?</h2>
         ${cta}
