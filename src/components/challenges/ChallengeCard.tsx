@@ -47,8 +47,6 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
   const hasVideo = challenge.supports_video === true;
   const videoStepIdx = VIDEO_STEPS.findIndex(s => s.key === videoStep);
 
-  if (!ageOk) return null;
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -105,6 +103,9 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
       setVideoStep('error');
     }
   }, [selectedFile, player, challenge, previewUrl]);
+
+  // Vroege return PAS na alle hooks (anders broken hook-order).
+  if (!ageOk) return null;
 
   const handleVideoReset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
