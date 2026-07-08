@@ -18,22 +18,52 @@ function hashPin(pin, playerId) {
 }
 
 function evalData(skills, rating, comments = '', plan = '') {
+  // Derive realistic tests + fitness from the skill profile so every seeded
+  // player is fully filled (no empty test rows). Higher = better for most.
+  const speed = skills.snelheid, agility = skills.wendbaarheid, power = skills.duelkracht, te = skills.rechterbeen, sc = skills.scoren, pa = skills.passen;
+  const round1 = (n) => Math.round(n * 10) / 10;
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
   return {
     skills,
     matchRating: rating,
     comments,
     trainingPlan: plan,
-    fitness: { yoyo: '', cooper: '', sprint: '' },
+    fitness: {
+      sprint: `${round1(clamp(5.8 - (speed - 5) * 0.14, 3.8, 7.5))}s`,
+      yoyo: `Level ${round1(clamp(12 + (power + agility) / 2, 12, 24))}`,
+      cooper: `${Math.round(clamp(1180 + power * 38, 1100, 2600))}m`,
+    },
     tests: {
-      balvaardigheid: { hooghouden: '', tikken: '', slalom: '', aannemen: '', wandpass: '' },
-      schietenPassing: { nauwkeurigheidSchieten: '', passNauwkeurigheid: '', schotkracht: '' },
-      fysiekConditie: { sprint10m: '', herhaaldeSprints: '', uithoudingsvermogen: '', sprongkracht: '' },
-      coordinatieInzicht: { reactietest: '', duel1v1: '', spelintelligentie: '' },
+      balvaardigheid: { hooghouden: `${Math.round(18 + te * 4)}`, tikken: `${Math.round(22 + te * 6)}`, slalom: `${round1(clamp(13.5 - te * 0.4, 6, 16))}`, aannemen: `${clamp(Math.round(te), 1, 10)}`, wandpass: `${Math.round(10 + te * 2)}` },
+      schietenPassing: { nauwkeurigheidSchieten: `${clamp(Math.round(sc), 1, 10)}`, passNauwkeurigheid: `${clamp(Math.round(pa), 1, 10)}`, schotkracht: `${Math.round(48 + speed * 3 + sc)}` },
+      fysiekConditie: { sprint10m: `${round1(clamp(2.5 - (speed - 5) * 0.06, 1.6, 3.4))}`, herhaaldeSprints: `${round1(clamp(1.0 + (10 - speed) * 0.05, 0.4, 1.6))}`, uithoudingsvermogen: `${Math.round(1100 + power * 42)}`, sprongkracht: `${Math.round(28 + power * 2.4)}` },
+      coordinatieInzicht: { reactietest: `${round1(clamp(0.42 - agility * 0.008, 0.22, 0.6))}`, duel1v1: `${clamp(Math.round((skills.aanvallend_1v1 + skills.verdedigend_1v1) / 4), 1, 5)}`, spelintelligentie: `${clamp(Math.round((skills.wedstrijdmentaliteit + skills.leiderschap) / 4), 1, 5)}` },
     },
   };
 }
 
-const base = (s, p, te, sc, v, i, m) => ({ snelheid: s, passing: p, techniek: te, schot: sc, verdedigen: v, inzicht: i, mentaliteit: m });
+// Full 17-skill shape (src/utils/constants.ts → skillKeys). The legacy 7-key
+// shape left 10+ skills defaulting to 5, which collapsed every Top Performer to
+// ~52. Order matches skillKeys exactly.
+const base = (s, p, te, sc, v, i, m) => ({
+  rechterbeen: Math.min(10, Math.round((te + p) / 2)),
+  linkerbeen: Math.max(2, Math.round(te - 1)),
+  aannemen: Math.min(10, Math.round((te + p) / 2)),
+  passen: p,
+  passeerbewegingen: Math.min(10, Math.round((te + (m > 7 ? i : i - 1)) / 2)),
+  scoren: sc,
+  aanvallend_1v1: Math.min(10, Math.round((te + sc + (i > 7 ? 1 : 0)) / 2)),
+  verdedigend_1v1: v,
+  snelheid: s,
+  wendbaarheid: Math.min(10, Math.round(s - 1)),
+  duelkracht: Math.max(2, Math.min(10, Math.round((v + m) / 2))),
+  trainingsmentaliteit: m,
+  wedstrijdmentaliteit: m,
+  leiderschap: Math.max(2, Math.min(10, Math.round(m - (v < 6 ? 1 : 0)))),
+  concentratie: Math.max(2, Math.min(10, Math.round(m - 1))),
+  discipline: m,
+  aanwezigheid: Math.min(10, Math.round(m + 1)),
+});
 
 // ── Teams ──────────────────────────────────────────────────────────────────
 const TEAMS = [
