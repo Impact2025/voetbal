@@ -10,8 +10,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../ui/Card';
-import { skillKeys, SKILL_GROUPS, SKILL_LABELS, evaluationPeriods, NEON_COLOR } from '../../utils/constants';
+import { skillKeys, SKILL_GROUPS, SKILL_LABELS, evaluationPeriods, COACH_COLOR } from '../../utils/constants';
 import { callAI } from '../../lib/ai';
+import { computeSkillMedal, findBiggestGrowth, SKILL_MEDAL_CONFIG } from '../../lib/skillMedals';
 import type { Player, Team } from '../../types';
 
 interface PlayerOverviewProps {
@@ -52,14 +53,17 @@ const CIRCUMFERENCE = 2 * Math.PI * CIRCLE_R;
 interface SkillCircleProps {
   skill: string;
   value: number;
+  previousValue?: number;
   color?: string;
   isYoung?: boolean;
 }
 
-const SkillCircle = ({ skill, value, color = NEON_COLOR, isYoung = false }: SkillCircleProps) => {
+const SkillCircle = ({ skill, value, previousValue, color = COACH_COLOR, isYoung = false }: SkillCircleProps) => {
   const progress = value / 10;
   const offset = CIRCUMFERENCE * (1 - progress);
-  const valueColor = value >= 8 ? NEON_COLOR : value >= 6 ? '#fff' : value >= 4 ? '#f97316' : '#f87171';
+  const valueColor = value >= 8 ? COACH_COLOR : value >= 6 ? '#111827' : value >= 4 ? '#f97316' : '#f87171';
+  const { tier: medalTier, delta } = computeSkillMedal(value, previousValue);
+  const medal = medalTier ? SKILL_MEDAL_CONFIG[medalTier] : null;
 
   if (isYoung) {
     return (
@@ -69,11 +73,21 @@ const SkillCircle = ({ skill, value, color = NEON_COLOR, isYoung = false }: Skil
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
       >
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-          style={{ backgroundColor: `${color}20`, border: `2px solid ${color}40` }}
-        >
-          {SKILL_ICONS[skill]}
+        <div className="relative">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+            style={{ backgroundColor: `${color}20`, border: `2px solid ${color}40` }}
+          >
+            {SKILL_ICONS[skill]}
+          </div>
+          {medal && (
+            <span
+              className="absolute -top-1.5 -right-1.5 text-base leading-none drop-shadow"
+              title={medal.youngLabel}
+            >
+              {medal.emoji}
+            </span>
+          )}
         </div>
         <div className="text-center">
           <div className="text-[10px] leading-tight" style={{ color }}>
@@ -82,6 +96,11 @@ const SkillCircle = ({ skill, value, color = NEON_COLOR, isYoung = false }: Skil
           <span className="text-[9px] font-bold text-gray-400 block leading-tight mt-0.5">
             {SKILL_LABELS[skill]}
           </span>
+          {medal && (
+            <span className="text-[8px] font-black block leading-tight mt-0.5" style={{ color: medal.color }}>
+              {medal.youngLabel}
+            </span>
+          )}
         </div>
       </motion.div>
     );
@@ -96,7 +115,7 @@ const SkillCircle = ({ skill, value, color = NEON_COLOR, isYoung = false }: Skil
     >
       <div className="relative w-14 h-14">
         <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
-          <circle cx="28" cy="28" r={CIRCLE_R} fill="none" stroke="#1f2937" strokeWidth="4" />
+          <circle cx="28" cy="28" r={CIRCLE_R} fill="none" stroke="#e5e7eb" strokeWidth="4" />
           <motion.circle
             cx="28" cy="28" r={CIRCLE_R}
             fill="none"
@@ -113,11 +132,24 @@ const SkillCircle = ({ skill, value, color = NEON_COLOR, isYoung = false }: Skil
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-sm font-black leading-none" style={{ color: valueColor }}>{value}</span>
         </div>
+        {medal && (
+          <span
+            className="absolute -top-1 -right-1 text-sm leading-none drop-shadow"
+            title={`${medal.label} · ${delta! > 0 ? '+' : ''}${delta}`}
+          >
+            {medal.emoji}
+          </span>
+        )}
       </div>
       <div className="text-center">
         <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block leading-tight">
           {SKILL_ICONS[skill]} {SKILL_LABELS[skill]}
         </span>
+        {medal && (
+          <span className="text-[9px] font-black block leading-tight" style={{ color: medal.color }}>
+            {delta! > 0 ? '+' : ''}{delta}
+          </span>
+        )}
       </div>
     </motion.div>
   );
@@ -132,6 +164,16 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
 
   const assignedIds = teamData.assigned_homework_ids ?? [];
   const currentEval = player.evaluations?.[activeTab];
+
+  const previousEval = useMemo(() => {
+    const idx = evaluationPeriods.indexOf(activeTab);
+    return idx > 0 ? player.evaluations?.[evaluationPeriods[idx - 1]] : undefined;
+  }, [player.evaluations, activeTab]);
+
+  const biggestGrowth = useMemo(
+    () => findBiggestGrowth(skillKeys, currentEval?.skills ?? {}, previousEval?.skills),
+    [currentEval, previousEval]
+  );
 
   const score = useMemo(() => {
     if (!currentEval) return 50;
@@ -211,7 +253,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(135deg, #0d0f14 0%, ${level.color}18 60%, ${level.color}30 100%)`,
+              background: `linear-gradient(135deg, #ffffff 0%, ${level.color}10 60%, ${level.color}22 100%)`,
             }}
           />
           <div
@@ -225,12 +267,12 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
               <div className="relative shrink-0">
                 <div
                   className="w-20 h-20 rounded-full p-0.5"
-                  style={{ background: `conic-gradient(${level.color} ${levelProgress}%, #1f2937 ${levelProgress}%)` }}
+                  style={{ background: `conic-gradient(${level.color} ${levelProgress}%, #e5e7eb ${levelProgress}%)` }}
                 >
                   <img
                     src={player.avatar_url}
                     alt={player.name}
-                    className="w-full h-full rounded-full object-cover border-2 border-[#0d0f14]"
+                    className="w-full h-full rounded-full object-cover border-2 border-white"
                   />
                 </div>
                 <div
@@ -243,7 +285,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
 
               {/* Name + info */}
               <div className="flex-1 min-w-0 pt-1">
-                <h2 className="text-2xl font-black leading-tight truncate text-white">{player.name}</h2>
+                <h2 className="text-2xl font-black leading-tight truncate text-gray-900">{player.name}</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {player.position || 'Positie niet ingesteld'}
                   {player.age ? ` · ${player.age} jaar` : ''}
@@ -254,7 +296,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                   <div className="mt-3 flex items-center gap-2">
                     <span
                       className="text-2xl font-black"
-                      style={{ color: level.color, textShadow: `0 0 16px ${level.color}60` }}
+                      style={{ color: level.color }}
                     >
                       {level.name}
                     </span>
@@ -265,7 +307,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                 ) : (
                   /* Tweens: voortgangsbalk + % */
                   <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                    <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                       <motion.div
                         className="h-1.5 rounded-full"
                         style={{ backgroundColor: level.color }}
@@ -283,7 +325,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
               {!isYoung && (
                 <div className="shrink-0 flex flex-col items-center gap-2 pt-1">
                   <div className="text-center">
-                    <div className="text-4xl font-black leading-none" style={{ color: level.color, textShadow: `0 0 20px ${level.color}60` }}>
+                    <div className="text-4xl font-black leading-none" style={{ color: level.color }}>
                       {score}
                     </div>
                     <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-0.5">score</div>
@@ -294,10 +336,10 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
 
             {/* Match rating strip */}
             {currentEval?.matchRating > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Wedstrijdcijfer</span>
                 {isYoung ? (
-                  <span className="text-base font-black" style={{ color: currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
+                  <span className="text-base font-black" style={{ color: currentEval.matchRating >= 7 ? COACH_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
                     {'⭐'.repeat(Math.round(currentEval.matchRating / 2))}
                   </span>
                 ) : (
@@ -308,12 +350,12 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                         className="w-4 h-1.5 rounded-full transition-all"
                         style={{
                           backgroundColor: i < currentEval.matchRating
-                            ? (currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171')
-                            : '#1f2937',
+                            ? (currentEval.matchRating >= 7 ? COACH_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171')
+                            : '#e5e7eb',
                         }}
                       />
                     ))}
-                    <span className="text-sm font-black ml-1" style={{ color: currentEval.matchRating >= 7 ? NEON_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
+                    <span className="text-sm font-black ml-1" style={{ color: currentEval.matchRating >= 7 ? COACH_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
                       {currentEval.matchRating}
                     </span>
                   </div>
@@ -330,6 +372,22 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">
             {isYoung ? 'Jouw skills ⚽' : <>Skills — <span className="font-normal normal-case text-gray-600">{activeTab}</span></>}
           </p>
+
+          {biggestGrowth && (
+            <div
+              className="mb-4 flex items-center gap-2 rounded-xl px-3 py-2"
+              style={{ backgroundColor: `${SKILL_MEDAL_CONFIG[biggestGrowth.tier].color}15`, border: `1px solid ${SKILL_MEDAL_CONFIG[biggestGrowth.tier].color}50` }}
+            >
+              <span className="text-lg leading-none">{SKILL_MEDAL_CONFIG[biggestGrowth.tier].emoji}</span>
+              <span className="text-xs font-bold text-gray-700">
+                {isYoung
+                  ? `Je groeide het meest in ${SKILL_LABELS[biggestGrowth.key]}!`
+                  : <>Grootste groei: <b>{SKILL_LABELS[biggestGrowth.key]}</b> ({biggestGrowth.delta > 0 ? '+' : ''}{biggestGrowth.delta})</>
+                }
+              </span>
+            </div>
+          )}
+
           <div className="space-y-5">
             {SKILL_GROUPS.map(group => {
               const groupAvg = group.skills.reduce((sum, s) => sum + (currentEval?.skills[s.key] ?? 5), 0) / group.skills.length;
@@ -341,7 +399,14 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                   </div>
                   <div className="grid grid-cols-4 gap-y-3 gap-x-2">
                     {group.skills.map(s => (
-                      <SkillCircle key={s.key} skill={s.key} value={currentEval?.skills[s.key] ?? 5} color={group.color} isYoung={isYoung} />
+                      <SkillCircle
+                        key={s.key}
+                        skill={s.key}
+                        value={currentEval?.skills[s.key] ?? 5}
+                        previousValue={previousEval?.skills[s.key]}
+                        color={group.color}
+                        isYoung={isYoung}
+                      />
                     ))}
                   </div>
                 </div>
@@ -356,22 +421,22 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }}
         className="grid grid-cols-2 gap-3"
       >
-        <div className="rounded-2xl p-4 border border-emerald-900/50 bg-emerald-950/20">
+        <div className="rounded-2xl p-4 border border-emerald-200 bg-emerald-50">
           <div className="flex items-center gap-1.5 mb-3">
-            <TrendingUp size={12} className="text-emerald-400" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Sterk In</span>
+            <TrendingUp size={12} className="text-emerald-600" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Sterk In</span>
           </div>
           <div className="space-y-3">
             {strengths.map(s => (
               <div key={s.key}>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-300 font-medium">{SKILL_LABELS[s.key]}</span>
+                  <span className="text-gray-700 font-medium">{SKILL_LABELS[s.key]}</span>
                   {isYoung
-                    ? <span className="font-black text-emerald-400 text-xs">{toStars(s.value)}</span>
-                    : <span className="font-black text-emerald-400">{s.value}</span>
+                    ? <span className="font-black text-emerald-600 text-xs">{toStars(s.value)}</span>
+                    : <span className="font-black text-emerald-600">{s.value}</span>
                   }
                 </div>
-                <div className="bg-gray-800/60 rounded-full h-1">
+                <div className="bg-gray-100 rounded-full h-1">
                   <motion.div
                     className="h-1 rounded-full bg-emerald-400"
                     initial={{ width: 0 }}
@@ -384,22 +449,22 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 border border-orange-900/50 bg-orange-950/20">
+        <div className="rounded-2xl p-4 border border-orange-200 bg-orange-50">
           <div className="flex items-center gap-1.5 mb-3">
-            <Target size={12} className="text-orange-400" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-orange-400">Werk Aan</span>
+            <Target size={12} className="text-orange-600" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-orange-600">Werk Aan</span>
           </div>
           <div className="space-y-3">
             {improvements.map(s => (
               <div key={s.key}>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-300 font-medium">{SKILL_LABELS[s.key]}</span>
+                  <span className="text-gray-700 font-medium">{SKILL_LABELS[s.key]}</span>
                   {isYoung
-                    ? <span className="font-black text-orange-400 text-xs">{toStars(s.value)}</span>
-                    : <span className="font-black text-orange-400">{s.value}</span>
+                    ? <span className="font-black text-orange-600 text-xs">{toStars(s.value)}</span>
+                    : <span className="font-black text-orange-600">{s.value}</span>
                   }
                 </div>
-                <div className="bg-gray-800/60 rounded-full h-1">
+                <div className="bg-gray-100 rounded-full h-1">
                   <motion.div
                     className="h-1 rounded-full bg-orange-400"
                     initial={{ width: 0 }}
@@ -422,12 +487,12 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                 <BookOpen size={13} className="text-gray-400" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Huiswerk</span>
               </div>
-              <span className="text-xs font-black" style={{ color: hwPct === 100 ? '#4ade80' : NEON_COLOR }}>{hwDone}/{assignedIds.length} klaar</span>
+              <span className="text-xs font-black" style={{ color: hwPct === 100 ? '#16a34a' : COACH_COLOR }}>{hwDone}/{assignedIds.length} klaar</span>
             </div>
-            <div className="mt-2.5 bg-gray-800 rounded-full h-2 overflow-hidden">
+            <div className="mt-2.5 bg-gray-100 rounded-full h-2 overflow-hidden">
               <motion.div
                 className="h-2 rounded-full"
-                style={{ backgroundColor: hwPct === 100 ? '#4ade80' : NEON_COLOR }}
+                style={{ backgroundColor: hwPct === 100 ? '#16a34a' : COACH_COLOR }}
                 initial={{ width: 0 }}
                 animate={{ width: `${hwPct}%` }}
                 transition={{ duration: 0.7, delay: 0.1 }}
@@ -450,8 +515,8 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                 whileTap={{ scale: 0.92 }}
                 className={`flex flex-col items-center gap-1 rounded-xl text-center transition-all ${
                   b.earned
-                    ? 'bg-gray-800/80 border border-gray-600/80'
-                    : 'bg-gray-900/30 border border-gray-800/40 opacity-25'
+                    ? 'bg-emerald-50 border border-emerald-200'
+                    : 'bg-gray-50 border border-gray-200 opacity-40'
                 }`}
                 style={{ padding: isYoung ? '10px 6px' : '8px 6px' }}
               >
@@ -460,13 +525,13 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                   style={{
                     width: isYoung ? 32 : 28,
                     height: isYoung ? 32 : 28,
-                    backgroundColor: b.earned ? `${NEON_COLOR}15` : 'transparent',
+                    backgroundColor: b.earned ? `${COACH_COLOR}15` : 'transparent',
                   }}
                 >
-                  <span style={{ color: b.earned ? NEON_COLOR : '#6b7280' }}>{b.icon}</span>
+                  <span style={{ color: b.earned ? COACH_COLOR : '#9ca3af' }}>{b.icon}</span>
                 </div>
                 <span
-                  className="leading-tight text-gray-400 whitespace-pre-line font-medium"
+                  className="leading-tight text-gray-500 whitespace-pre-line font-medium"
                   style={{ fontSize: isYoung ? 9 : 8 }}
                 >
                   {b.label}
@@ -483,16 +548,16 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           <Card className="!p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: `${NEON_COLOR}20` }}>
-                  <Wand2 size={11} style={{ color: NEON_COLOR }} />
+                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: `${COACH_COLOR}20` }}>
+                  <Wand2 size={11} style={{ color: COACH_COLOR }} />
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Coach AI Analyse</p>
               </div>
               <button
                 onClick={handleAIInsight}
                 disabled={loadingAI}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black disabled:opacity-50 transition-opacity hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: NEON_COLOR }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50 transition-opacity hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: COACH_COLOR }}
               >
                 {loadingAI ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
                 {loadingAI ? 'Laden...' : 'Genereer'}
@@ -500,19 +565,19 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
             </div>
             <AnimatePresence mode="wait">
               {aiInsight ? (
-                <motion.p key="insight" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-gray-200 leading-relaxed">
+                <motion.p key="insight" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-gray-700 leading-relaxed">
                   {aiInsight}
                 </motion.p>
               ) : (
-                <motion.p key="placeholder" className="text-xs text-gray-600 italic">
+                <motion.p key="placeholder" className="text-xs text-gray-500 italic">
                   Druk op Genereer voor een persoonlijke analyse.
                 </motion.p>
               )}
             </AnimatePresence>
             {currentEval?.trainingPlan && (
-              <div className="mt-3 pt-3 border-t border-gray-800/60">
+              <div className="mt-3 pt-3 border-t border-gray-100">
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Persoonlijk Oefenplan</p>
-                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{currentEval.trainingPlan}</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{currentEval.trainingPlan}</p>
               </div>
             )}
           </Card>
@@ -531,7 +596,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
-                <PolarGrid stroke="#1f2937" />
+                <PolarGrid stroke="#e5e7eb" />
                 <PolarAngleAxis
                   dataKey="subject"
                   tick={{ fill: '#6b7280', fontSize: isYoung ? 11 : 10 }}
@@ -552,7 +617,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
             <div className="overflow-x-auto -mx-1">
               <table className="w-full text-sm min-w-[240px]">
                 <thead>
-                  <tr className="text-gray-600 text-[9px] uppercase tracking-wide border-b border-gray-800/60">
+                  <tr className="text-gray-500 text-[9px] uppercase tracking-wide border-b border-gray-200">
                     <th className="text-left pb-2 font-semibold pl-1">Skill</th>
                     {evaluationPeriods.map(p => (
                       <th key={p} className="text-center pb-2 font-semibold">{p.replace('Check-in ', 'CI')}</th>
@@ -560,17 +625,17 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
                     <th className="text-center pb-2">+/-</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/30">
+                <tbody className="divide-y divide-gray-100">
                   {skillProgress.map(({ key, label, values }) => {
                     const delta = values[values.length - 1] - values[0];
                     const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-                    const trendColor = delta > 0 ? '#4ade80' : delta < 0 ? '#f87171' : '#374151';
+                    const trendColor = delta > 0 ? '#16a34a' : delta < 0 ? '#dc2626' : '#9ca3af';
                     return (
                       <tr key={key}>
-                        <td className="py-2 text-gray-400 text-[11px] pl-1">{label}</td>
+                        <td className="py-2 text-gray-500 text-[11px] pl-1">{label}</td>
                         {values.map((v, i) => (
                           <td key={i} className="py-2 text-center font-black text-sm" style={{
-                            color: v >= 7 ? NEON_COLOR : v >= 5 ? '#e5e7eb' : '#f87171',
+                            color: v >= 7 ? COACH_COLOR : v >= 5 ? '#4b5563' : '#dc2626',
                           }}>{v}</td>
                         ))}
                         <td className="py-2 text-center">

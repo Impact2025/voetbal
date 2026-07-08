@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Target, Swords, ArrowDown, Sparkles, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { CHALLENGES, CATEGORY_META } from '../../data/challenges';
-import { NEON_COLOR } from '../../utils/constants';
+import { COACH_COLOR } from '../../utils/constants';
 import type { Player, CustomHomework, ChallengeCompletion, Streak } from '../../types';
 
 interface TodayScreenProps {
@@ -78,7 +78,7 @@ const TodayScreen = ({
         }
       : { kind: 'done' };
 
-  const accent = focus.kind === 'challenge' ? focus.color : NEON_COLOR;
+  const accent = focus.kind === 'challenge' ? focus.color : COACH_COLOR;
 
   return (
     <div className="space-y-4">
@@ -89,7 +89,7 @@ const TodayScreen = ({
         className="flex items-center justify-between"
       >
         <div className="min-w-0">
-          <h2 className="text-2xl font-black text-white leading-tight truncate">
+          <h2 className="text-2xl font-black text-gray-900 leading-tight truncate">
             {greeting()}, {firstName} 👋
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -115,7 +115,7 @@ const TodayScreen = ({
         className="relative rounded-3xl overflow-hidden border"
         style={{ borderColor: `${accent}40` }}
       >
-        <div className="absolute inset-0" style={{ background: `linear-gradient(150deg, #0d0f14 0%, ${accent}14 70%, ${accent}28 100%)` }} />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(150deg, #ffffff 0%, ${accent}10 70%, ${accent}1c 100%)` }} />
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-20 blur-3xl" style={{ backgroundColor: accent }} />
 
         <div className="relative p-5 sm:p-6">
@@ -128,8 +128,8 @@ const TodayScreen = ({
               >
                 <CheckCircle2 size={32} style={{ color: '#4ade80' }} />
               </motion.div>
-              <h3 className="text-xl font-black text-white">Alles gedaan! 🎉</h3>
-              <p className="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto leading-relaxed">
+              <h3 className="text-xl font-black text-gray-900">Alles gedaan! 🎉</h3>
+              <p className="text-sm text-gray-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
                 {isYoung
                   ? 'Wat goed bezig! Pak de bal en ga lekker spelen — tot morgen!'
                   : goalReached
@@ -150,19 +150,19 @@ const TodayScreen = ({
                 </span>
               </div>
 
-              <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">
                 {focus.kind === 'homework' && isYoung && <span className="mr-2">⚽</span>}
                 {focus.kind === 'challenge' && <span className="mr-2">{focus.emoji}</span>}
                 {focus.title}
               </h3>
-              <p className={`text-sm text-gray-300 mt-2 leading-relaxed ${isYoung ? 'line-clamp-1' : 'line-clamp-3'}`}>{focus.sub}</p>
+              <p className={`text-sm text-gray-600 mt-2 leading-relaxed ${isYoung ? 'line-clamp-1' : 'line-clamp-3'}`}>{focus.sub}</p>
 
               <motion.button
                 whileTap={{ scale: 0.96, y: 2 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                 onClick={() => scrollTo(focus.kind === 'homework' ? 'today-homework' : 'today-challenges')}
-                className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-black text-black"
-                style={{ backgroundColor: accent, boxShadow: `0 6px 0 ${accent}50, 0 0 24px ${accent}40` }}
+                className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-black text-white"
+                style={{ backgroundColor: accent, boxShadow: `0 4px 0 ${accent}90` }}
               >
                 {focus.kind === 'homework' ? 'Upload je video voor feedback' : 'Start de uitdaging'}
                 <ArrowDown size={18} />
@@ -175,7 +175,7 @@ const TodayScreen = ({
       {/* ── WEEKDOEL-RING (geen ranking, alleen jouw doel) ───────── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }}
-        className="rounded-2xl border border-white/[0.06] bg-[#0d0f14] p-4 flex items-center gap-4"
+        className="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center gap-4"
       >
         <div className="flex gap-1.5 items-center">
           {goalReached
@@ -194,7 +194,7 @@ const TodayScreen = ({
                 <motion.div
                   key={i}
                   className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: i < count ? NEON_COLOR : '#1f2937' }}
+                  style={{ backgroundColor: i < count ? COACH_COLOR : '#e5e7eb' }}
                   initial={{ scale: 0.6 }}
                   animate={{ scale: i < count ? [1, 1.3, 1] : 1 }}
                   transition={{ duration: 0.3, delay: i * 0.08 }}
@@ -203,7 +203,7 @@ const TodayScreen = ({
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white">
+          <p className="text-sm font-bold text-gray-900">
             {goalReached ? 'Weekdoel behaald! 💪' : `Nog ${goal - count} actie${goal - count !== 1 ? 's' : ''} deze week`}
           </p>
           <p className="text-[11px] text-gray-500 leading-tight">
@@ -218,13 +218,13 @@ const TodayScreen = ({
         <motion.button
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
           onClick={() => scrollTo('today-questions')}
-          className="w-full flex items-center gap-3 rounded-2xl border border-violet-900/40 bg-violet-950/20 p-4 text-left active:scale-[0.99] transition-transform"
+          className="w-full flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-left active:scale-[0.99] transition-transform"
         >
-          <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
-            <MessageSquare size={16} className="text-violet-400" />
+          <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+            <MessageSquare size={16} className="text-violet-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white">Je coach vroeg je iets 💬</p>
+            <p className="text-sm font-bold text-gray-900">Je coach vroeg je iets 💬</p>
             <p className="text-[11px] text-gray-500">Tik om te antwoorden.</p>
           </div>
         </motion.button>

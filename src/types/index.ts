@@ -94,7 +94,7 @@ export interface Player {
 
 export interface Team {
   id: string;
-  coach_id: string;
+  coach_id: string | null;
   club_id?: string;
   team_name: string;
   team_class: string;
@@ -102,6 +102,22 @@ export interface Team {
   assigned_homework_ids: string[];
   evaluation_periods: string[];
   coach_name?: string;
+  archived_at?: string | null;
+}
+
+export interface TeamCoach {
+  id: string;
+  team_id: string;
+  club_id: string;
+  coach_id: string | null;
+  email: string;
+  role: 'head' | 'assistant';
+  status: 'invited' | 'active' | 'removed';
+  invite_token: string | null;
+  invited_at: string;
+  joined_at: string | null;
+  removed_at: string | null;
+  created_at: string;
 }
 
 export interface CustomHomework {
@@ -136,6 +152,8 @@ export interface UserData {
   uid: string;
   id?: string;
   linkedPlayerId?: string;
+  /** Alle geverifieerde gekoppelde kinderen van deze ouder (eerste = linkedPlayerId). */
+  linkedPlayerIds?: string[];
 }
 
 export interface ParentLink {

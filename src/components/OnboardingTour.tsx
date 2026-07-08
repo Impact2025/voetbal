@@ -223,7 +223,7 @@ export default function OnboardingTour({ role }: OnboardingTourProps) {
   const Icon = current.icon;
   const progressPct = steps.length > 1 ? (step / (steps.length - 1)) * 100 : 100;
 
-  const light = role === 'coach';
+  const light = true;
 
   return (
     <>

@@ -218,19 +218,21 @@ async function ensureDigestRPC(db: ReturnType<typeof getAdminClient>): Promise<v
         END;
         $$;
       ` } as unknown as Record<string, unknown>,
-    );
-  } catch { /* RPC bestaat al of DB heeft geen exec_sql — val terug */ }
+      );
+    } catch { /* RPC bestaat al of DB heeft geen exec_sql — val terug */ }
+  }
 }
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 export default async function handler(req: Req, res: Res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).end();
+  // Vercel Cron roept dit endpoint aan met GET; handmatige/lokale tests met POST blijven ook werken.
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
 
   if (!verifyCron(req.headers['authorization'])) {
     return res.status(401).json({ error: 'Ongeldige cron-token.' });

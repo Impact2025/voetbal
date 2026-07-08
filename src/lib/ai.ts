@@ -1,53 +1,73 @@
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash';
+// AI loopt via de serverless proxy /api/ai — de OpenRouter-key blijft server-side.
+const AI_PROXY_URL = '/api/ai';
 
 interface AICallOptions {
   max_tokens?: number;
   temperature?: number;
 }
 
-export const callAI = async (prompt: string, retries = 3, delay = 1000, options?: AICallOptions): Promise<string> => {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+// OpenRouter-message: string-content (tekst) of multimodaal (tekst + afbeeldingen).
+type AIContent =
+  | string
+  | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+interface AIMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: AIContent;
+}
 
-  if (!apiKey || apiKey.startsWith('sk-or-vervang')) {
-    return 'AI-functie niet beschikbaar: configureer VITE_OPENROUTER_API_KEY in .env.local';
-  }
+/**
+ * Post één of meer messages naar de AI-proxy met retry/backoff.
+ * Retourneert de tekst, of gooit na de laatste poging.
+ */
+async function postAI(
+  messages: AIMessage[],
+  opts: { max_tokens?: number; temperature?: number; retries?: number; delay?: number } = {},
+): Promise<string> {
+  const { max_tokens, temperature, retries = 3, delay = 1000 } = opts;
 
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(OPENROUTER_API_URL, {
+      const response = await fetch(AI_PROXY_URL, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Skillkaart',
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: options?.max_tokens ?? 256,
-          temperature: options?.temperature ?? 0.7,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, max_tokens, temperature }),
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!response.ok) {
+        let msg = `HTTP ${response.status}`;
+        try {
+          const body = await response.json() as { error?: string };
+          if (body?.error) msg = body.error;
+        } catch { /* geen JSON */ }
+        throw new Error(msg);
+      }
 
-      const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-      const text = result.choices?.[0]?.message?.content;
-      if (!text) throw new Error('Onverwacht API-antwoord formaat');
-      return text;
+      const result = await response.json() as { text?: string };
+      if (!result.text) throw new Error('Leeg AI-antwoord');
+      return result.text;
     } catch (error) {
       console.error(`AI aanroep poging ${i + 1} mislukt:`, error);
       if (i < retries - 1) {
         await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
       } else {
-        return `Kon geen suggestie genereren: ${error instanceof Error ? error.message : 'Onbekende fout'}. Probeer het later opnieuw.`;
+        throw error instanceof Error ? error : new Error('Onbekende fout');
       }
     }
   }
+  throw new Error('AI onbereikbaar');
+}
 
-  return 'Kon geen suggestie genereren. Probeer het later opnieuw.';
+export const callAI = async (prompt: string, retries = 3, delay = 1000, options?: AICallOptions): Promise<string> => {
+  try {
+    return await postAI([{ role: 'user', content: prompt }], {
+      max_tokens: options?.max_tokens ?? 256,
+      temperature: options?.temperature ?? 0.7,
+      retries,
+      delay,
+    });
+  } catch (error) {
+    return `Kon geen suggestie genereren: ${error instanceof Error ? error.message : 'Onbekende fout'}. Probeer het later opnieuw.`;
+  }
 };
 
 // Extracts evenly distributed frames from a video file as base64 JPEG strings
@@ -158,12 +178,6 @@ interface ChallengeVideoOptions {
 export const analyzeChallengeVideo = async (
   { challenge, player, frames }: ChallengeVideoOptions
 ): Promise<string> => {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
-
-  if (!apiKey || apiKey.startsWith('***')) {
-    return 'AI-functie niet beschikbaar: configureer VITE_OPENROUTER_API_KEY in .env.local';
-  }
-
   const ageLabel = player.age ? `${player.age} jaar` : 'jeugdspeler';
   const positionLabel = player.position || 'speler';
 
@@ -198,49 +212,18 @@ Schrijf in eenvoudig Nederlands voor een ${ageLabel}. Max 120 woorden totaal.`;
     })),
   ];
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Skillkaart',
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'user', content }],
-          max_tokens: 600,
-          temperature: 0.6,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-      const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-      const text = result.choices?.[0]?.message?.content;
-      if (!text) throw new Error('Leeg API-antwoord');
-      return text;
-    } catch (error) {
-      console.error(`Challenge video analyse poging ${attempt + 1} mislukt:`, error);
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
-      else return `Feedback genereren mislukt: ${error instanceof Error ? error.message : 'onbekende fout'}. Probeer het later opnieuw.`;
-    }
+  try {
+    return await postAI([{ role: 'user', content }], {
+      max_tokens: 600, temperature: 0.6, retries: 3, delay: 1500,
+    });
+  } catch (error) {
+    return `Feedback genereren mislukt: ${error instanceof Error ? error.message : 'onbekende fout'}. Probeer het later opnieuw.`;
   }
-
-  return 'Feedback genereren mislukt. Probeer het later opnieuw.';
 };
 
 export const analyzeMovementVideo = async (
   { homework, player, frames }: MovementAnalysisOptions
 ): Promise<string> => {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
-
-  if (!apiKey || apiKey.startsWith('sk-or-vervang')) {
-    return 'AI-functie niet beschikbaar: configureer VITE_OPENROUTER_API_KEY in .env.local';
-  }
-
   const ageLabel = player.age ? `${player.age} jaar` : 'jeugdspeler';
   const positionLabel = player.position || 'speler';
 
@@ -274,36 +257,11 @@ Schrijf in eenvoudig Nederlands voor een ${ageLabel}. Max 120 woorden totaal.`;
     })),
   ];
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Skillkaart',
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'user', content }],
-          max_tokens: 600,
-          temperature: 0.6,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-      const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-      const text = result.choices?.[0]?.message?.content;
-      if (!text) throw new Error('Leeg API-antwoord');
-      return text;
-    } catch (error) {
-      console.error(`Video analyse poging ${attempt + 1} mislukt:`, error);
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
-      else return `Feedback genereren mislukt: ${error instanceof Error ? error.message : 'onbekende fout'}. Probeer het later opnieuw.`;
-    }
+  try {
+    return await postAI([{ role: 'user', content }], {
+      max_tokens: 600, temperature: 0.6, retries: 3, delay: 1500,
+    });
+  } catch (error) {
+    return `Feedback genereren mislukt: ${error instanceof Error ? error.message : 'onbekende fout'}. Probeer het later opnieuw.`;
   }
-
-  return 'Feedback genereren mislukt. Probeer het later opnieuw.';
 };

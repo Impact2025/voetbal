@@ -120,8 +120,8 @@ export const CHALLENGES: Challenge[] = [
 ];
 
 export const CATEGORY_META = {
-  techniek:    { label: 'Techniek',    emoji: '\u{1F3AF}', color: '#38bdf8', bg: '#0c1a2e' },
-  inzicht:     { label: 'Inzicht',     emoji: '\u{1F9E0}', color: '#a78bfa', bg: '#1a0c2e' },
-  snelheid:    { label: 'Snelheid',    emoji: '\u26A1', color: '#f97316', bg: '#2e1a0c' },
-  mentaliteit: { label: 'Mentaliteit', emoji: '\u{1F49A}', color: '#4ade80', bg: '#0c2e1a' },
+  techniek:    { label: 'Techniek',    emoji: '\u{1F3AF}', color: '#38bdf8', bg: '#38bdf818' },
+  inzicht:     { label: 'Inzicht',     emoji: '\u{1F9E0}', color: '#a78bfa', bg: '#a78bfa18' },
+  snelheid:    { label: 'Snelheid',    emoji: '\u26A1', color: '#f97316', bg: '#f9731618' },
+  mentaliteit: { label: 'Mentaliteit', emoji: '\u{1F49A}', color: '#4ade80', bg: '#4ade8018' },
 } as const;

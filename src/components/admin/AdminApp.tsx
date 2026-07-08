@@ -49,7 +49,7 @@ const Kpi = ({
 }: {
   icon: typeof Users; label: string; value: string | number; sub?: string; accent?: string;
 }) => (
-  <Card className="flex flex-col gap-2">
+  <Card light={false} className="flex flex-col gap-2">
     <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
       <Icon className="h-4 w-4" style={{ color: accent }} />
       {label}
@@ -90,7 +90,7 @@ const Cockpit = () => {
 
   if (error || !metrics) {
     return (
-      <Card className="border-red-500/40">
+      <Card light={false} className="border-red-500/40">
         <div className="flex items-center gap-3 text-red-400">
           <AlertTriangle className="h-5 w-5" />
           <div>
@@ -153,7 +153,7 @@ const Cockpit = () => {
         </div>
       </section>
 
-      <Card className="bg-gradient-to-br from-black/40 to-[#00FF9D0a]">
+      <Card light={false} className="bg-gradient-to-br from-black/40 to-[#00FF9D0a]">
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 mt-0.5" style={{ color: NEON_COLOR }} />
           <div className="text-sm text-gray-300">

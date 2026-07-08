@@ -3,13 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut, Flame, Bell, BellOff, Loader2, MessageSquare,
   Calendar, TrendingUp, Home, Settings, CheckCircle2,
-  XCircle, Shield, Star, AlertTriangle, ChevronRight, Trophy, Video, Zap,
+  XCircle, Shield, Star, AlertTriangle, ChevronRight, Trophy, Video, Zap, Download,
 } from 'lucide-react';
 
 import { supabase } from '../../lib/supabase';
 import { COACH_COLOR } from '../../utils/constants';
 import { TIER_CONFIG, tierProgress } from '../../lib/cardTier';
 import { CHALLENGES, CATEGORY_META } from '../../data/challenges';
+import { usePWA } from '../../lib/usePWA';
+import InstallModal from '../modals/InstallModal';
+import ParentGrowthChart from './ParentGrowthChart';
 import type {
   Player, PlayerStats, Streak, NotificationPrefs,
   StatAxis, UserData, AttendanceRecord,
@@ -101,6 +104,13 @@ const DEMO_ATTENDANCE: AttendanceRecord[] = [
   { id: '4', team_id: 'dt', player_id: 'demo', session_date: new Date(Date.now() - 12*86400000).toISOString(), session_type: 'training',  present: true },
   { id: '5', team_id: 'dt', player_id: 'demo', session_date: new Date(Date.now() - 16*86400000).toISOString(), session_type: 'training',  present: true },
 ];
+const DEMO_GROWTH_EVENTS: { axis: StatAxis; xp: number; created_at: string }[] = [
+  10, 25, 15, 30, 20, 40, 35, 45, 20, 50,
+].flatMap((xp, i) => {
+  const daysAgo = (9 - i) * 7 + 1;
+  const axes: StatAxis[] = ['consistentie', 'werkethiek', 'techniek', 'focus', 'team_spirit'];
+  return [{ axis: axes[i % axes.length], xp, created_at: new Date(Date.now() - daysAgo * 86400000).toISOString() }];
+});
 
 // ─── Toggle component ────────────────────────────────────────────────────────
 
@@ -133,6 +143,7 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [recentEvents, setRecentEvents]     = useState<{ title: string; body: string; event_type: string; created_at: string }[]>([]);
+  const [growthEvents, setGrowthEvents]     = useState<{ axis: StatAxis; xp: number; created_at: string }[]>(demo ? DEMO_GROWTH_EVENTS : []);
 
   const [npsScore, setNpsScore]         = useState<number | null>(null);
   const [npsFeedback, setNpsFeedback]   = useState('');
@@ -140,15 +151,45 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
   const [showNpsModal, setShowNpsModal] = useState(false);
   const [savingNps, setSavingNps]       = useState(false);
 
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const { canInstall, showInstallPrompt, pushSubscribed, subscribeParentPush, unsubscribeParentPush } = usePWA();
+  const [savingPush, setSavingPush] = useState(false);
+
   const [consented, setConsented]             = useState<boolean | null>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [savingConsent, setSavingConsent]     = useState(false);
 
-  const pid = userData.linkedPlayerId;
+  const linkedIds = demo
+    ? ['demo']
+    : (userData.linkedPlayerIds?.length ? userData.linkedPlayerIds : (userData.linkedPlayerId ? [userData.linkedPlayerId] : []));
+
+  const [activePlayerId, setActivePlayerId] = useState<string | null>(() => {
+    if (demo) return 'demo';
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(`activeChild_${userData.uid}`) : null;
+    return (stored && linkedIds.includes(stored)) ? stored : (linkedIds[0] ?? null);
+  });
+  const [linkedPlayers, setLinkedPlayers] = useState<Pick<Player, 'id' | 'name' | 'avatar_url'>[]>([]);
+
+  const handleSelectChild = (id: string) => {
+    setActivePlayerId(id);
+    localStorage.setItem(`activeChild_${userData.uid}`, id);
+  };
+
+  const pid = activePlayerId;
+
+  // Kind-switcher data — alleen ophalen als er meer dan 1 gekoppeld kind is
+  useEffect(() => {
+    if (demo || linkedIds.length <= 1) return;
+    supabase.from('players').select('id, name, avatar_url').in('id', linkedIds)
+      .then(({ data }) => { if (data) setLinkedPlayers(data as Pick<Player, 'id' | 'name' | 'avatar_url'>[]); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, userData.uid, linkedIds.join(',')]);
 
   useEffect(() => {
     if (demo) return;
     if (!pid) { setLoading(false); return; }
+
+    const twelveWeeksAgo = new Date(Date.now() - 12 * 7 * 86400000).toISOString();
 
     Promise.allSettled([
       supabase.from('players').select('*').eq('id', pid).single(),
@@ -156,12 +197,14 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
       supabase.from('streaks').select('*').eq('player_id', pid).maybeSingle(),
       supabase.from('notification_prefs').select('*').eq('parent_id', userData.uid).maybeSingle(),
       supabase.from('attendance').select('*').eq('player_id', pid).order('session_date', { ascending: false }).limit(20),
-    ]).then(([pR, sR, stR, nR, aR]) => {
+      supabase.from('stat_events').select('axis, xp, created_at').eq('player_id', pid).gte('created_at', twelveWeeksAgo).order('created_at'),
+    ]).then(([pR, sR, stR, nR, aR, gR]) => {
       if (pR.status  === 'fulfilled' && pR.value.data)  setPlayer(pR.value.data as Player);
       if (sR.status  === 'fulfilled' && sR.value.data)  setStats(sR.value.data as PlayerStats);
       if (stR.status === 'fulfilled' && stR.value.data) setStreak(stR.value.data as Streak);
       if (nR.status  === 'fulfilled' && nR.value.data)  setNotifPrefs(nR.value.data as NotificationPrefs);
       if (aR.status  === 'fulfilled' && aR.value.data)  setAttendance(aR.value.data as AttendanceRecord[]);
+      if (gR.status  === 'fulfilled' && gR.value.data)  setGrowthEvents(gR.value.data as { axis: StatAxis; xp: number; created_at: string }[]);
       setLoading(false);
     });
 
@@ -230,6 +273,25 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
     await supabase.from('notification_prefs').update({ [key]: newVal }).eq('parent_id', userData.uid);
     setNotifPrefs(p => p ? { ...p, [key]: newVal } : p);
     setSavingPrefs(false);
+  };
+
+  const handleTogglePush = async () => {
+    if (demo || savingPush) return;
+    setSavingPush(true);
+    if (pushSubscribed) {
+      const ok = await unsubscribeParentPush(userData.uid);
+      if (ok) {
+        await supabase.from('notification_prefs').update({ channel: 'email' }).eq('parent_id', userData.uid);
+        setNotifPrefs(p => p ? { ...p, channel: 'email' } : p);
+      }
+    } else {
+      const ok = await subscribeParentPush(userData.uid);
+      if (ok) {
+        await supabase.from('notification_prefs').update({ channel: 'both' }).eq('parent_id', userData.uid);
+        setNotifPrefs(p => p ? { ...p, channel: 'both' } : p);
+      }
+    }
+    setSavingPush(false);
   };
 
   const handleSubmitNps = async () => {
@@ -437,12 +499,42 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
               <span className="text-[10px] text-gray-400">{totalXP} XP</span>
             </div>
           </div>
+          <button
+            onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold border transition-colors shrink-0"
+            style={{ borderColor: `${ACCENT}40`, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+          >
+            <Download size={14} /> App
+          </button>
           <button onClick={onLogout}
             className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
             <LogOut size={16} />
           </button>
         </div>
+
+        {linkedPlayers.length > 1 && (
+          <div className="max-w-lg mx-auto flex items-center gap-2 mt-2 overflow-x-auto pb-0.5">
+            {linkedPlayers.map(lp => (
+              <button key={lp.id} onClick={() => handleSelectChild(lp.id)}
+                className="flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full border shrink-0 min-h-[36px] transition-colors"
+                style={lp.id === activePlayerId
+                  ? { borderColor: `${ACCENT}50`, backgroundColor: `${ACCENT}10` }
+                  : { borderColor: '#e5e7eb', backgroundColor: '#ffffff' }}>
+                <img src={lp.avatar_url} alt={lp.name} className="w-6 h-6 rounded-full" />
+                <span className="text-xs font-bold" style={{ color: lp.id === activePlayerId ? ACCENT : '#6b7280' }}>
+                  {lp.name.split(' ')[0]}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </header>
+
+      <InstallModal
+        open={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        role="parent"
+      />
 
       {/* ── Main content ── */}
       <main className="max-w-lg mx-auto w-full px-4 pt-5 pb-28">
@@ -642,6 +734,8 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                 </p>
               </div>
 
+              <ParentGrowthChart statEvents={growthEvents} attendance={attendance} />
+
               {attendRate !== null && (
                 <div className="rounded-2xl border border-gray-100 bg-white p-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Aanwezigheid</p>
@@ -819,6 +913,24 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                     </div>
                   </div>
                   <Toggle on={!!notifPrefs?.critical_alerts} />
+                </button>
+
+                <div className="h-px bg-gray-50 mx-1" />
+
+                <button onClick={handleTogglePush} disabled={savingPush || demo}
+                  className="w-full flex items-center justify-between py-3.5 min-h-[56px] disabled:opacity-60">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl" style={{ backgroundColor: pushSubscribed ? `${ACCENT}12` : '#f9fafb' }}>
+                      {pushSubscribed
+                        ? <Bell size={16} style={{ color: ACCENT }} />
+                        : <BellOff size={16} className="text-gray-400" />}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-gray-900">Pushmeldingen op dit toestel</p>
+                      <p className="text-[10px] text-gray-400">Direct een melding, ook als de app dicht is</p>
+                    </div>
+                  </div>
+                  <Toggle on={pushSubscribed} />
                 </button>
               </div>
 

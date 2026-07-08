@@ -12,8 +12,6 @@ interface ParentAuthFlowProps {
 
 type View = 'choice' | 'login' | 'magic_sent' | 'register';
 
-const APP_URL = 'https://skillkaart.nl';
-
 const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
   const [view, setView]         = useState<View>('choice');
   const [email, setEmail]       = useState('');
@@ -21,15 +19,17 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
   const [linkCode, setLinkCode] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
+  /** Gezet wanneer een 2e/3e koppelcode via een bestaand account geclaimd moet worden. */
+  const [claimCode, setClaimCode] = useState('');
 
-  const handleLogin = async () => {
+  const handleLogin = async (codeToClaim?: string) => {
     if (!email.includes('@')) { setError('Vul een geldig e-mailadres in.'); return; }
     setError(''); setLoading(true);
     try {
       const res = await fetch('/api/send-login-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), linkCode: codeToClaim || undefined }),
       });
       const data: { error?: string } = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -65,7 +65,10 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
       if (msg.toLowerCase().includes('security purposes') || msg.toLowerCase().includes('after')) {
         setError('Even geduld — wacht een minuutje en probeer het opnieuw.');
       } else if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
-        setError('Dit e-mailadres is al in gebruik. Probeer in te loggen.');
+        // Bestaand account: dit is waarschijnlijk een 2e/3e kind — bied direct
+        // een "inloggen en koppelen"-pad via de magic-linkflow.
+        setClaimCode(code);
+        setError('Dit e-mailadres heeft al een account. Log in om dit kind te koppelen.');
       } else if (msg.toLowerCase().includes('rate limit')) {
         setError('Te veel pogingen. Wacht even en probeer het opnieuw.');
       } else {
@@ -172,7 +175,7 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
             <Input label="E-mailadres" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ouder@email.nl" />
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
             <button
-              onClick={handleLogin}
+              onClick={() => void handleLogin()}
               disabled={loading}
               className="w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ backgroundColor: ACCENT }}
@@ -224,16 +227,28 @@ const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
             <Input label="Jouw e-mailadres" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ouder@email.nl" />
             <Input label="Kies een wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimaal 6 tekens" />
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
-            <button
-              onClick={handleRegister}
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
-              Account aanmaken
-            </button>
-            <button onClick={() => { setView('choice'); setError(''); }} className="w-full text-xs text-gray-400 hover:text-gray-700 transition-colors">
+            {claimCode ? (
+              <button
+                onClick={() => { setError(''); void handleLogin(claimCode); }}
+                disabled={loading}
+                className="w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ backgroundColor: ACCENT }}
+              >
+                {loading ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
+                Inloggen en dit kind koppelen
+              </button>
+            ) : (
+              <button
+                onClick={handleRegister}
+                disabled={loading}
+                className="w-full py-3.5 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ backgroundColor: ACCENT }}
+              >
+                {loading ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
+                Account aanmaken
+              </button>
+            )}
+            <button onClick={() => { setView('choice'); setError(''); setClaimCode(''); }} className="w-full text-xs text-gray-400 hover:text-gray-700 transition-colors">
               Terug naar keuze
             </button>
           </motion.div>

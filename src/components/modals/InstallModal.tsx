@@ -1,16 +1,27 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Bell, BellOff, CheckCircle2, Smartphone } from 'lucide-react';
-import { NEON_COLOR } from '../../utils/constants';
+import { COACH_COLOR } from '../../utils/constants';
 import { usePWA } from '../../lib/usePWA';
+
+type InstallRole = 'player' | 'coach' | 'parent' | 'club_admin';
+
+const ROLE_COPY: Record<InstallRole, { title: string; subtitle: string }> = {
+  player:     { title: 'Skillkaart App',        subtitle: 'Installeer op je telefoon' },
+  coach:      { title: 'Skillkaart Coach',       subtitle: 'Beheer je team vanaf je telefoon' },
+  parent:     { title: 'Skillkaart voor Ouders', subtitle: 'Volg je kind vanaf je telefoon' },
+  club_admin: { title: 'Skillkaart Club',        subtitle: 'Beheer je club vanaf je telefoon' },
+};
 
 interface InstallModalProps {
   playerId?: string;
   open: boolean;
   onClose: () => void;
+  role?: InstallRole;
 }
 
-export default function InstallModal({ playerId, open, onClose }: InstallModalProps) {
+export default function InstallModal({ playerId, open, onClose, role = 'player' }: InstallModalProps) {
+  const { title, subtitle } = ROLE_COPY[role];
   const {
     canInstall,
     showInstallPrompt,
@@ -65,29 +76,29 @@ export default function InstallModal({ playerId, open, onClose }: InstallModalPr
             exit={{ opacity: 0, y: 40 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="w-full max-w-sm rounded-3xl p-6 space-y-5"
-            style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}
             onClick={e => e.stopPropagation()}
           >
             {/* ── Header ── */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#00FF9D]/10 border border-[#00FF9D]/20 flex items-center justify-center">
-                  <Download size={22} style={{ color: NEON_COLOR }} />
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${COACH_COLOR}15`, border: `1px solid ${COACH_COLOR}30` }}>
+                  <Download size={22} style={{ color: COACH_COLOR }} />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white">Skillkaart App</h2>
-                  <p className="text-xs text-gray-500">Installeer op je telefoon</p>
+                  <h2 className="text-base font-black text-gray-900">{title}</h2>
+                  <p className="text-xs text-gray-500">{subtitle}</p>
                 </div>
               </div>
-              <button onClick={onClose} className="text-gray-600 hover:text-gray-300 p-1 transition-colors text-xl leading-none">✕</button>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1 transition-colors text-xl leading-none">✕</button>
             </div>
 
             {/* ── Installatie knop (Android) ── */}
             {!isStandalone && canInstall && (
               <button
                 onClick={handleInstall}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-black text-black transition-all active:scale-[0.98]"
-                style={{ backgroundColor: NEON_COLOR, boxShadow: `0 4px 0 ${NEON_COLOR}50` }}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-black text-white transition-all active:scale-[0.98]"
+                style={{ backgroundColor: COACH_COLOR, boxShadow: `0 4px 0 ${COACH_COLOR}90` }}
               >
                 <Smartphone size={18} />
                 {installDone ? 'Installatie gestart!' : 'Installeer de app'}
@@ -96,43 +107,45 @@ export default function InstallModal({ playerId, open, onClose }: InstallModalPr
 
             {!isStandalone && !canInstall && (
               <div className="space-y-3">
-                <div className="rounded-2xl bg-white/4 border border-white/8 p-4">
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4">
                   <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">iPhone (Safari)</p>
-                  <ol className="text-sm text-gray-300 space-y-1.5 list-none">
-                    <li><span className="text-[--neon-color] font-bold">1.</span> Open de link in Safari</li>
-                    <li><span className="text-[--neon-color] font-bold">2.</span> Tik op <span className="font-semibold text-white">Delen</span></li>
-                    <li><span className="text-[--neon-color] font-bold">3.</span> Kies <span className="font-semibold text-white">Zet op beginscherm</span></li>
+                  <ol className="text-sm text-gray-600 space-y-1.5 list-none">
+                    <li><span className="font-bold" style={{ color: COACH_COLOR }}>1.</span> Open de link in Safari</li>
+                    <li><span className="font-bold" style={{ color: COACH_COLOR }}>2.</span> Tik op <span className="font-semibold text-gray-900">Delen</span></li>
+                    <li><span className="font-bold" style={{ color: COACH_COLOR }}>3.</span> Kies <span className="font-semibold text-gray-900">Zet op beginscherm</span></li>
                   </ol>
                 </div>
-                <div className="rounded-2xl bg-white/4 border border-white/8 p-4">
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4">
                   <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Android (Chrome)</p>
-                  <ol className="text-sm text-gray-300 space-y-1.5 list-none">
-                    <li><span className="text-[--neon-color] font-bold">1.</span> Open in Chrome</li>
-                    <li><span className="text-[--neon-color] font-bold">2.</span> Tik op <span className="font-semibold text-white">⋮</span> rechtsboven</li>
-                    <li><span className="text-[--neon-color] font-bold">3.</span> Kies <span className="font-semibold text-white">App installeren</span></li>
+                  <ol className="text-sm text-gray-600 space-y-1.5 list-none">
+                    <li><span className="font-bold" style={{ color: COACH_COLOR }}>1.</span> Open in Chrome</li>
+                    <li><span className="font-bold" style={{ color: COACH_COLOR }}>2.</span> Tik op <span className="font-semibold text-gray-900">⋮</span> rechtsboven</li>
+                    <li><span className="font-bold" style={{ color: COACH_COLOR }}>3.</span> Kies <span className="font-semibold text-gray-900">App installeren</span></li>
                   </ol>
                 </div>
               </div>
             )}
 
             {isStandalone && (
-              <div className="rounded-2xl bg-[#00FF9D]/5 border border-[#00FF9D]/20 p-4 text-center">
-                <CheckCircle2 size={24} className="mx-auto mb-2" style={{ color: NEON_COLOR }} />
-                <p className="text-sm font-bold text-white">App is geïnstalleerd ✓</p>
+              <div className="rounded-2xl p-4 text-center" style={{ backgroundColor: `${COACH_COLOR}0d`, border: `1px solid ${COACH_COLOR}30` }}>
+                <CheckCircle2 size={24} className="mx-auto mb-2" style={{ color: COACH_COLOR }} />
+                <p className="text-sm font-bold text-gray-900">App is geïnstalleerd ✓</p>
                 <p className="text-xs text-gray-500 mt-1">Je gebruikt de Skillkaart app.</p>
               </div>
             )}
 
-            {/* ── Push notificaties ── */}
-            <hr className="border-white/[0.06]" />
+            {/* ── Push notificaties (alleen spelers) ── */}
+            {playerId && (
+            <>
+            <hr className="border-gray-200" />
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                {pushSubscribed ? <Bell size={14} style={{ color: NEON_COLOR }} /> : <BellOff size={14} className="text-gray-600" />}
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                {pushSubscribed ? <Bell size={14} style={{ color: COACH_COLOR }} /> : <BellOff size={14} className="text-gray-400" />}
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
                   {pushSubscribed ? 'Push notificaties AAN' : 'Push notificaties'}
                 </span>
               </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
+              <p className="text-xs text-gray-500 leading-relaxed">
                 {pushSubscribed
                   ? 'Je ontvangt meldingen van je coach.'
                   : 'Zet aan om meldingen te krijgen als je coach iets stuurt.'}
@@ -140,7 +153,7 @@ export default function InstallModal({ playerId, open, onClose }: InstallModalPr
               {pushSubscribed ? (
                 <button
                   onClick={handleDisablePush}
-                  className="w-full py-3 rounded-xl text-sm font-bold border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors"
+                  className="w-full py-3 rounded-xl text-sm font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
                 >
                   Zet uit
                 </button>
@@ -148,13 +161,15 @@ export default function InstallModal({ playerId, open, onClose }: InstallModalPr
                 <button
                   onClick={handleEnablePush}
                   disabled={pushState === 'loading'}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-black disabled:opacity-50 transition-all"
-                  style={{ backgroundColor: NEON_COLOR }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-all"
+                  style={{ backgroundColor: COACH_COLOR }}
                 >
                   {pushState === 'loading' ? 'Bezig...' : pushState === 'done' ? 'Aangezet ✓' : 'Zet aan'}
                 </button>
               )}
             </div>
+            </>
+            )}
           </motion.div>
         </motion.div>
       )}

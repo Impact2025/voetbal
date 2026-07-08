@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import webpush from 'web-push';
 import { verifyCron } from '../_lib/adminGuard.js';
 import { getAdminClient } from '../_lib/supabaseAdmin.js';
 
@@ -112,11 +113,12 @@ function renderEmail(notifications: {
 
 export default async function handler(req: Req, res: Res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).end();
+  // Vercel Cron roept dit endpoint aan met GET; handmatige/lokale tests met POST blijven ook werken.
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
 
   // Alleen Vercel Cron mag dit endpoint aanroepen
   if (!verifyCron(req.headers['authorization'])) {
@@ -130,6 +132,17 @@ export default async function handler(req: Req, res: Res) {
   const resend = new Resend(resendKey);
   const from = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
   const db = getAdminClient();
+
+  const vapidPublic = process.env.VAPID_PUBLIC_KEY;
+  const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
+  const pushEnabled = !!(vapidPublic && vapidPrivate);
+  if (pushEnabled) {
+    webpush.setVapidDetails(
+      `mailto:${process.env.VAPID_EMAIL || 'noreply@skillkaart.app'}`,
+      vapidPublic!,
+      vapidPrivate!,
+    );
+  }
 
   try {
     // 1. Onverwerkte notificaties ophalen (via RPC)
@@ -160,7 +173,7 @@ export default async function handler(req: Req, res: Res) {
     const parentIds = [...new Set(rows.map(r => r.parent_id))];
     const { data: prefs } = await db
       .from('notification_prefs')
-      .select('parent_id, critical_alerts')
+      .select('parent_id, critical_alerts, channel')
       .in('parent_id', parentIds);
 
     const optOut = new Set(
@@ -168,9 +181,13 @@ export default async function handler(req: Req, res: Res) {
         .filter((p: { critical_alerts: boolean }) => p.critical_alerts === false)
         .map((p: { parent_id: string }) => p.parent_id),
     );
+    const channelByParent = new Map(
+      (prefs ?? []).map((p: { parent_id: string; channel: string }) => [p.parent_id, p.channel]),
+    );
 
     let sent = 0;
     let skipped = 0;
+    let pushed = 0;
     const allIds: string[] = [];
 
     for (const email of [...byParent.keys()]) {
@@ -184,22 +201,53 @@ export default async function handler(req: Req, res: Res) {
         continue;
       }
 
+      const parentId = group[0]!.parent_id;
+      const channel = channelByParent.get(parentId) ?? 'email';
       const playerName = group[0]?.player_name || 'Je kind';
-      try {
-        await resend.emails.send({
-          from,
-          to: [email],
-          subject: `Skillkaart · ${playerName} was actief 👟`,
-          html: renderEmail(group.map(r => ({
-            title: r.title,
-            body: r.body,
-            event_type: r.event_type,
-            player_name: r.player_name || 'Je kind',
-          }))),
-        });
-        sent += group.length;
-      } catch {
-        skipped += group.length;
+
+      if (channel === 'email' || channel === 'both') {
+        try {
+          await resend.emails.send({
+            from,
+            to: [email],
+            subject: `Skillkaart · ${playerName} was actief 👟`,
+            html: renderEmail(group.map(r => ({
+              title: r.title,
+              body: r.body,
+              event_type: r.event_type,
+              player_name: r.player_name || 'Je kind',
+            }))),
+          });
+          sent += group.length;
+        } catch {
+          skipped += group.length;
+        }
+      }
+
+      if (pushEnabled && (channel === 'push' || channel === 'both')) {
+        try {
+          const { data: subs } = await db
+            .from('parent_push_subscriptions')
+            .select('subscription')
+            .eq('parent_id', parentId);
+
+          const title = group.length > 1 ? `${playerName} was actief 👟` : group[0]!.title;
+          const body = group.length > 1
+            ? `${group.length} nieuwe updates — bekijk ze in Skillkaart`
+            : group[0]!.body;
+
+          await Promise.allSettled(
+            (subs ?? []).map((s: { subscription: object }) =>
+              webpush.sendNotification(
+                s.subscription as webpush.PushSubscription,
+                JSON.stringify({ title, body, url: 'https://skillkaart.nl' }),
+              ),
+            ),
+          );
+          pushed += 1;
+        } catch {
+          // Push-fout blokkeert de e-mail-flow niet
+        }
       }
     }
 
@@ -212,6 +260,7 @@ export default async function handler(req: Req, res: Res) {
       ok: true,
       total: rows.length,
       sent,
+      pushed,
       skipped,
       parents: byParent.size,
     });

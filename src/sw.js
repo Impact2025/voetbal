@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-globals, no-undef */
+ 
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';

@@ -1,34 +1,34 @@
 {
-  "name": "Skillkaart — Jouw Voetbal Skills",
-  "short_name": "Skillkaart",
-  "description": "Bouw je voetbal-skills op, verdien XP en volg je groei — elke dag een nieuwe stap.",
+  "name": "Skillkaart Coach — Trainingsbeheer",
+  "short_name": "Skillkaart Coach",
+  "description": "Beheer je team, plan trainingen en volg de ontwikkeling van al je spelers — alles in één app.",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "browser"],
-  "background_color": "#0D0D0D",
-  "theme_color": "#0D0D0D",
-  "categories": ["sports", "education", "lifestyle"],
+  "background_color": "#FFFFFF",
+  "theme_color": "#059669",
+  "categories": ["sports", "education", "productivity"],
   "screenshots": [
     {
-      "src": "/screenshots/vandaag.png",
+      "src": "/screenshots/coach/overzicht.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Vandaag — jouw dagelijkse focus"
+      "label": "Overzicht — jouw team in één oogopslag"
     },
     {
-      "src": "/screenshots/kaart.png",
+      "src": "/screenshots/coach/spelers.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mijn Kaart — Inzet-DNA en XP"
+      "label": "Spelers — voortgang en evaluaties"
     },
     {
-      "src": "/screenshots/ik.png",
+      "src": "/screenshots/coach/training.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Ik — skills, badges en groei"
+      "label": "Training — plannen en huiswerk"
     }
   ],
   "icons": [

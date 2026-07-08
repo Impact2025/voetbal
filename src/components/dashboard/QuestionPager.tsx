@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Send, Loader2, ShieldCheck } from 'lucide-react';
-import { NEON_COLOR } from '../../utils/constants';
+import { COACH_COLOR } from '../../utils/constants';
 
 interface Question {
   text: string;
@@ -56,12 +56,12 @@ const QuestionPager = ({
       >
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center"
-          style={{ backgroundColor: `${NEON_COLOR}15`, border: `1px solid ${NEON_COLOR}40` }}
+          style={{ backgroundColor: `${COACH_COLOR}15`, border: `1px solid ${COACH_COLOR}40` }}
         >
-          <ShieldCheck size={28} style={{ color: NEON_COLOR }} />
+          <ShieldCheck size={28} style={{ color: COACH_COLOR }} />
         </div>
-        <p className="text-lg font-black text-white">Verstuurd! 🙌</p>
-        <p className="text-sm text-gray-400 text-center max-w-xs">
+        <p className="text-lg font-black text-gray-900">Verstuurd! 🙌</p>
+        <p className="text-sm text-gray-500 text-center max-w-xs">
           {isYoung
             ? 'Jouw coach leest je antwoorden. Goed gedaan!'
             : 'Je antwoorden zijn opgeslagen. Je coach leest ze voor de volgende training.'}
@@ -75,15 +75,15 @@ const QuestionPager = ({
       {/* Voortgangsbalk */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: NEON_COLOR }}>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: COACH_COLOR }}>
             Vraag {page + 1} van {total}
           </span>
-          <span className="text-[10px] text-gray-600">{Math.round(progress)}%</span>
+          <span className="text-[10px] text-gray-500">{Math.round(progress)}%</span>
         </div>
-        <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <motion.div
             className="h-1.5 rounded-full"
-            style={{ backgroundColor: NEON_COLOR }}
+            style={{ backgroundColor: COACH_COLOR }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
           />
@@ -103,7 +103,7 @@ const QuestionPager = ({
             className="space-y-4"
           >
             <p
-              className="font-bold text-white leading-relaxed"
+              className="font-bold text-gray-900 leading-relaxed"
               style={{ fontSize: isYoung ? 20 : 17 }}
             >
               {current.text}
@@ -114,7 +114,7 @@ const QuestionPager = ({
               onChange={e => onChangeResponse(current.idx, e.target.value)}
               placeholder={isYoung ? 'Schrijf hier...' : 'Jouw antwoord...'}
               rows={isYoung ? 4 : 3}
-              className="w-full rounded-xl bg-gray-800/60 border border-gray-700/50 text-white placeholder-gray-600 resize-none focus:outline-none focus:border-gray-500 transition-colors"
+              className="w-full rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:border-gray-400 transition-colors"
               style={{
                 fontSize: isYoung ? 18 : 15,
                 padding: isYoung ? '14px 16px' : '10px 14px',
@@ -131,7 +131,7 @@ const QuestionPager = ({
           onClick={goPrev}
           disabled={page === 0}
           whileTap={{ scale: 0.94 }}
-          className="flex items-center gap-1.5 px-4 rounded-xl font-bold text-gray-400 disabled:opacity-20 transition-opacity"
+          className="flex items-center gap-1.5 px-4 rounded-xl font-bold text-gray-500 disabled:opacity-20 transition-opacity"
           style={{ height: isYoung ? 52 : 44, fontSize: isYoung ? 16 : 14 }}
         >
           <ChevronLeft size={isYoung ? 20 : 16} />
@@ -143,12 +143,12 @@ const QuestionPager = ({
             onClick={goNext}
             whileTap={{ scale: 0.96, y: 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl font-black text-black"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl font-black text-white"
             style={{
               height: isYoung ? 56 : 48,
               fontSize: isYoung ? 17 : 15,
-              backgroundColor: NEON_COLOR,
-              boxShadow: `0 4px 0 ${NEON_COLOR}50`,
+              backgroundColor: COACH_COLOR,
+              boxShadow: `0 4px 0 ${COACH_COLOR}90`,
             }}
           >
             Volgende
@@ -160,12 +160,12 @@ const QuestionPager = ({
             disabled={saving}
             whileTap={{ scale: 0.96, y: 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl font-black text-black disabled:opacity-60"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl font-black text-white disabled:opacity-60"
             style={{
               height: isYoung ? 56 : 48,
               fontSize: isYoung ? 17 : 15,
-              backgroundColor: NEON_COLOR,
-              boxShadow: `0 4px 0 ${NEON_COLOR}50`,
+              backgroundColor: COACH_COLOR,
+              boxShadow: `0 4px 0 ${COACH_COLOR}90`,
             }}
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}

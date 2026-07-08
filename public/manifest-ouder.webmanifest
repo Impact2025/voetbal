@@ -1,34 +1,34 @@
 {
-  "name": "Skillkaart — Jouw Voetbal Skills",
-  "short_name": "Skillkaart",
-  "description": "Bouw je voetbal-skills op, verdien XP en volg je groei — elke dag een nieuwe stap.",
+  "name": "Skillkaart voor Ouders",
+  "short_name": "Skillkaart Ouders",
+  "description": "Volg de groei van je kind, blijf op de hoogte van trainingen en huiswerk, en blijf in contact met de coach.",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "browser"],
-  "background_color": "#0D0D0D",
-  "theme_color": "#0D0D0D",
+  "background_color": "#FFFFFF",
+  "theme_color": "#059669",
   "categories": ["sports", "education", "lifestyle"],
   "screenshots": [
     {
-      "src": "/screenshots/vandaag.png",
+      "src": "/screenshots/ouder/vandaag.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Vandaag — jouw dagelijkse focus"
+      "label": "Vandaag — hoe het gaat met je kind"
     },
     {
-      "src": "/screenshots/kaart.png",
+      "src": "/screenshots/ouder/groei.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mijn Kaart — Inzet-DNA en XP"
+      "label": "Groei — ontwikkeling en Inzet-DNA"
     },
     {
-      "src": "/screenshots/ik.png",
+      "src": "/screenshots/ouder/agenda.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Ik — skills, badges en groei"
+      "label": "Agenda — trainingen en wedstrijden"
     }
   ],
   "icons": [

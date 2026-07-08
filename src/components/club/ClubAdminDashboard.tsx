@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, Trophy, Copy, CheckCircle2, LogOut, Building2, Shield,
@@ -18,24 +18,24 @@ import Card from '../ui/Card';
 import ParentLinkModal from '../parent/ParentLinkModal';
 import TrainersTab from './TrainersTab';
 import ClubTrainingTab from './ClubTrainingTab';
+import TeamManagementTab from './TeamManagementTab';
 import MessagingInbox from '../messaging/MessagingInbox';
 import { usePWA } from '../../lib/usePWA';
 import InstallModal from '../modals/InstallModal';
-import type { UserData } from '../../types';
+import PlayerDetailModal from './PlayerDetailModal';
+import type { UserData, Player } from '../../types';
 
 const ACCENT = '#16A34A';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface PlayerRow {
-  id: string;
-  name: string;
-  position: string;
-  age: string;
-  avatar_url: string;
+type PlayerRow = Player;
+
+export interface AttendanceRow {
+  player_id: string;
   team_id: string;
-  evaluations: Record<string, { skills: Record<string, number>; matchRating: number }>;
-  completed_homework_ids: string[];
+  session_date: string;
+  present: boolean;
 }
 
 interface TeamEnriched {
@@ -60,7 +60,7 @@ interface ClubAdminDashboardProps {
   onLogout: () => void;
 }
 
-type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers' | 'trainingen' | 'berichten';
+type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers' | 'teams' | 'trainingen' | 'berichten';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -128,6 +128,8 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const [senderEmail, setSenderEmail] = useState('');
   const [teams, setTeams] = useState<TeamEnriched[]>([]);
   const [allPlayers, setAllPlayers] = useState<PlayerRow[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRow[]>([]);
+  const [detailPlayerId, setDetailPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -144,15 +146,14 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     });
   }, []);
 
-  useEffect(() => {
+  const loadClubData = useCallback(async () => {
     if (!userData.clubId) return;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [{ data: club }, { data: rawTeams }] = await Promise.all([
-          supabase.from('clubs').select('name').eq('id', userData.clubId).single(),
-          supabase.from('teams').select('*').eq('club_id', userData.clubId),
-        ]);
+    setLoading(true);
+    try {
+      const [{ data: club }, { data: rawTeams }] = await Promise.all([
+        supabase.from('clubs').select('name').eq('id', userData.clubId).single(),
+        supabase.from('teams').select('*').eq('club_id', userData.clubId).is('archived_at', null),
+      ]);
         if (club) setClubName(club.name);
         if (!rawTeams?.length) { setLoading(false); return; }
 
@@ -163,8 +164,9 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         ]);
 
         const players = (playersData || []) as PlayerRow[];
-        const attendance = (attendanceData || []) as { player_id: string; team_id: string; session_date: string; present: boolean }[];
+        const attendance = (attendanceData || []) as AttendanceRow[];
         setAllPlayers(players);
+        setAttendanceRecords(attendance);
 
         const enriched: TeamEnriched[] = rawTeams.map((team: Record<string, unknown>) => {
           const tp = players.filter(p => p.team_id === team.id);
@@ -206,12 +208,12 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         });
 
         setTeams(enriched);
-      } finally {
-        setLoading(false);
-      }
-    };
-    void load();
+    } finally {
+      setLoading(false);
+    }
   }, [userData.clubId]);
+
+  useEffect(() => { void loadClubData(); }, [loadClubData]);
 
   const clubStats = useMemo(() => {
     const tw = teams.filter(t => t.players.length > 0);
@@ -319,11 +321,15 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     { id: 'spelers',    label: 'Spelers',    icon: UserSquare },
     { id: 'trainingen', label: 'Trainingen', icon: BookOpen },
     { id: 'trainers',   label: 'Trainers',   icon: UserCog },
+    { id: 'teams',      label: 'Teams',      icon: Shield },
     { id: 'berichten',  label: 'Berichten',  icon: MessageSquare, badge: unreadMessages || undefined },
     { id: 'signalen',   label: 'Signalen',   icon: Bell, badge: signals.length || undefined },
   ];
 
   const selectedTeam = selectedTeamId ? teams.find(t => t.id === selectedTeamId) : null;
+
+  const detailPlayer = detailPlayerId ? allPlayers.find(p => p.id === detailPlayerId) ?? null : null;
+  const detailTeam = detailPlayer ? teams.find(t => t.id === detailPlayer.team_id) ?? null : null;
 
   const drilldownData = useMemo(() => {
     if (!selectedTeam) return null;
@@ -395,6 +401,14 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               style={{ borderColor: `${ACCENT}40`, color: ACCENT, backgroundColor: `${ACCENT}10` }}
             >
               <Download size={14} /> App
+            </button>
+            <button onClick={() => setSection('berichten')} title="Berichten" className="sm:hidden relative p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
+              <MessageSquare size={16} />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
+                  {unreadMessages}
+                </span>
+              )}
             </button>
             <button onClick={async () => { await supabase.auth.signOut(); onLogout(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-500">
               <LogOut size={16} />
@@ -495,7 +509,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                   <p className="text-sm text-gray-400 text-center py-4">Geen spelers in dit team.</p>
                 )}
                 {drilldownData.playerRows.map(({ player, score }, idx) => (
-                  <div key={player.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                  <div
+                    key={player.id}
+                    onClick={() => setDetailPlayerId(player.id)}
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                  >
                     <span className={`text-xs font-black w-5 text-center shrink-0 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-600' : 'text-gray-300'}`}>
                       {idx + 1}
                     </span>
@@ -506,7 +524,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                     </div>
                     <div className="text-xl font-black shrink-0" style={{ color: scoreColor(score) }}>{score}</div>
                     <button
-                      onClick={() => setParentLinkTarget({ id: player.id, teamId: player.team_id, name: player.name })}
+                      onClick={e => { e.stopPropagation(); setParentLinkTarget({ id: player.id, teamId: player.team_id, name: player.name }); }}
                       title="Ouder koppelen"
                       className="shrink-0 p-1.5 rounded-lg hover:bg-green-100 text-gray-300 hover:text-green-600 transition-colors"
                     >
@@ -709,7 +727,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                               const playerAgeNum = parseInt((player.age || '').trim(), 10);
                               const playsUp = catNum !== null && Number.isFinite(playerAgeNum) && playerAgeNum < catNum;
                               return (
-                                <div key={player.id} className="flex items-center gap-3 p-2 rounded-lg bg-white">
+                                <div
+                                  key={player.id}
+                                  onClick={() => setDetailPlayerId(player.id)}
+                                  className="flex items-center gap-3 p-2 rounded-lg bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                                >
                                   <img src={player.avatar_url} alt={player.name} className="w-7 h-7 rounded-full shrink-0" />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-gray-900 truncate">{player.name}</p>
@@ -746,7 +768,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               ) : (
                 <div className="space-y-2">
                   {topPerformers.map(({ player, team, score }, idx) => (
-                    <div key={player.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                    <div
+                      key={player.id}
+                      onClick={() => setDetailPlayerId(player.id)}
+                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                    >
                       <span className={`text-sm font-black w-5 text-center shrink-0 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-600' : 'text-gray-300'}`}>
                         {idx + 1}
                       </span>
@@ -769,7 +795,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                 </p>
                 <div className="space-y-2">
                   {mostImproved.map(({ player, team, delta, score }) => (
-                    <div key={player.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                    <div
+                      key={player.id}
+                      onClick={() => setDetailPlayerId(player.id)}
+                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                    >
                       <img src={player.avatar_url} alt={player.name} className="w-8 h-8 rounded-full shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{player.name}</p>
@@ -792,7 +822,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                 </p>
                 <div className="space-y-2">
                   {needAttention.map(({ player, team, score }) => (
-                    <div key={player.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                    <div
+                      key={player.id}
+                      onClick={() => setDetailPlayerId(player.id)}
+                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                    >
                       <img src={player.avatar_url} alt={player.name} className="w-8 h-8 rounded-full shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{player.name}</p>
@@ -828,6 +862,22 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               clubName={clubName}
               senderEmail={senderEmail}
               teams={teams}
+            />
+          </motion.div>
+
+        ) : section === 'teams' ? (
+          /* ── Teams & Coaches ── */
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="mb-5">
+              <h2 className="text-lg font-black text-gray-900">Teams &amp; Coaches</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Maak teams aan en wijs coaches (incl. assistenten) toe.</p>
+            </div>
+            <TeamManagementTab
+              clubId={userData.clubId!}
+              clubName={clubName}
+              senderEmail={senderEmail}
+              isSuperAdmin={userData.role === 'superadmin'}
+              onTeamsChanged={() => void loadClubData()}
             />
           </motion.div>
 
@@ -892,7 +942,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
       {!selectedTeam && (
         <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex">
-            {SECTIONS.map(({ id, label, icon: Icon, badge }) => {
+            {SECTIONS.filter(({ id }) => id !== 'berichten').map(({ id, label, icon: Icon, badge }) => {
               const isActive = section === id;
               return (
                 <button
@@ -922,6 +972,15 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         playerId={parentLinkTarget?.id ?? ''}
         teamId={parentLinkTarget?.teamId ?? ''}
         playerName={parentLinkTarget?.name ?? ''}
+      />
+
+      <PlayerDetailModal
+        isVisible={!!detailPlayerId}
+        onClose={() => setDetailPlayerId(null)}
+        player={detailPlayer}
+        team={detailTeam}
+        attendanceRecords={attendanceRecords}
+        onLinkParent={target => { setDetailPlayerId(null); setParentLinkTarget(target); }}
       />
     </div>
   );

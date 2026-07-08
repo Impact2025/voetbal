@@ -41,7 +41,7 @@ const ChallengeLibrary = ({ player, completions, onComplete }: ChallengeLibraryP
           <div className="w-7 h-7 rounded-xl bg-yellow-500/10 flex items-center justify-center">
             <Swords size={14} className="text-yellow-500" />
           </div>
-          <h3 className="text-base font-black text-white">Uitdagingen</h3>
+          <h3 className="text-base font-black text-gray-900">Uitdagingen</h3>
         </div>
         {completedCount > 0 && (
           <div className="text-[10px] font-bold text-gray-500">
@@ -63,7 +63,7 @@ const ChallengeLibrary = ({ player, completions, onComplete }: ChallengeLibraryP
               className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
               style={isActive
                 ? { backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }
-                : { backgroundColor: 'transparent', color: '#6b7280', border: '1px solid rgba(255,255,255,0.06)' }
+                : { backgroundColor: 'transparent', color: '#6b7280', border: '1px solid #e5e7eb' }
               }
             >
               <span>{emoji}</span>

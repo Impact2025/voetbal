@@ -3,7 +3,7 @@ import { ClipboardList, CheckCircle2, Camera } from 'lucide-react';
 import Card from '../ui/Card';
 import VideoSubmissionCard from '../homework/VideoSubmissionCard';
 import { getYoutubeEmbedUrl } from '../../utils/youtube';
-import { NEON_COLOR } from '../../utils/constants';
+import { COACH_COLOR } from '../../utils/constants';
 import type { Player, CustomHomework, HomeworkSubmission } from '../../types';
 
 interface HomeworkItemProps {
@@ -31,17 +31,17 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
       className="rounded-2xl overflow-hidden"
       style={
         isCompleted
-          ? { background: 'rgba(6,95,70,0.15)', border: '1px solid rgba(74,222,128,0.12)' }
+          ? { background: '#ecfdf5', border: '1px solid #a7f3d0' }
           : isFocused
-          ? { background: 'rgba(15,17,23,1)', border: `1px solid ${NEON_COLOR}30`, boxShadow: `0 0 20px ${NEON_COLOR}08` }
-          : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }
+          ? { background: '#ffffff', border: `1px solid ${COACH_COLOR}40` }
+          : { background: '#f9fafb', border: '1px solid #e5e7eb' }
       }
     >
-      {/* Neon accent stripe voor gefocust item */}
+      {/* Accent stripe voor gefocust item */}
       {isFocused && !isCompleted && (
         <div
           className="h-0.5 w-full"
-          style={{ background: `linear-gradient(90deg, ${NEON_COLOR}, ${NEON_COLOR}30, transparent)` }}
+          style={{ background: `linear-gradient(90deg, ${COACH_COLOR}, ${COACH_COLOR}30, transparent)` }}
         />
       )}
 
@@ -51,7 +51,7 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
           <div className="mb-3">
             <span
               className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: `${NEON_COLOR}12`, color: NEON_COLOR, border: `1px solid ${NEON_COLOR}25` }}
+              style={{ backgroundColor: `${COACH_COLOR}12`, color: COACH_COLOR, border: `1px solid ${COACH_COLOR}25` }}
             >
               🎯 Jouw actieve oefening
             </span>
@@ -60,11 +60,11 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
 
         {/* Titel + beschrijving */}
         <div className="mb-4">
-          <h4 className="font-bold text-base text-white leading-snug mb-1.5">
+          <h4 className="font-bold text-base text-gray-900 leading-snug mb-1.5">
             {hw.week && <span className="text-gray-500 font-normal text-sm">{hw.week} · </span>}
             {hw.title}
           </h4>
-          <p className="text-sm text-gray-400 leading-relaxed">{hw.description}</p>
+          <p className="text-sm text-gray-500 leading-relaxed">{hw.description}</p>
         </div>
 
         {/* Voltooid status — alleen tonen als het klaar is */}
@@ -73,7 +73,7 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-center justify-center gap-2 py-3 rounded-xl mb-4"
-            style={{ backgroundColor: 'rgba(6,95,70,0.6)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)' }}
+            style={{ backgroundColor: '#dcfce7', color: '#16a34a', border: '1px solid #bbf7d0' }}
           >
             <CheckCircle2 size={15} />
             <span className="text-sm font-bold">Voltooid!</span>
@@ -98,8 +98,8 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
         {!isCompleted && (
           <div className="mb-3">
             <div className="flex items-center gap-2 mb-3">
-              <Camera size={14} style={{ color: NEON_COLOR }} />
-              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: NEON_COLOR }}>
+              <Camera size={14} style={{ color: COACH_COLOR }} />
+              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: COACH_COLOR }}>
                 Upload je uitvoering voor feedback
               </span>
             </div>
@@ -138,9 +138,9 @@ const PlayerHomeworkCard = ({
     return (
       <Card>
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <ClipboardList size={20} className="text-[--neon-color]" /> Huiswerk
+          <ClipboardList size={20} style={{ color: COACH_COLOR }} /> Huiswerk
         </h3>
-        <p className="text-gray-400">Er is momenteel geen huiswerk toegewezen.</p>
+        <p className="text-gray-500">Er is momenteel geen huiswerk toegewezen.</p>
       </Card>
     );
   }
@@ -155,7 +155,7 @@ const PlayerHomeworkCard = ({
   return (
     <Card>
       <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <ClipboardList size={20} className="text-[--neon-color]" /> Jouw Huiswerk
+        <ClipboardList size={20} style={{ color: COACH_COLOR }} /> Jouw Huiswerk
       </h3>
       <div className="space-y-3">
         {sorted.map(hw => (

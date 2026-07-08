@@ -37,7 +37,7 @@ export default function TrainingModule() {
 
       <div className="space-y-2">
         {clubs.length === 0 && (
-          <Card><p className="text-gray-500 text-sm text-center py-6">Geen clubs gevonden.</p></Card>
+          <Card light={false}><p className="text-gray-500 text-sm text-center py-6">Geen clubs gevonden.</p></Card>
         )}
         {clubs.map(club => {
           const open = selected === club.id;

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const APP_URL = 'https://skillkaart.nl';
 
-interface Req { method: string; body: { email?: string } }
+interface Req { method: string; body: { email?: string; linkCode?: string } }
 interface Res {
   status: (c: number) => Res;
   json: (d: unknown) => void;
@@ -75,6 +75,7 @@ export default async function handler(req: Req, res: Res) {
     res.status(400).json({ error: 'Ongeldig e-mailadres.' });
     return;
   }
+  const linkCode = (req.body?.linkCode ?? '').trim().toUpperCase();
 
   const resendKey = process.env.RESEND_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -91,10 +92,11 @@ export default async function handler(req: Req, res: Res) {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
+    const redirectTo = linkCode ? `${APP_URL}?parentCode=${encodeURIComponent(linkCode)}` : APP_URL;
     const { data, error } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: { redirectTo: APP_URL },
+      options: { redirectTo },
     });
 
     if (error || !data?.properties?.action_link) {
