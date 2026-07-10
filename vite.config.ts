@@ -22,9 +22,10 @@ export default defineConfig({
       ignored: ['**/wetransfer_*/**', '**/*.pdf'],
     },
     proxy: {
-      // Forward /api/* naar vercel dev (draait standaard op poort 3000).
-      // Start met: vercel dev (in plaats van vite) voor volledige API-functionaliteit.
-      '/api': 'http://localhost:3000',
+      // Forward /api/* naar vercel dev. Standaard poort 3000, maar hier op
+      // 3001 omdat poort 3000 op deze machine al bezet is door een ander
+      // lokaal project (Vrijwilligersmatch). Start met: vercel dev --listen 3001
+      '/api': 'http://localhost:3001',
     },
   },
   test: {

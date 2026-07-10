@@ -17,7 +17,9 @@ export default function AdminLogin({ onBack }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [slowHint, setSlowHint] = useState(false);
 
   // Pre-warm GoTrue so cold-start delay hits while the user types, not after submit.
@@ -50,11 +52,39 @@ export default function AdminLogin({ onBack }: Props) {
       throw lastErr;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Inloggen mislukt';
-      setError(msg === 'timeout' ? 'Server reageert niet. Probeer het opnieuw.' : msg);
+      const translated = msg === 'Email not confirmed'
+        ? 'Je e-mailadres is nog niet bevestigd. Controleer je inbox (en spammap) voor de bevestigingslink, of vraag hieronder een nieuwe link aan.'
+        : msg === 'timeout'
+          ? 'Server reageert niet. Probeer het opnieuw.'
+          : msg;
+      setError(translated);
     } finally {
       clearTimeout(slowTimer);
       setSlowHint(false);
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) { setError('Vul eerst je e-mailadres in.'); return; }
+    setResending(true); setError(''); setSuccess('');
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setSuccess('Bevestigingsmail opnieuw verstuurd! Check je inbox (en spammap).');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('too many')) {
+        setError('Te veel mails verstuurd. Wacht een uur en probeer het opnieuw.');
+      } else {
+        setError(msg || 'Kon de bevestigingsmail niet versturen. Probeer het later opnieuw.');
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -109,6 +139,22 @@ export default function AdminLogin({ onBack }: Props) {
 
           {error && (
             <p className="text-red-600 text-sm text-center">{error}</p>
+          )}
+
+          {error && error.includes('nog niet bevestigd') && (
+            <button
+              type="button"
+              disabled={resending}
+              onClick={() => void handleResendConfirmation()}
+              className="w-full py-2.5 rounded-xl font-black text-sm transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+              style={{ background: NEON_COLOR, color: 'black' }}
+            >
+              {resending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Bevestigingsmail opnieuw versturen'}
+            </button>
+          )}
+
+          {success && (
+            <p className="text-green-600 text-sm text-center">{success}</p>
           )}
 
           <button

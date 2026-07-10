@@ -53,6 +53,10 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   const [invite, setInvite] = useState<CoachInvite | null>(null);
   // Het token komt uit de URL en wordt niet meer door de server teruggegeven.
   const [inviteToken, setInviteToken] = useState<string | null>(null);
+  // Supabase blokkeert login zolang het e-mailadres niet bevestigd is. We vertalen
+  // die melding en bieden een knop om de bevestigingsmail opnieuw te sturen.
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => { if (isRecovering) setView('resetPassword'); }, [isRecovering]);
 
@@ -76,6 +80,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       );
     });
   }, []);
+
+  // Verberg de "opnieuw versturen"-actie zodra de gebruiker het e-mailadres wijzigt.
+  useEffect(() => { setEmailNotConfirmed(false); }, [email]);
 
   useEffect(() => {
     if (view === 'playerLogin') {
@@ -165,9 +172,10 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       'Invalid login credentials': 'Ongeldige inloggegevens. Controleer uw e-mail en wachtwoord.',
       'User already registered': 'Dit e-mailadres is al in gebruik door een ander account.',
       'Password should be at least 6 characters': 'Het wachtwoord moet uit minstens 6 tekens bestaan.',
+      'Email not confirmed': 'Je e-mailadres is nog niet bevestigd. Controleer je inbox (en spammap) voor de bevestigingslink, of vraag hieronder een nieuwe link aan.',
     };
 
-    setError('');
+    setError(''); setEmailNotConfirmed(false); setSuccess('');
     const r1 = await attemptCoach();
     if (r1 === 'ok') return;
     if (r1 === '__timeout__' && !isRegistering) {
@@ -175,9 +183,39 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       await new Promise(res => setTimeout(res, 2000));
       setError('');
       const r2 = await attemptCoach();
-      if (r2 !== 'ok') setError(r2 === '__timeout__' ? 'Server reageert niet. Probeer het over een minuut opnieuw.' : (messages[r2] ?? r2));
+      if (r2 !== 'ok') {
+        if (r2 === 'Email not confirmed') { setEmailNotConfirmed(true); setError(messages[r2]); }
+        else setError(r2 === '__timeout__' ? 'Server reageert niet. Probeer het over een minuut opnieuw.' : (messages[r2] ?? r2));
+      }
+    } else if (r1 === 'Email not confirmed') {
+      setEmailNotConfirmed(true);
+      setError(messages[r1]);
     } else {
       setError(messages[r1] ?? r1);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) { setError('Vul eerst je e-mailadres in.'); return; }
+    setResending(true); setError(''); setSuccess('');
+    try {
+      const redirectTo = window.location.hostname === 'localhost' ? window.location.origin : 'https://skillkaart.nl';
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: redirectTo },
+      });
+      if (error) throw error;
+      setSuccess('Bevestigingsmail opnieuw verstuurd! Check je inbox (en spammap).');
+    } catch (err) {
+      const msg = (err as Error).message ?? '';
+      if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('too many')) {
+        setError('Te veel mails verstuurd. Wacht een uur en probeer het opnieuw.');
+      } else {
+        setError(msg || 'Kon de bevestigingsmail niet versturen. Probeer het later opnieuw.');
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -454,6 +492,22 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
             <button type="button" onClick={() => { setForgotPasswordOrigin('coachLogin'); setView('forgotPassword'); setError(''); }} className={`text-sm transition-colors ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
               Vergeten?
             </button>
+          </div>
+        )}
+        {emailNotConfirmed && (
+          <button
+            type="button"
+            disabled={resending}
+            onClick={() => void handleResendConfirmation()}
+            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-60 flex justify-center items-center gap-2 ${isLightMode ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-[#00FF9D] text-black hover:opacity-90'}`}
+          >
+            {resending ? <Loader2 className="animate-spin" size={16} /> : 'Bevestigingsmail opnieuw versturen'}
+          </button>
+        )}
+        {view === 'coachLogin' && success && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg border ${isLightMode ? 'bg-green-50 border-green-200' : 'bg-green-900/30 border-green-700'}`}>
+            <CheckCircle2 size={18} className={`shrink-0 ${isLightMode ? 'text-green-600' : 'text-green-400'}`} />
+            <p className={`text-sm ${isLightMode ? 'text-green-700' : 'text-green-300'}`}>{success}</p>
           </div>
         )}
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>

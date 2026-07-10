@@ -13,6 +13,7 @@ vi.mock('../../lib/supabase', () => ({
     auth: {
       signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
       signUp: vi.fn().mockResolvedValue({ data: { user: { id: 'uid-1' } }, error: null }),
+      resend: vi.fn().mockResolvedValue({ error: null }),
     },
   },
 }));
@@ -50,6 +51,33 @@ describe('AuthComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Inloggen' }));
     await waitFor(() => {
       expect(screen.getByText('Team ID niet gevonden. Controleer de code bij je coach.')).toBeInTheDocument();
+    });
+  });
+
+  it('translates "Email not confirmed" to Dutch and offers a resend button', async () => {
+    const { supabase } = await import('../../lib/supabase');
+    (supabase.auth.signInWithPassword as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ error: { message: 'Email not confirmed' } });
+
+    render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
+    fireEvent.click(screen.getByText('Coach'));
+    fireEvent.change(screen.getByPlaceholderText('coach@email.com'), { target: { value: 'hans@fellow-travellers.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'wachtwoord123' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Inloggen' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Je e-mailadres is nog niet bevestigd/)).toBeInTheDocument();
+    });
+    const resendBtn = screen.getByRole('button', { name: 'Bevestigingsmail opnieuw versturen' });
+    expect(resendBtn).toBeInTheDocument();
+
+    fireEvent.click(resendBtn);
+    await waitFor(() => {
+      expect(supabase.auth.resend).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'signup',
+        email: 'hans@fellow-travellers.com',
+      }));
+      expect(screen.getByText(/Bevestigingsmail opnieuw verstuurd/)).toBeInTheDocument();
     });
   });
 });
