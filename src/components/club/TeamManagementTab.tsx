@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, Loader2, Plus, ChevronDown, Pencil, Archive, ArchiveRestore,
-  UserPlus, X, Mail, Trash2, Shield as ShieldIcon,
+  UserPlus, X, Mail, Trash2, Shield as ShieldIcon, BarChart2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { fetchClubSubscriptionTier, setClubProStatus } from '../../lib/trainingLibrary';
@@ -27,6 +27,7 @@ interface TeamManagementTabProps {
   senderEmail: string;
   isSuperAdmin?: boolean;
   onTeamsChanged: () => void;
+  onViewStats: (teamId: string) => void;
 }
 
 // ─── Nieuw team modal ─────────────────────────────────────────────────────────
@@ -257,7 +258,7 @@ const AddCoachModal = ({ team, clubId, clubName, senderEmail, existingCoachIds, 
 
 // ─── Main tab ─────────────────────────────────────────────────────────────────
 
-const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false, onTeamsChanged }: TeamManagementTabProps) => {
+const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false, onTeamsChanged, onViewStats }: TeamManagementTabProps) => {
   const [isPro, setIsPro] = useState(false);
   const [togglingPro, setTogglingPro] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -382,7 +383,7 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
                 const isArchived = !!team.archived_at;
                 return (
                   <Card key={team.id} light className={isArchived ? 'opacity-60' : ''}>
-                    <button onClick={() => toggleExpand(team.id)} className="w-full flex items-center gap-3 text-left">
+                    <div onClick={() => toggleExpand(team.id)} className="w-full flex items-center gap-3 text-left cursor-pointer">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-gray-900 truncate">{team.team_name}</p>
@@ -390,8 +391,15 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
                         </div>
                         <p className="text-xs text-gray-400">{team.team_class} · {roster.filter(r => r.status === 'active').length} coach{roster.filter(r => r.status === 'active').length === 1 ? '' : 'es'}</p>
                       </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); onViewStats(team.id); }}
+                        title="Bekijk stats"
+                        className="shrink-0 p-1.5 rounded-lg hover:bg-green-100 text-gray-300 hover:text-green-600 transition-colors"
+                      >
+                        <BarChart2 size={15} />
+                      </button>
                       <ChevronDown size={16} className={`text-gray-300 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                    </button>
+                    </div>
 
                     {isOpen && (
                       <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">

@@ -20,21 +20,31 @@ async function main() {
   const names = demoPlayers.map((p) => p.name);
   const { data: existing, error } = await supabase
     .from('players')
-    .select('id, name')
+    .select('id, name, evaluations')
     .in('name', names);
   if (error) { console.error('Lookup failed:', error.message); process.exit(1); }
 
-  const byName = new Map((existing || []).map((p) => [p.name, p.id]));
+  const byName = new Map((existing || []).map((p) => [p.name, p]));
   let updated = 0, skipped = 0;
 
   for (const player of demoPlayers) {
-    const id = byName.get(player.name);
-    if (!id) { console.log(`  ⚠️  ${player.name} niet gevonden in DB — skip`); skipped++; continue; }
+    const row = byName.get(player.name);
+    if (!row) { console.log(`  ⚠️  ${player.name} niet gevonden in DB — skip`); skipped++; continue; }
+
+    // Behoud een eventueel al gegenereerd AI-trainingsplan (structuredPlan) per periode —
+    // deze demo-content overschrijft alleen skills/comments/fitness/tests.
+    const mergedEvaluations = {};
+    for (const period of Object.keys(player.evaluations)) {
+      const preservedPlan = row.evaluations?.[period]?.structuredPlan;
+      mergedEvaluations[period] = preservedPlan
+        ? { ...player.evaluations[period], structuredPlan: preservedPlan }
+        : player.evaluations[period];
+    }
 
     const { error: upErr } = await supabase
       .from('players')
-      .update({ evaluations: player.evaluations })
-      .eq('id', id);
+      .update({ evaluations: mergedEvaluations })
+      .eq('id', row.id);
     if (upErr) { console.warn(`  ✗ ${player.name}:`, upErr.message); continue; }
     console.log(`  ✅ ${player.name.padEnd(16)} score ${finalScore(player)}  [${player.position} · ${player.team_id}]`);
     updated++;

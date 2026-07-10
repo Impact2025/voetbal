@@ -105,10 +105,15 @@ function WeekRow({
   const isEnabled = override ? override.is_enabled : !plan.is_vacation;
   const isVacation = plan.is_vacation;
 
+  const opdrachten = [
+    plan.training_a_number ? `${plan.training_a_number}A` : null,
+    plan.training_b_number ? `${plan.training_b_number}B` : null,
+  ].filter(Boolean).join(' en ');
+
   return (
     <div className={`border-b border-gray-100 last:border-0 ${isVacation ? 'opacity-40' : ''}`}>
-      <div className="flex items-center gap-3 py-2.5 px-1">
-        <span className="w-8 text-center text-xs font-black text-gray-400 shrink-0">
+      <div className="flex items-start gap-3 py-3 px-1">
+        <span className="w-8 text-center text-xs font-black text-gray-400 shrink-0 pt-0.5">
           {plan.week_number}
         </span>
 
@@ -116,25 +121,32 @@ function WeekRow({
           {isVacation ? (
             <span className="text-xs text-gray-400 italic">{plan.vacation_label ?? 'Vakantie'}</span>
           ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-gray-700">Training {plan.training_a_number}</span>
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-gray-900">Trainingsweek {plan.sequence_number}</p>
               {plan.homework && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">
-                  {plan.homework}
-                </span>
+                <p className="text-xs leading-relaxed">
+                  <span className="font-black text-purple-600">H</span>
+                  <span className="text-gray-500"> - {plan.homework}</span>
+                </p>
               )}
               {plan.challenge && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: '#f0fdf4', color: ACCENT }}>
-                  {plan.challenge.slice(0, 30)}{plan.challenge.length > 30 ? '…' : ''}
-                </span>
+                <p className="text-xs leading-relaxed">
+                  <span className="font-black" style={{ color: ACCENT }}>C</span>
+                  <span className="text-gray-500"> - {plan.challenge.slice(0, 40)}{plan.challenge.length > 40 ? '…' : ''}</span>
+                </p>
+              )}
+              {opdrachten && (
+                <p className="text-xs leading-relaxed">
+                  <span className="font-black text-blue-600">O</span>
+                  <span className="text-gray-500"> - {opdrachten}</span>
+                </p>
               )}
             </div>
           )}
         </div>
 
         {!isVacation && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 pt-0.5">
             <button
               onClick={() => setNotesOpen(o => !o)}
               className="p-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"

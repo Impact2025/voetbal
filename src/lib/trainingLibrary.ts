@@ -140,6 +140,29 @@ export async function setClubProStatus(clubId: string, isPro: boolean): Promise<
     .eq('id', clubId);
 }
 
+/** Zet een numerieke spelersleeftijd om naar het dichtstbijzijnde seizoensprogramma-label (O8..O12). */
+export function ageToAgeGroup(age: string | number | undefined): string {
+  const n = typeof age === 'number' ? age : parseInt(age ?? '10', 10);
+  const clamped = Math.min(12, Math.max(8, Number.isNaN(n) ? 10 : n));
+  return `O${clamped}`;
+}
+
+/** Haalt de challenge-tekst van de huidige trainingsweek op (gratis basisfeature, onafhankelijk van PRO-status). */
+export async function fetchCurrentWeekChallenge(
+  clubId: string,
+  ageGroup: string,
+): Promise<SeasonWeekPlan | null> {
+  const configs = await fetchClubTrainingConfigs(clubId);
+  if (!configs.some(c => c.age_group === ageGroup)) return null;
+
+  const [plan, overrides] = await Promise.all([
+    fetchSeasonPlan(ageGroup),
+    fetchClubWeekOverrides(clubId, ageGroup),
+  ]);
+  const weekPlan = getCurrentSeasonWeek(plan, overrides);
+  return weekPlan?.challenge ? weekPlan : null;
+}
+
 // Determine which week of the season we're currently in
 export function getCurrentSeasonWeek(
   plan: SeasonWeekPlan[],

@@ -25,6 +25,7 @@ interface TrainerRow {
   attendanceRate: number | null;
   trend: 'up' | 'down' | 'stable' | 'new';
   trendDelta: number;
+  status: 'active' | 'invited';
 }
 
 interface TeamSummary {
@@ -220,10 +221,10 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
         ]);
 
         if (trainerEmails) {
-          const rows: TrainerRow[] = (trainerEmails as { coach_id: string; email: string; team_id: string; team_name: string }[]).map(r => {
+          const rows: TrainerRow[] = (trainerEmails as { tc_id: string; coach_id: string | null; email: string; team_id: string; team_name: string; status: 'active' | 'invited' }[]).map(r => {
             const team = teams.find(t => t.id === r.team_id);
             return {
-              coachId: r.coach_id,
+              coachId: r.tc_id,
               email: r.email,
               teamId: r.team_id,
               teamName: r.team_name,
@@ -233,6 +234,7 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
               attendanceRate: team?.attendanceRate ?? null,
               trend: team?.trend ?? 'new',
               trendDelta: team?.trendDelta ?? 0,
+              status: r.status,
             };
           });
           setTrainers(rows);
@@ -303,6 +305,11 @@ const TrainersTab = ({ clubId, clubName, senderEmail, teams }: TrainersTabProps)
                         {trainer.teamClass && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                             {trainer.teamClass}
+                          </span>
+                        )}
+                        {trainer.status === 'invited' && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">
+                            Uitgenodigd
                           </span>
                         )}
                       </div>

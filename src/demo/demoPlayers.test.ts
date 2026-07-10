@@ -17,12 +17,12 @@ import {
 const LATEST = PERIODS[PERIODS.length - 1];
 
 describe('demo players — full coverage', () => {
-  it('has all 7 named top performers', () => {
-    expect(demoPlayers).toHaveLength(7);
+  it('has all 7 named top performers plus the demo quick-login player', () => {
+    expect(demoPlayers).toHaveLength(8);
     const names = demoPlayers.map((p) => p.name);
     expect(names).toEqual([
       'Noah Bakker', 'Tijs Smit', 'Sven de Jong', 'Max Visser',
-      'Sander Kuijpers', 'Boris Willems', 'Thijs Groot',
+      'Sander Kuijpers', 'Boris Willems', 'Thijs Groot', 'Luca van den Berg',
     ]);
   });
 

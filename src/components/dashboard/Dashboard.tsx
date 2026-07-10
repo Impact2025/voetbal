@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, Streak } from '../../types';
+import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, WeekChallengeCompletion, Streak, SeasonWeekPlan } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap, MessageSquare } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -42,6 +42,7 @@ import StreakWidget from '../streak/StreakWidget';
 import ChallengeLibrary from '../challenges/ChallengeLibrary';
 import TeamChallengeCard from '../challenges/TeamChallengeCard';
 import TeamChallengeSetter from '../challenges/TeamChallengeSetter';
+import { CHALLENGES } from '../../data/challenges';
 import OnboardingTour from '../OnboardingTour';
 import ProGate from '../ui/ProGate';
 const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
@@ -54,6 +55,7 @@ import { usePWA } from '../../lib/usePWA';
 import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
 import { getActiveTeamChallenge } from '../../lib/teamChallenge';
+import { ageToAgeGroup, fetchCurrentWeekChallenge } from '../../lib/trainingLibrary';
 import type { PlayerStats, CardTier, TeamChallenge } from '../../types';
 
 interface DashboardProps {
@@ -65,9 +67,9 @@ interface DashboardProps {
 const COACH_SECTIONS = [
   { id: 'overzicht',  label: 'Overzicht',  icon: LayoutDashboard },
   { id: 'spelers',    label: 'Spelers',    icon: UserSquare },
-  { id: 'huiswerk',   label: 'Huiswerk',   icon: ClipboardList },
   { id: 'trainingen', label: 'Trainingen', icon: Target },
-  { id: 'berichten',  label: 'Berichten',  icon: MessageSquare },
+  { id: 'huiswerk',   label: 'Huiswerk',   icon: ClipboardList },
+  { id: 'challenges', label: 'Challenges', icon: Trophy },
 ] as const;
 
 const PLAYER_SECTIONS = [
@@ -112,6 +114,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [teamChallenge, setTeamChallenge] = useState<TeamChallenge | null>(null);
   const [challengeCompletions, setChallengeCompletions] = useState<ChallengeCompletion[]>([]);
+  const [teamChallengeCompletions, setTeamChallengeCompletions] = useState<ChallengeCompletion[]>([]);
+  const [weekChallenge, setWeekChallenge] = useState<SeasonWeekPlan | null>(null);
+  const [weekChallengeCompletions, setWeekChallengeCompletions] = useState<WeekChallengeCompletion[]>([]);
   const [fetchError, setFetchError] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'player' ? 'vandaag' : 'overzicht');
@@ -132,15 +137,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         { data: homeworkData },
         { data: attendanceData },
         { data: submissionsData },
+        { data: teamCompletionsData },
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id', userData.teamId),
         supabase.from('teams').select('*').eq('id', userData.teamId).single(),
         supabase.from('custom_homework').select('*').eq('team_id', userData.teamId),
         supabase.from('attendance').select('*').eq('team_id', userData.teamId),
         supabase.from('homework_submissions').select('*').eq('team_id', userData.teamId).order('created_at', { ascending: false }),
+        supabase.from('challenge_completions').select('*').eq('team_id', userData.teamId).order('completed_at', { ascending: false }),
       ]);
 
       setSubmissions((submissionsData || []) as HomeworkSubmission[]);
+      setTeamChallengeCompletions((teamCompletionsData || []) as ChallengeCompletion[]);
 
       const normalizedPlayers = (playersData || []).map(player => ({
         ...player,
@@ -219,11 +227,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       })
       .subscribe();
 
-    // Realtime voor challenge_completions (team challenge voortgang live)
+    // Realtime voor challenge_completions (team challenge voortgang + coach-overzicht live)
     if (userData.role !== 'player') {
       supabase.channel(`public:challenge_completions:team_id=eq.${userData.teamId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_completions' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'challenge_completions' }, payload => {
           getActiveTeamChallenge(userData.teamId!).then(setTeamChallenge);
+          if (payload.eventType === 'INSERT') {
+            setTeamChallengeCompletions(prev => [payload.new as ChallengeCompletion, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setTeamChallengeCompletions(prev => prev.map(c => c.id === (payload.new as ChallengeCompletion).id ? payload.new as ChallengeCompletion : c));
+          }
         })
         .subscribe();
     }
@@ -231,15 +244,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     return () => supabase.removeAllChannels();
   }, [userData, user.id]);
 
-  // Load club PRO status
+  // Load club PRO status — voor spelers komt club_id pas binnen via teamData, niet via userData
+  const clubId = userData.clubId ?? teamData.club_id;
   useEffect(() => {
-    if (!userData.clubId || userData.role === 'player') return;
-    supabase.from('clubs').select('subscription_tier').eq('id', userData.clubId).single()
+    if (!clubId) return;
+    supabase.from('clubs').select('subscription_tier').eq('id', clubId).single()
       .then(({ data }) => setIsClubPro(data?.subscription_tier === 'pro'))
       .catch(() => {/* clubs table may not have this column yet */});
-  }, [userData.clubId, userData.role]);
+  }, [clubId]);
 
-  // Load player stats, streak and challenge completions for the player role
+  // Load player stats, streak en challenge completions for the player role
   useEffect(() => {
     if (userData.role !== 'player' || !userData.teamId) return;
     const pid = user.id;
@@ -249,12 +263,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       fetchAndRecomputeStats(pid, tid),
       getOrCreateStreak(pid),
       supabase.from('challenge_completions').select('*').eq('player_id', pid),
+      supabase.from('week_challenge_completions').select('*').eq('player_id', pid),
       getActiveTeamChallenge(tid),
-    ]).then(([statsResult, streakResult, completionsResult, challengeResult]) => {
+    ]).then(([statsResult, streakResult, completionsResult, weekCompletionsResult, challengeResult]) => {
       if (statsResult.status === 'fulfilled' && statsResult.value) setPlayerStats(statsResult.value);
       if (streakResult.status === 'fulfilled' && streakResult.value) setStreak(streakResult.value);
       if (completionsResult.status === 'fulfilled' && completionsResult.value.data) {
         setChallengeCompletions(completionsResult.value.data as ChallengeCompletion[]);
+      }
+      if (weekCompletionsResult.status === 'fulfilled' && weekCompletionsResult.value.data) {
+        setWeekChallengeCompletions(weekCompletionsResult.value.data as WeekChallengeCompletion[]);
       }
       if (challengeResult.status === 'fulfilled') setTeamChallenge(challengeResult.value);
     }).catch(() => {/* silently skip if tables not migrated yet */});
@@ -271,6 +289,21 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     if (userData.role === 'player') return players.find(p => p.id === user.id);
     return players.find(p => p.id === activePlayerId);
   }, [players, activePlayerId, user.id, userData.role]);
+
+  // Basis-weekchallenge (gratis, uit het seizoensprogramma van deze week) voor de speler
+  useEffect(() => {
+    if (userData.role !== 'player' || !activePlayer || !clubId) { setWeekChallenge(null); return; }
+    const ageGroup = ageToAgeGroup(activePlayer.age);
+    fetchCurrentWeekChallenge(clubId, ageGroup)
+      .then(setWeekChallenge)
+      .catch(() => setWeekChallenge(null));
+  }, [userData.role, activePlayer, clubId]);
+
+  const activeWeekChallengeText = useMemo(() => {
+    if (!weekChallenge?.challenge) return null;
+    const alreadyDone = weekChallengeCompletions.some(c => c.week_plan_id === weekChallenge.id);
+    return alreadyDone ? null : weekChallenge.challenge;
+  }, [weekChallenge, weekChallengeCompletions]);
 
   const focusedHomeworkId = useMemo(() => {
     if (!activePlayer) return undefined;
@@ -448,6 +481,18 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
   };
 
+  const handleToggleSubmissionReview = async (submission: HomeworkSubmission) => {
+    const coach_reviewed = !submission.coach_reviewed;
+    setSubmissions(prev => prev.map(s => s.id === submission.id ? { ...s, coach_reviewed } : s));
+    await supabase.from('homework_submissions').update({ coach_reviewed }).eq('id', submission.id);
+  };
+
+  const handleToggleChallengeReview = async (completion: ChallengeCompletion) => {
+    const coach_reviewed = !completion.coach_reviewed;
+    setTeamChallengeCompletions(prev => prev.map(c => c.id === completion.id ? { ...c, coach_reviewed } : c));
+    await supabase.from('challenge_completions').update({ coach_reviewed }).eq('id', completion.id);
+  };
+
   const handleSubmissionComplete = async (submission: HomeworkSubmission) => {
     setSubmissions(prev => {
       const idx = prev.findIndex(s => s.id === submission.id);
@@ -523,6 +568,33 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     return completion?.id ?? null;
   };
 
+  const handleCompleteWeekChallenge = async () => {
+    if (!userData.teamId || !activePlayer || !weekChallenge) return;
+    if (weekChallengeCompletions.some(c => c.week_plan_id === weekChallenge.id)) return;
+
+    const oldTier = playerStats?.tier ?? 'brons';
+
+    const { data: completion } = await supabase
+      .from('week_challenge_completions')
+      .insert({ week_plan_id: weekChallenge.id, player_id: user.id, team_id: userData.teamId })
+      .select()
+      .single();
+
+    if (completion) {
+      setWeekChallengeCompletions(prev => [...prev, completion as WeekChallengeCompletion]);
+    }
+
+    await Promise.all([
+      insertStatEvents(user.id, userData.teamId, 'challenge_done', { week_plan_id: weekChallenge.id }),
+      incrementStreak(user.id).then(s => { if (s) setStreak(s); }),
+    ]);
+
+    const updated = await fetchAndRecomputeStats(user.id, userData.teamId);
+    if (updated) {
+      setPlayerStats(updated);
+      if (updated.tier !== oldTier) setPendingTierUp(updated.tier);
+    }
+  };
 
   const handleRemovePlayer = (id) => setConfirmRemove({ isVisible: true, playerId: id });
 
@@ -674,7 +746,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 >
                   <Download size={14} /> App
                 </button>
-                <button onClick={() => setMobileSection('berichten')} title="Berichten" className="sm:hidden relative p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
+                <button onClick={() => setMobileSection('berichten')} title="Berichten" className="relative p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
                   <MessageSquare size={16} />
                   {unreadMessages > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
@@ -708,11 +780,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 >
                   <Icon size={15} />
                   {label}
-                  {id === 'berichten' && unreadMessages > 0 && (
-                    <span className="absolute top-2 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
-                      {unreadMessages}
-                    </span>
-                  )}
                 </button>
               ))}
             </div>
@@ -742,16 +809,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   activeTab={activeTab}
                   onSelectPlayer={(id) => { setActivePlayerId(id); setMobileSection('spelers'); }}
                 />
-                )}
-
-                {/* Team-uitdaging instellen */}
-                {userData.teamId && (
-                  <TeamChallengeSetter
-                    teamId={userData.teamId}
-                    current={teamChallenge}
-                    onChange={setTeamChallenge}
-                    clubId={userData.clubId}
-                  />
                 )}
               </div>
             )}
@@ -933,13 +990,15 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     <h2 className="text-xl font-black text-gray-900">Huiswerk</h2>
                     <p className="text-sm text-gray-500 mt-0.5">{customHomework.length} opdracht{customHomework.length !== 1 ? 'en' : ''} aangemaakt</p>
                   </div>
-                  <button
-                    onClick={() => setIsHomeworkVisible(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: COACH_COLOR }}
-                  >
-                    <Plus size={15} /> Nieuw
-                  </button>
+                  {userData.role === 'club_admin' && (
+                    <button
+                      onClick={() => setIsHomeworkVisible(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: COACH_COLOR }}
+                    >
+                      <Plus size={15} /> Nieuw
+                    </button>
+                  )}
                 </div>
 
                 {/* Team completion */}
@@ -977,9 +1036,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
                     <ClipboardList size={40} className="mx-auto mb-3 text-gray-300" />
                     <p className="text-gray-500 font-medium mb-3">Nog geen huiswerk aangemaakt</p>
-                    <button onClick={() => setIsHomeworkVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: COACH_COLOR }}>
-                      Eerste opdracht aanmaken
-                    </button>
+                    {userData.role === 'club_admin' && (
+                      <button onClick={() => setIsHomeworkVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: COACH_COLOR }}>
+                        Eerste opdracht aanmaken
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1042,6 +1103,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                                 <p className="text-sm font-semibold text-gray-900 truncate">{submPlayer.name}</p>
                                 <p className="text-xs text-gray-500 truncate">{hw.title}</p>
                               </div>
+                              {sub.coach_reviewed && <CheckCircle2 size={15} className="shrink-0" style={{ color: COACH_COLOR }} />}
                               <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>{statusLabel}</span>
                             </summary>
                             <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
@@ -1051,7 +1113,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               ) : (
                                 <p className="text-xs text-gray-400 italic">{sub.feedback_status === 'processing' ? 'Feedback wordt gegenereerd…' : 'Geen feedback beschikbaar.'}</p>
                               )}
-                              <p className="text-[10px] text-gray-400">{new Date(sub.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                              <div className="flex items-center justify-between pt-1">
+                                <p className="text-[10px] text-gray-400">{new Date(sub.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                <button
+                                  onClick={() => handleToggleSubmissionReview(sub)}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
+                                    sub.coach_reviewed
+                                      ? 'text-white'
+                                      : 'bg-white text-gray-500 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                                  }`}
+                                  style={sub.coach_reviewed ? { backgroundColor: COACH_COLOR } : {}}
+                                >
+                                  <CheckCircle2 size={13} /> {sub.coach_reviewed ? 'Goedgekeurd' : 'Goedkeuren'}
+                                </button>
+                              </div>
                             </div>
                           </details>
                         );
@@ -1142,6 +1217,72 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                       <p className="text-sm text-gray-400 text-center py-4">Selecteer een speler om antwoorden te bekijken.</p>
                     )}
                   </Card>
+                )}
+              </div>
+            )}
+
+            {/* ── CHALLENGES ── */}
+            {mobileSection === 'challenges' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-black text-gray-900">Challenges</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">{teamChallengeCompletions.length} voltooiing{teamChallengeCompletions.length !== 1 ? 'en' : ''}</p>
+                </div>
+
+                {userData.teamId && userData.role === 'club_admin' && (
+                  <TeamChallengeSetter
+                    teamId={userData.teamId}
+                    current={teamChallenge}
+                    onChange={setTeamChallenge}
+                    clubId={userData.clubId}
+                  />
+                )}
+
+                {teamChallengeCompletions.length === 0 ? (
+                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                    <Trophy size={40} className="mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-500 font-medium">Nog geen challenges voltooid</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {teamChallengeCompletions.slice(0, 30).map(comp => {
+                      const compPlayer = players.find(p => p.id === comp.player_id);
+                      const challenge = CHALLENGES.find(c => c.id === comp.challenge_id);
+                      if (!compPlayer || !challenge) return null;
+                      return (
+                        <details key={comp.id} className="group rounded-xl bg-gray-50 border border-gray-200 overflow-hidden">
+                          <summary className="flex items-center gap-3 p-3 cursor-pointer list-none hover:bg-gray-100 transition-colors">
+                            <img src={compPlayer.avatar_url} alt={compPlayer.name} className="w-8 h-8 rounded-full shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{compPlayer.name}</p>
+                              <p className="text-xs text-gray-500 truncate">{challenge.title}</p>
+                            </div>
+                            {comp.coach_reviewed && <CheckCircle2 size={15} className="shrink-0" style={{ color: COACH_COLOR }} />}
+                          </summary>
+                          <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
+                            {comp.video_url && <video src={comp.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />}
+                            {comp.reflection && (
+                              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{comp.reflection}</p>
+                            )}
+                            <div className="flex items-center justify-between pt-1">
+                              <p className="text-[10px] text-gray-400">{new Date(comp.completed_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                              <button
+                                onClick={() => handleToggleChallengeReview(comp)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
+                                  comp.coach_reviewed
+                                    ? 'text-white'
+                                    : 'bg-white text-gray-500 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                                }`}
+                                style={comp.coach_reviewed ? { backgroundColor: COACH_COLOR } : {}}
+                              >
+                                <CheckCircle2 size={13} /> {comp.coach_reviewed ? 'Goedgekeurd' : 'Goedkeuren'}
+                              </button>
+                            </div>
+                          </div>
+                        </details>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
@@ -1356,7 +1497,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="flex">
-              {COACH_SECTIONS.filter(({ id }) => id !== 'berichten').map(({ id, label, icon: Icon }) => {
+              {COACH_SECTIONS.map(({ id, label, icon: Icon }) => {
                 const isActive = mobileSection === id;
                 return (
                   <button
@@ -1443,8 +1584,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 streak={streak}
                 customHomework={customHomework}
                 assignedHomeworkIds={teamData.assigned_homework_ids || []}
-                completions={challengeCompletions}
                 hasOpenQuestions={visibleQuestions.some(({ idx }) => !responseDrafts[idx]?.trim())}
+                weekChallenge={activeWeekChallengeText}
+                onCompleteWeekChallenge={handleCompleteWeekChallenge}
               />
 
               {/* Team-uitdaging — collectief weekdoel, geen individuele ranking */}
@@ -1467,12 +1609,21 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 />
               </div>
 
-              <div id="today-challenges" className="scroll-mt-24 rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <ChallengeLibrary
-                  player={activePlayer}
-                  completions={challengeCompletions}
-                  onComplete={handleChallengeComplete}
-                />
+              <div id="today-challenges" className="scroll-mt-24">
+                {isClubPro ? (
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                    <ChallengeLibrary
+                      player={activePlayer}
+                      completions={challengeCompletions}
+                      onComplete={handleChallengeComplete}
+                    />
+                  </div>
+                ) : (
+                  <ProGate
+                    feature="Uitdagingen"
+                    description="Wekelijkse skill-uitdagingen per categorie, met AI-feedback. Binnenkort beschikbaar als PRO-feature."
+                  />
+                )}
               </div>
 
               {/* Coach-vragen — paged, één vraag per scherm */}

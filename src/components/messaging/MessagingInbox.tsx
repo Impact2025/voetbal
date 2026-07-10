@@ -471,12 +471,14 @@ const MessagingInbox = ({
 
       if (currentUserRole === 'club_admin' && clubId) {
         const { data } = await supabase.rpc('get_club_trainer_emails', { p_club_id: clubId });
-        rows = (data ?? []).map((r: { coach_id: string; email: string; team_name: string }) => ({
-          id: r.coach_id,
-          name: r.team_name,
-          role: 'coach',
-          subtitle: r.email,
-        }));
+        rows = (data ?? [])
+          .filter((r: { coach_id: string | null }) => !!r.coach_id) // alleen coaches die de uitnodiging al geaccepteerd hebben (echt account nodig voor een gesprek)
+          .map((r: { coach_id: string; email: string; team_name: string; coach_role?: string }) => ({
+            id: r.coach_id,
+            name: r.team_name,
+            role: 'coach',
+            subtitle: r.coach_role === 'assistant' ? `${r.email} · Assistent` : r.email,
+          }));
       } else if (currentUserRole === 'coach' && teamId) {
         const { data } = await supabase.rpc('get_coach_contacts', {
           p_coach_id: currentUserId,

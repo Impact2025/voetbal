@@ -231,6 +231,7 @@ export interface HomeworkSubmission {
   video_url: string | null;
   ai_feedback: string | null;
   feedback_status: SubmissionStatus;
+  coach_reviewed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -294,6 +295,15 @@ export interface ChallengeCompletion {
   ai_feedback?: string;
   video_url?: string;
   video_ai_feedback?: string;
+  coach_reviewed?: boolean;
+  completed_at: string;
+}
+
+export interface WeekChallengeCompletion {
+  id: string;
+  week_plan_id: string;
+  player_id: string;
+  team_id: string;
   completed_at: string;
 }
 

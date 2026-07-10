@@ -21,6 +21,30 @@ interface StatChipProps {
   warn?: boolean;
 }
 
+interface ColoredAxisTickProps {
+  x?: number;
+  y?: number;
+  textAnchor?: string;
+  payload?: { value: string };
+  colorMap: Record<string, string>;
+}
+
+const ColoredAxisTick = ({ x, y, textAnchor, payload, colorMap }: ColoredAxisTickProps) => (
+  <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fontSize={11} fontWeight={700} fill={colorMap[payload?.value ?? ''] ?? '#6b7280'}>
+    {payload?.value}
+  </text>
+);
+
+interface ColoredRadarDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: { payload?: { color?: string } };
+}
+
+const ColoredRadarDot = ({ cx, cy, payload }: ColoredRadarDotProps) => (
+  <circle cx={cx} cy={cy} r={5} fill={payload?.payload?.color ?? COACH_COLOR} stroke="#fff" strokeWidth={1.5} />
+);
+
 const StatChip = ({ label, value, sub, icon, warn = false }: StatChipProps) => (
   <Card light className="text-center py-4">
     <div className="flex flex-col items-center gap-1">
@@ -59,8 +83,10 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
         : 5;
       return sum + playerAvg;
     }, 0) / group.skills.length;
-    return { subject: group.label, value: parseFloat(avg.toFixed(1)), fullMark: 10 };
+    return { subject: group.label, value: parseFloat(avg.toFixed(1)), fullMark: 10, color: group.color };
   });
+
+  const subjectColorMap: Record<string, string> = Object.fromEntries(SKILL_GROUPS.map(g => [g.label, g.color]));
 
   if (players.length === 0) {
     return (
@@ -94,61 +120,59 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Team radar */}
-        <div>
-          <Card light>
-            <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-              Team Skill Gemiddelde
-              <span className="text-sm font-normal text-gray-400">— {activeTab}</span>
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                  <PolarGrid stroke="#e5e7eb" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                  <Radar name="Team" dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.45} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
+      {/* Team radar */}
+      <div>
+        <Card light>
+          <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+            Team Skill Gemiddelde
+            <span className="text-sm font-normal text-gray-400">— {activeTab}</span>
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                <PolarGrid stroke="#e5e7eb" />
+                <PolarAngleAxis dataKey="subject" tick={<ColoredAxisTick colorMap={subjectColorMap} />} />
+                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                <Radar name="Team" dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.35} dot={<ColoredRadarDot />} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
 
-        {/* Skill bars */}
-        <div>
-          <Card light>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Skill Verdeling</h3>
-            <div className="space-y-4">
-              {SKILL_GROUPS.map(group => {
-                const groupAvg = group.skills.reduce((sum, s) => {
-                  const a = players.length
-                    ? players.reduce((ps, p) => ps + (p.evaluations?.[activeTab]?.skills[s.key] ?? 5), 0) / players.length
-                    : 5;
-                  return sum + a;
-                }, 0) / group.skills.length;
-                const color = groupAvg >= 7 ? '#16a34a' : groupAvg >= 5 ? '#7c3aed' : '#dc2626';
-                return (
-                  <div key={group.key}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-semibold text-gray-700" style={{ color: group.color }}>{group.label}</span>
-                      <span className="font-bold" style={{ color }}>{groupAvg.toFixed(1)}</span>
-                    </div>
-                    <div className="bg-gray-200 rounded-full h-2">
-                      <motion.div
-                        className="h-2 rounded-full"
-                        style={{ backgroundColor: color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${groupAvg * 10}%` }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                      />
-                    </div>
+      {/* Skill bars */}
+      <div>
+        <Card light>
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Skill Verdeling</h3>
+          <div className="space-y-4">
+            {SKILL_GROUPS.map(group => {
+              const groupAvg = group.skills.reduce((sum, s) => {
+                const a = players.length
+                  ? players.reduce((ps, p) => ps + (p.evaluations?.[activeTab]?.skills[s.key] ?? 5), 0) / players.length
+                  : 5;
+                return sum + a;
+              }, 0) / group.skills.length;
+              const color = groupAvg >= 7 ? '#16a34a' : groupAvg >= 5 ? '#7c3aed' : '#dc2626';
+              return (
+                <div key={group.key}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-semibold text-gray-700" style={{ color: group.color }}>{group.label}</span>
+                    <span className="font-bold" style={{ color }}>{groupAvg.toFixed(1)}</span>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
+                  <div className="bg-gray-200 rounded-full h-2">
+                    <motion.div
+                      className="h-2 rounded-full"
+                      style={{ backgroundColor: color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${groupAvg * 10}%` }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       </div>
 
       {/* Player ranking */}

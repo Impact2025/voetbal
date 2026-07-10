@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Trophy, Copy, CheckCircle2, LogOut, Building2, Shield,
   TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronDown, CalendarCheck,
   ClipboardList, BarChart2, AlertTriangle, Star, Loader2,
   LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare, Heart, Download,
+  GitCompareArrows, Lock, X as XIcon,
 } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -14,6 +16,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { NEON_COLOR, skillKeys, SKILL_GROUPS } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
+import { fetchClubSubscriptionTier } from '../../lib/trainingLibrary';
 import Card from '../ui/Card';
 import ParentLinkModal from '../parent/ParentLinkModal';
 import TrainersTab from './TrainersTab';
@@ -23,6 +26,8 @@ import MessagingInbox from '../messaging/MessagingInbox';
 import { usePWA } from '../../lib/usePWA';
 import InstallModal from '../modals/InstallModal';
 import PlayerDetailModal from './PlayerDetailModal';
+import ComparePlayersModal from './ComparePlayersModal';
+import ProGate from '../ui/ProGate';
 import type { UserData, Player } from '../../types';
 
 const ACCENT = '#16A34A';
@@ -138,6 +143,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const [parentLinkTarget, setParentLinkTarget] = useState<{ id: string; teamId: string; name: string } | null>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [expandedAges, setExpandedAges] = useState<Set<string>>(new Set());
+  const [isPro, setIsPro] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompareProGate, setShowCompareProGate] = useState(false);
+  const [showCompareModal, setShowCompareModal] = useState(false);
   const { canInstall, showInstallPrompt } = usePWA();
 
   useEffect(() => {
@@ -145,6 +155,11 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
       if (user?.email) setSenderEmail(user.email);
     });
   }, []);
+
+  useEffect(() => {
+    if (!userData.clubId) return;
+    void fetchClubSubscriptionTier(userData.clubId).then(tier => setIsPro(tier === 'pro'));
+  }, [userData.clubId]);
 
   const loadClubData = useCallback(async () => {
     if (!userData.clubId) return;
@@ -322,8 +337,6 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     { id: 'trainingen', label: 'Trainingen', icon: BookOpen },
     { id: 'trainers',   label: 'Trainers',   icon: UserCog },
     { id: 'teams',      label: 'Teams',      icon: Shield },
-    { id: 'berichten',  label: 'Berichten',  icon: MessageSquare, badge: unreadMessages || undefined },
-    { id: 'signalen',   label: 'Signalen',   icon: Bell, badge: signals.length || undefined },
   ];
 
   const selectedTeam = selectedTeamId ? teams.find(t => t.id === selectedTeamId) : null;
@@ -375,10 +388,34 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
     }
   };
 
+  const handleToggleCompareMode = () => {
+    if (!isPro) { setShowCompareProGate(true); return; }
+    setCompareMode(m => !m);
+    setCompareIds([]);
+  };
+
+  const handlePlayerRowClick = (playerId: string) => {
+    if (!compareMode) { setDetailPlayerId(playerId); return; }
+    setCompareIds(prev => {
+      if (prev.includes(playerId)) return prev.filter(id => id !== playerId);
+      if (prev.length >= 3) { toast.error('Je kunt maximaal 3 spelers vergelijken.'); return prev; }
+      return [...prev, playerId];
+    });
+  };
+
+  const compareEntries = compareIds
+    .map(id => {
+      const player = allPlayers.find(p => p.id === id);
+      const team = player ? teams.find(t => t.id === player.team_id) : null;
+      return player && team ? { player, team } : null;
+    })
+    .filter(Boolean) as { player: Player; team: TeamEnriched }[];
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-white" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+      <Toaster position="bottom-center" toastOptions={{ style: { background: '#fff', color: '#111827', border: '1px solid #e5e7eb' }, success: { iconTheme: { primary: ACCENT, secondary: '#fff' } } }} />
 
       {/* Header */}
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 py-3">
@@ -396,19 +433,35 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               {copied ? <CheckCircle2 size={13} className="text-green-600" /> : <Copy size={13} className="text-gray-400" />}
             </button>
             <button
-              onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
-              style={{ borderColor: `${ACCENT}40`, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+              onClick={() => setSection('berichten')}
+              title="Berichten"
+              className="relative flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600 text-xs font-bold"
             >
-              <Download size={14} /> App
-            </button>
-            <button onClick={() => setSection('berichten')} title="Berichten" className="sm:hidden relative p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
-              <MessageSquare size={16} />
+              <MessageSquare size={14} /> <span className="hidden sm:inline">Berichten</span>
               {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
                   {unreadMessages}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setSection('signalen')}
+              title="Signalen"
+              className="relative flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600 text-xs font-bold"
+            >
+              <Bell size={14} /> <span className="hidden sm:inline">Signalen</span>
+              {signals.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black">
+                  {signals.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => canInstall ? showInstallPrompt() : setShowInstallModal(true)}
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
+              style={{ borderColor: `${ACCENT}40`, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+            >
+              <Download size={14} /> <span className="hidden sm:inline">App</span>
             </button>
             <button onClick={async () => { await supabase.auth.signOut(); onLogout(); }} className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-red-50 transition-colors text-red-500">
               <LogOut size={16} />
@@ -595,6 +648,25 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               ))}
             </div>
 
+            {/* Club skill radar */}
+            {allPlayers.length > 0 && (
+              <Card light>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-1.5">
+                  <BarChart2 size={11} style={{ color: ACCENT }} /> Club Skill Profiel — gemiddeld alle teams
+                </p>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={clubRadarData}>
+                      <PolarGrid stroke="#e5e7eb" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                      <Radar name="Club" dataKey="value" stroke={ACCENT} fill={ACCENT} fillOpacity={0.30} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            )}
+
             {/* Team cards */}
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -660,25 +732,6 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               )}
             </div>
 
-            {/* Club skill radar */}
-            {allPlayers.length > 0 && (
-              <Card light>
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-1.5">
-                  <BarChart2 size={11} style={{ color: ACCENT }} /> Club Skill Profiel — gemiddeld alle teams
-                </p>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={clubRadarData}>
-                      <PolarGrid stroke="#e5e7eb" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                      <Radar name="Club" dataKey="value" stroke={ACCENT} fill={ACCENT} fillOpacity={0.30} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
-            )}
-
             {/* Invite card */}
             <Card light>
               <div className="flex items-start gap-3">
@@ -700,6 +753,23 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         ) : section === 'spelers' ? (
           /* ── Spelers ── */
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-gray-900">Spelers</h2>
+                {compareMode && <p className="text-xs text-gray-500 mt-0.5">Selecteer 2 of 3 spelers om te vergelijken.</p>}
+              </div>
+              <button
+                onClick={handleToggleCompareMode}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
+                style={compareMode
+                  ? { backgroundColor: ACCENT, color: '#fff', borderColor: ACCENT }
+                  : { borderColor: `${ACCENT}40`, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+              >
+                {compareMode ? <XIcon size={13} /> : isPro ? <GitCompareArrows size={13} /> : <Lock size={13} />}
+                {compareMode ? 'Annuleren' : 'Vergelijk spelers'}
+              </button>
+            </div>
 
             <Card light>
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-1.5">
@@ -726,11 +796,12 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                             {rows.map(({ player, team, score }) => {
                               const playerAgeNum = parseInt((player.age || '').trim(), 10);
                               const playsUp = catNum !== null && Number.isFinite(playerAgeNum) && playerAgeNum < catNum;
+                              const isSelected = compareMode && compareIds.includes(player.id);
                               return (
                                 <div
                                   key={player.id}
-                                  onClick={() => setDetailPlayerId(player.id)}
-                                  className="flex items-center gap-3 p-2 rounded-lg bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                                  onClick={() => handlePlayerRowClick(player.id)}
+                                  className={`flex items-center gap-3 p-2 rounded-lg bg-white hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
                                 >
                                   <img src={player.avatar_url} alt={player.name} className="w-7 h-7 rounded-full shrink-0" />
                                   <div className="flex-1 min-w-0">
@@ -770,8 +841,8 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                   {topPerformers.map(({ player, team, score }, idx) => (
                     <div
                       key={player.id}
-                      onClick={() => setDetailPlayerId(player.id)}
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                      onClick={() => handlePlayerRowClick(player.id)}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors ${compareMode && compareIds.includes(player.id) ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
                     >
                       <span className={`text-sm font-black w-5 text-center shrink-0 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-600' : 'text-gray-300'}`}>
                         {idx + 1}
@@ -797,8 +868,8 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                   {mostImproved.map(({ player, team, delta, score }) => (
                     <div
                       key={player.id}
-                      onClick={() => setDetailPlayerId(player.id)}
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                      onClick={() => handlePlayerRowClick(player.id)}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors ${compareMode && compareIds.includes(player.id) ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
                     >
                       <img src={player.avatar_url} alt={player.name} className="w-8 h-8 rounded-full shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -824,8 +895,8 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                   {needAttention.map(({ player, team, score }) => (
                     <div
                       key={player.id}
-                      onClick={() => setDetailPlayerId(player.id)}
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                      onClick={() => handlePlayerRowClick(player.id)}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors ${compareMode && compareIds.includes(player.id) ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
                     >
                       <img src={player.avatar_url} alt={player.name} className="w-8 h-8 rounded-full shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -878,6 +949,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               senderEmail={senderEmail}
               isSuperAdmin={userData.role === 'superadmin'}
               onTeamsChanged={() => void loadClubData()}
+              onViewStats={setSelectedTeamId}
             />
           </motion.div>
 
@@ -938,11 +1010,38 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         )}
       </main>
 
+      {/* Compare floating bar */}
+      <AnimatePresence>
+        {compareMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-40 flex justify-center px-4"
+          >
+            <div className="bg-white border border-gray-200 shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {compareEntries.map(e => (
+                  <img key={e.player.id} src={e.player.avatar_url} alt={e.player.name} className="w-8 h-8 rounded-full border-2 border-white" />
+                ))}
+                {compareIds.length === 0 && <span className="text-xs text-gray-400">Nog geen spelers geselecteerd</span>}
+              </div>
+              <button
+                onClick={() => setShowCompareModal(true)}
+                disabled={compareIds.length < 2}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
+                style={{ backgroundColor: ACCENT }}
+              >
+                Vergelijk ({compareIds.length}/3)
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Mobile bottom nav */}
       {!selectedTeam && (
         <nav className="fixed bottom-0 left-0 right-0 sm:hidden z-30" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e5e7eb', paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex">
-            {SECTIONS.filter(({ id }) => id !== 'berichten').map(({ id, label, icon: Icon, badge }) => {
+            {SECTIONS.map(({ id, label, icon: Icon, badge }) => {
               const isActive = section === id;
               return (
                 <button
@@ -982,6 +1081,34 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         attendanceRecords={attendanceRecords}
         onLinkParent={target => { setDetailPlayerId(null); setParentLinkTarget(target); }}
       />
+
+      <ComparePlayersModal
+        isVisible={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+        entries={compareEntries}
+        attendanceRecords={attendanceRecords}
+      />
+
+      <AnimatePresence>
+        {showCompareProGate && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowCompareProGate(false)}
+          >
+            <motion.div
+              className="max-w-sm w-full"
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <ProGate
+                feature="Speler Vergelijker"
+                description="Vergelijk 2 of 3 spelers naast elkaar op score, aanwezigheid, huiswerk en skill-profiel."
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

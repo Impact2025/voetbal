@@ -1,25 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Target, Swords, ArrowDown, Sparkles, MessageSquare, CheckCircle2 } from 'lucide-react';
-import { CHALLENGES, CATEGORY_META } from '../../data/challenges';
+import { Flame, Target, Trophy, ArrowDown, CheckCircle2, Sparkles, MessageSquare } from 'lucide-react';
 import { COACH_COLOR } from '../../utils/constants';
-import type { Player, CustomHomework, ChallengeCompletion, Streak } from '../../types';
+import type { Player, CustomHomework, Streak } from '../../types';
 
 interface TodayScreenProps {
   player: Player;
   streak: Streak | null;
   customHomework: CustomHomework[];
   assignedHomeworkIds: string[];
-  completions: ChallengeCompletion[];
   hasOpenQuestions: boolean;
+  /** Gratis basis-uitdaging uit het seizoensprogramma van deze week, of null als er geen is / al gedaan is. */
+  weekChallenge: string | null;
+  onCompleteWeekChallenge: () => Promise<void>;
 }
-
-/** ISO-achtig weeknummer — stabiel binnen dezelfde week, zodat "challenge van de week" niet verspringt. */
-const weekIndex = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  return Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
-};
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -33,7 +27,7 @@ const scrollTo = (id: string) => {
 };
 
 const TodayScreen = ({
-  player, streak, customHomework, assignedHomeworkIds, completions, hasOpenQuestions,
+  player, streak, customHomework, assignedHomeworkIds, hasOpenQuestions, weekChallenge, onCompleteWeekChallenge,
 }: TodayScreenProps) => {
   const ageNum = parseInt(player.age ?? '10', 10);
   const isYoung = !isNaN(ageNum) && ageNum <= 9;
@@ -42,6 +36,8 @@ const TodayScreen = ({
   const count = streak?.activities_count ?? 0;
   const goal = streak?.week_goal ?? 2;
   const goalReached = count >= goal;
+
+  const [completing, setCompleting] = useState(false);
 
   // ── 1. De ene volgende stap bepalen ──────────────────────────────
   const assignedTasks = useMemo(
@@ -53,32 +49,28 @@ const TodayScreen = ({
     [assignedTasks, player.completed_homework_ids],
   );
 
-  const challengeOfWeek = useMemo(() => {
-    const ageOk = CHALLENGES.filter(c => ageNum >= c.age_min && ageNum <= c.age_max);
-    if (ageOk.length === 0) return undefined;
-    const undone = ageOk.filter(c => !completions.some(comp => comp.challenge_id === c.id));
-    const pool = undone.length > 0 ? undone : ageOk;
-    return pool[weekIndex() % pool.length];
-  }, [ageNum, completions]);
-
   type Focus =
     | { kind: 'homework'; title: string; sub: string }
-    | { kind: 'challenge'; title: string; sub: string; emoji: string; color: string }
+    | { kind: 'weekChallenge'; title: string }
     | { kind: 'done' };
 
   const focus: Focus = nextHomework
     ? { kind: 'homework', title: nextHomework.title, sub: 'Film jezelf tijdens de oefening en krijg AI-feedback' }
-    : challengeOfWeek
-      ? {
-          kind: 'challenge',
-          title: challengeOfWeek.title,
-          sub: challengeOfWeek.setup,
-          emoji: CATEGORY_META[challengeOfWeek.category].emoji,
-          color: CATEGORY_META[challengeOfWeek.category].color,
-        }
+    : weekChallenge
+      ? { kind: 'weekChallenge', title: weekChallenge }
       : { kind: 'done' };
 
-  const accent = focus.kind === 'challenge' ? focus.color : COACH_COLOR;
+  const accent = COACH_COLOR;
+
+  const handleCompleteWeekChallenge = async () => {
+    if (completing) return;
+    setCompleting(true);
+    try {
+      await onCompleteWeekChallenge();
+    } finally {
+      setCompleting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -146,26 +138,32 @@ const TodayScreen = ({
                 >
                   {focus.kind === 'homework'
                     ? <><Target size={11} /> Vandaag te doen</>
-                    : <><Swords size={11} /> Uitdaging van de week</>}
+                    : <><Trophy size={11} /> Uitdaging van de week</>}
                 </span>
               </div>
 
               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">
                 {focus.kind === 'homework' && isYoung && <span className="mr-2">⚽</span>}
-                {focus.kind === 'challenge' && <span className="mr-2">{focus.emoji}</span>}
                 {focus.title}
               </h3>
-              <p className={`text-sm text-gray-600 mt-2 leading-relaxed ${isYoung ? 'line-clamp-1' : 'line-clamp-3'}`}>{focus.sub}</p>
+              {focus.kind === 'homework' && (
+                <p className={`text-sm text-gray-600 mt-2 leading-relaxed ${isYoung ? 'line-clamp-1' : 'line-clamp-3'}`}>{focus.sub}</p>
+              )}
+              {focus.kind === 'weekChallenge' && (
+                <p className="text-sm text-gray-600 mt-2 leading-relaxed">Onderdeel van het trainingsprogramma van deze week.</p>
+              )}
 
               <motion.button
                 whileTap={{ scale: 0.96, y: 2 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-                onClick={() => scrollTo(focus.kind === 'homework' ? 'today-homework' : 'today-challenges')}
-                className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-black text-white"
+                disabled={focus.kind === 'weekChallenge' && completing}
+                onClick={() => focus.kind === 'homework' ? scrollTo('today-homework') : handleCompleteWeekChallenge()}
+                className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-black text-white disabled:opacity-60"
                 style={{ backgroundColor: accent, boxShadow: `0 4px 0 ${accent}90` }}
               >
-                {focus.kind === 'homework' ? 'Upload je video voor feedback' : 'Start de uitdaging'}
-                <ArrowDown size={18} />
+                {focus.kind === 'homework'
+                  ? <>Upload je video voor feedback <ArrowDown size={18} /></>
+                  : <>{completing ? 'Bezig...' : 'Klaar? Vink af'} <CheckCircle2 size={18} /></>}
               </motion.button>
             </>
           )}

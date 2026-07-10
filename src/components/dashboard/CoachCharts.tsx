@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { TrendingUp } from 'lucide-react';
 import Card from '../ui/Card';
-import { COACH_COLOR, skillKeys, evaluationPeriods } from '../../utils/constants';
+import { COACH_COLOR, skillKeys, SKILL_GROUPS, evaluationPeriods } from '../../utils/constants';
 import type { Player } from '../../types';
 
 interface CoachChartsProps {
@@ -22,12 +22,16 @@ export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProp
     }).catch(() => {});
   }, []);
 
-  const radarChartData = useMemo(() => {
-    if (!activePlayer.evaluations?.[activeTab]) return [];
-    const ev = activePlayer.evaluations[activeTab];
-    return skillKeys.map(key => ({
-      subject: key,
-      value: ev.skills?.[key] ?? 5,
+  const radarChartsByGroup = useMemo(() => {
+    const ev = activePlayer.evaluations?.[activeTab];
+    return SKILL_GROUPS.map(group => ({
+      key: group.key,
+      label: group.label,
+      color: group.color,
+      data: group.skills.map(s => ({
+        subject: s.label,
+        value: ev?.skills?.[s.key] ?? 5,
+      })),
     }));
   }, [activePlayer, activeTab]);
 
@@ -44,7 +48,11 @@ export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProp
   if (!chartsReady || !Charts) {
     return (
       <>
-        <Card light><div className="h-64 flex items-center justify-center text-gray-400 text-sm">Grafiek laden...</div></Card>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {SKILL_GROUPS.map(group => (
+            <Card light key={group.key}><div className="h-56 flex items-center justify-center text-gray-400 text-sm">Grafiek laden...</div></Card>
+          ))}
+        </div>
         <Card light><div className="h-52 flex items-center justify-center text-gray-400 text-sm">Grafiek laden...</div></Card>
       </>
     );
@@ -58,19 +66,23 @@ export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProp
 
   return (
     <>
-      <Card light>
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Skill Radar — {activeTab}</p>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarChartData}>
-              <PolarGrid stroke="#e5e7eb" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 11 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-              <Radar name={activePlayer.name} dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.18} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {radarChartsByGroup.map(group => (
+          <Card light key={group.key}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">{group.label} — {activeTab}</p>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={group.data}>
+                  <PolarGrid stroke="#e5e7eb" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                  <Radar name={activePlayer.name} dataKey="value" stroke={group.color} fill={group.color} fillOpacity={0.35} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       <Card light>
         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-1.5">

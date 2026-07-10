@@ -1,10 +1,13 @@
 /**
- * Canonical demo content for the 7 Top Performers shown in the club dashboard.
+ * Canonical demo content for the 7 Top Performers shown in the club dashboard,
+ * plus Luca van den Berg (the quick-login demo player on team IMPACT-JO10-1,
+ * used to show off the player-facing dashboard incl. Skill-medailles).
  *
  * These players already exist in the live DB (team IMPACT-JO10-1 / JO12-2 / JO14-1)
  * but only carry the legacy 7-skill `base()` shape. The current app reads the full
  * 17-skill schema (SkillScores) and defaults every missing key to 5 — which is why
- * every player collapsed to ~52 in the "Top Performers" list.
+ * every player collapsed to ~52 in the "Top Performers" list, and why Luca never
+ * showed any Skill-medailles (only `snelheid` overlaps between the two schemas).
  *
  * This module is the SINGLE SOURCE OF TRUTH for both:
  *   - the vitest test (src/demo/demoPlayers.test.ts) that proves real variation, and
@@ -139,6 +142,21 @@ const PROFILES = {
       'Verdedigend positioneren · Pressing oefening · Diagonale pass links',
       'Conditietraining interval · Pressing als team · Opbouwen vanuit achterlijn',
       'Lange diagonale bal · Eindschot met links · Weerbaarheid in duels',
+    ],
+  },
+  'Luca van den Berg': {
+    meta: { name: 'Luca van den Berg', position: 'Aanvaller', age: '9', foot: 'Rechts', team_id: 'IMPACT-JO10-1' },
+    skillsC3: [7, 5, 6, 6, 6, 8, 7, 5, 7, 7, 6, 8, 8, 6, 7, 7, 8],
+    improvement: 3,
+    comments: [
+      'Luca heeft veel energie voorin en is gevaarlijk voor doel. Verdedigend nog wat meer inzet tonen.',
+      'Mooie groei te zien! Zijn schot is gevaarlijk en hij zet meer druk. Passing kan beter.',
+      'Luca ontwikkelt zich tot een complete aanvaller. Top inzet, blijf zo doorgaan!',
+    ],
+    plans: [
+      'Doelschieten vanuit de draai · Wandpass oefening links/rechts · Sprint met bal 10m',
+      'Combinatiespel 3v3 op klein veld · Inzicht trainen met positiespel · Schotkracht oefening',
+      'Afwerken na combinatie · Dribbel met schotmoment · Hooghouden record verbeteren',
     ],
   },
 };
