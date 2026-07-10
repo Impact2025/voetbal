@@ -80,4 +80,30 @@ describe('AuthComponent', () => {
       expect(screen.getByText(/Bevestigingsmail opnieuw verstuurd/)).toBeInTheDocument();
     });
   });
+
+  it('offers a passwordless magic-link login for coaches without a password', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
+    fireEvent.click(screen.getByText('Coach'));
+    fireEvent.change(screen.getByPlaceholderText('coach@email.com'), { target: { value: 'wim@fellow-travellers.com' } });
+
+    const magicBtn = screen.getByRole('button', { name: /Stuur inloglink/ });
+    expect(magicBtn).toBeInTheDocument();
+    fireEvent.click(magicBtn);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/send-login-link', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'wim@fellow-travellers.com' }),
+      }));
+      expect(screen.getByText(/Inloglink verstuurd/)).toBeInTheDocument();
+    });
+
+    vi.unstubAllGlobals();
+  });
 });

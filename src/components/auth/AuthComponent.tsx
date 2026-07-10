@@ -248,6 +248,27 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
     }
   };
 
+  // Wachtwoordloze inlog voor coaches die via magic-link zijn uitgenodigd (geen
+  // wachtwoord). Hergebruikt de bestaande /api/send-login-link serverless route.
+  const handleSendMagicLink = async () => {
+    if (!email.trim()) { setError('Vul eerst je e-mailadres in.'); return; }
+    setResending(true); setError(''); setSuccess('');
+    try {
+      const res = await fetch('/api/send-login-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error || 'Kon de inloglink niet versturen.');
+      setSuccess('Inloglink verstuurd! Check je inbox (en spammap) en klik op de knop.');
+    } catch (err) {
+      setError((err as Error).message ?? 'Kon de inloglink niet versturen.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleClubAdminRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClubId.trim()) { setError('Kies een unieke Club ID.'); return; }
@@ -543,6 +564,16 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : view === 'coachLogin' ? 'Inloggen' : 'Registreren'}
         </button>
+        {view === 'coachLogin' && (
+          <button
+            type="button"
+            disabled={resending}
+            onClick={() => void handleSendMagicLink()}
+            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-60 flex justify-center items-center gap-2 border ${isLightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-gray-600 text-gray-300 hover:bg-gray-800/60'}`}
+          >
+            {resending ? <Loader2 className="animate-spin" size={16} /> : 'Stuur inloglink (geen wachtwoord)'}
+          </button>
+        )}
         {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
       </form>
     );
