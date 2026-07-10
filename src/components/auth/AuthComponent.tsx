@@ -9,6 +9,7 @@ import type { UserData } from '../../types';
 import { hashPin } from '../../utils/crypto';
 import { checkRateLimit, recordFailedAttempt, clearAttempts } from '../../utils/rateLimit';
 import { fetchInviteByToken, acceptCoachInvite, type CoachInvite } from '../../lib/teamManagement';
+import CoachInviteWelcome from './CoachInviteWelcome';
 
 interface AuthComponentProps {
   onPlayerLogin: (playerData: UserData & Record<string, unknown>) => void;
@@ -18,7 +19,7 @@ interface AuthComponentProps {
   onBack?: () => void;
 }
 
-type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'clubAdminLogin' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
+type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'coachInviteWelcome' | 'clubAdminLogin' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
   Promise.race([
@@ -63,7 +64,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         setInvite(result.invite);
         setInviteToken(token);
         setEmail(result.invite.email);
-        setView('coachRegister');
+        setView('coachInviteWelcome');
         return;
       }
       // Zonder deze takken deed een verlopen of ingetrokken link helemaal niets.
@@ -397,6 +398,15 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       </form>
     );
 
+    if (view === 'coachInviteWelcome' && invite) return (
+      <CoachInviteWelcome
+        invite={invite}
+        light={isLightMode}
+        onContinue={() => { setView('coachRegister'); setError(''); }}
+        onLogin={() => { setView('coachLogin'); setError(''); }}
+      />
+    );
+
     if (view === 'clubAdminRegister') return (
       <form onSubmit={handleClubAdminRegister} className="space-y-4">
         <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className={`flex items-center gap-1.5 text-sm transition-colors mb-2 ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
@@ -480,7 +490,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
         <Card light={isLightMode}>
-          {view !== 'forgotPassword' && view !== 'resetPassword' && (
+          {view !== 'forgotPassword' && view !== 'resetPassword' && view !== 'coachInviteWelcome' && (
             <div className="grid grid-cols-3 gap-2 mb-6">
               <button
                 onClick={() => { setView('playerLogin'); setError(''); }}
