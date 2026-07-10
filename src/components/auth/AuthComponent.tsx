@@ -53,8 +53,11 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   const [invite, setInvite] = useState<CoachInvite | null>(null);
   // Het token komt uit de URL en wordt niet meer door de server teruggegeven.
   const [inviteToken, setInviteToken] = useState<string | null>(null);
-  // Supabase blokkeert login zolang het e-mailadres niet bevestigd is. We vertalen
-  // die melding en bieden een knop om de bevestigingsmail opnieuw te sturen.
+  // Magic-link invite: zodra de sessie uit de URL-hash is hersteld, ronden we
+  // de koppeling af. De coach hoeft dan géén wachtwoord te kiezen.
+  const [claimingInvite, setClaimingInvite] = useState(false);
+  // Supabase blokkeert login zolang het e-mailadres niet bevestigd is (oude flow).
+  // We vertalen die melding en bieden een knop om de bevestigingsmail opnieuw te sturen.
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
   const [resending, setResending] = useState(false);
 
@@ -68,6 +71,12 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         setInvite(result.invite);
         setInviteToken(token);
         setEmail(result.invite.email);
+        // Magic-link flow: de coach is al ingelogd via de invite-link (#access_token
+        // in de URL-hash). Dan ronden we de koppeling meteen af — geen wachtwoord nodig.
+        if (window.location.hash.includes('access_token=')) {
+          void claimInvite();
+          return;
+        }
         setView('coachInviteWelcome');
         return;
       }
@@ -80,6 +89,27 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       );
     });
   }, []);
+
+  // Rondt een coach-uitnodiging af nadat de (magic-link) sessie is hersteld.
+  // Het account bestaat al bevestigd — geen signUp meer nodig.
+  const claimInvite = async () => {
+    if (!inviteToken || !invite) return;
+    setClaimingInvite(true);
+    setView('coachInviteWelcome');
+    try {
+      // Zorg dat de magic-link sessie volledig hersteld is vóórdat we getUser() doen.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('Sessie ontbreekt. Open de uitnodigingsmail opnieuw.');
+      await acceptCoachInvite(inviteToken, session.user.id, invite.email);
+      // Sessie + profiel staan klaar. Schone reload (zonder hash/token) zodat App.tsx
+      // de coach naar het dashboard routeert — geen spinner-hang mogelijk.
+      window.location.replace(window.location.pathname);
+    } catch (err) {
+      setClaimingInvite(false);
+      setView('coachLogin');
+      setError((err as Error).message ?? 'Uitnodiging kon niet worden afgerond. Probeer het opnieuw.');
+    }
+  };
 
   // Verberg de "opnieuw versturen"-actie zodra de gebruiker het e-mailadres wijzigt.
   useEffect(() => { setEmailNotConfirmed(false); }, [email]);
@@ -102,12 +132,11 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       try {
         if (isRegistering) {
           if (invite && inviteToken) {
-            const { data, error } = await withTimeout(
-              supabase.auth.signUp({ email: invite.email, password }),
-              45000, 'Registratie duurt te lang. Controleer je verbinding.'
-            );
-            if (error) throw error;
-            await acceptCoachInvite(inviteToken, data.user!.id, invite.email);
+            // Magic-link flow: de coach is al ingelogd (sessie via URL-hash).
+            // Alleen de koppeling aan het team afronden — géén wachtwoord meer.
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Sessie ontbreekt. Open de uitnodigingsmail opnieuw.');
+            await acceptCoachInvite(inviteToken, user.id, invite.email);
           } else {
             if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
             const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
@@ -440,7 +469,8 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       <CoachInviteWelcome
         invite={invite}
         light={isLightMode}
-        onContinue={() => { setView('coachRegister'); setError(''); }}
+        claiming={claimingInvite}
+        onContinue={() => { void claimInvite(); }}
         onLogin={() => { setView('coachLogin'); setError(''); }}
       />
     );

@@ -14,6 +14,7 @@ const RATE_LIMIT_MAX = 30;
 const STRICT: Record<string, number> = {
   '/api/send-email': 10,
   '/api/send-parent-invite': 15,
+  '/api/send-coach-invite': 15,
   '/api/admin/send-campaign': 5,
   '/api/send-login-link': 10,
   '/api/ai': 20,

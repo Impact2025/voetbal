@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { CheckCircle2, UserPlus, MailCheck, Rocket, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Loader2, MailCheck, Rocket, ArrowRight } from 'lucide-react';
 import { NEON_COLOR } from '../../utils/constants';
 import type { CoachInvite } from '../../lib/teamManagement';
 
@@ -7,7 +7,7 @@ const coachRoleLabel = (role: CoachInvite['role']) =>
   role === 'assistant' ? 'assistent-trainer' : 'hoofdcoach';
 
 interface Step {
-  icon: typeof UserPlus;
+  icon: typeof MailCheck;
   title: string;
   body: string;
 }
@@ -15,32 +15,43 @@ interface Step {
 interface CoachInviteWelcomeProps {
   invite: CoachInvite;
   light: boolean;
+  /** true zodra de magic-link sessie is hersteld en we de uitnodiging afronden. */
+  claiming?: boolean;
   onContinue: () => void;
   onLogin: () => void;
 }
 
-const CoachInviteWelcome = ({ invite, light, onContinue, onLogin }: CoachInviteWelcomeProps) => {
+const CoachInviteWelcome = ({ invite, light, claiming = false, onContinue, onLogin }: CoachInviteWelcomeProps) => {
   const steps: Step[] = [
     {
-      icon: UserPlus,
-      title: 'Kies een wachtwoord',
-      // Het e-mailadres ligt vast: de uitnodiging is aan dit adres gekoppeld.
-      body: `Je account komt op ${invite.email} te staan.`,
-    },
-    {
       icon: MailCheck,
-      title: 'Bevestig je e-mailadres',
-      body: 'Je krijgt direct een mail van Skillkaart. Klik op de link daarin om je account te activeren.',
+      title: 'Mail geopend',
+      body: 'Je hebt de uitnodigingsmail geklikt — je e-mailadres is daarmee meteen bevestigd.',
     },
     {
       icon: Rocket,
       title: 'Aan de slag',
-      body: `Log in en ${invite.team_name} staat voor je klaar — spelers, trainingen en voortgang.`,
+      body: `We koppelen je account aan ${invite.team_name} en je bent klaar om in te loggen.`,
     },
   ];
 
   const muted = light ? 'text-gray-500' : 'text-gray-400';
   const stepBg = light ? 'bg-gray-50 border-gray-200' : 'bg-gray-800/40 border-gray-700';
+
+  if (claiming) {
+    return (
+      <div className="space-y-5 text-center">
+        <Loader2 className="h-10 w-10 animate-spin mx-auto" style={{ color: NEON_COLOR }} />
+        <h2 className="text-2xl font-bold" style={light ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>
+          Even koppelen…
+        </h2>
+        <p className={`text-sm ${muted}`}>
+          Je bent ingelogd als {coachRoleLabel(invite.role)} van <strong>{invite.team_name}</strong>.
+          We ronden je toegang af.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -57,7 +68,8 @@ const CoachInviteWelcome = ({ invite, light, onContinue, onLogin }: CoachInviteW
         </h2>
         <p className={`text-sm mt-2 ${muted}`}>
           Skillkaart helpt je de ontwikkeling van je spelers bij te houden: je beoordeelt vaardigheden,
-          zet trainingen klaar en houdt ouders op de hoogte. Je bent zo begonnen.
+          zet trainingen klaar en houdt ouders op de hoogte. Geen wachtwoord nodig —
+          je logt voortaan in met je e-mail.
         </p>
       </div>
 
@@ -91,7 +103,7 @@ const CoachInviteWelcome = ({ invite, light, onContinue, onLogin }: CoachInviteW
         className="w-full py-3 font-bold text-black rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center gap-2"
         style={{ backgroundColor: NEON_COLOR }}
       >
-        Account aanmaken <ArrowRight size={16} />
+        Toegang activeren <ArrowRight size={16} />
       </button>
 
       <p className={`text-center text-sm ${muted}`}>

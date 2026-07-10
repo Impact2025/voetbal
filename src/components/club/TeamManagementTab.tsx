@@ -174,21 +174,21 @@ const AddCoachModal = ({ team, clubId, clubName, senderEmail, existingCoachIds, 
       const link = `${window.location.origin}/?coachInvite=${invite.invite_token}`;
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const res = await fetch('/api/send-email', {
+      const res = await fetch('/api/send-coach-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
-          to: [inviteEmail.trim()],
-          toNames: [team.team_name],
-          subject: `Uitnodiging als coach van ${team.team_name}`,
-          body: `Je bent uitgenodigd om coach te worden van ${team.team_name} bij ${clubName}.\n\nMaak je account aan via de link hieronder:\n${link}`,
+          to: inviteEmail.trim(),
+          teamName: team.team_name,
           clubName,
+          inviteToken: invite.invite_token,
+          role,
           senderEmail,
         }),
       });
       const data = await res.json() as { error?: string };
       if (!res.ok) throw new Error(data.error || 'Versturen van uitnodiging mislukt.');
-      toast.success('Uitnodiging verstuurd!');
+      toast.success('Uitnodiging verstuurd! Coach kan direct via de mail inloggen.');
       onAdded();
       onClose();
     } catch (err) {
