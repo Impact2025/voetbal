@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare, Send, X, Plus, Loader2, ArrowLeft,
-  UserCircle2, Users, ChevronRight,
+  UserCircle2, Users, ChevronRight, AlertCircle, RefreshCw, MailWarning,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
@@ -54,11 +54,89 @@ function roleLabel(role: string) {
 interface NewConvModalProps {
   contacts: MessagingContact[];
   loading: boolean;
+  /** Niet-null wanneer het ophalen van contacten faalde. */
+  error: string | null;
+  /** Coaches die wel uitgenodigd zijn, maar nog geen account hebben geactiveerd. */
+  pendingInvites: number;
+  /** Er zijn wel contacten, maar met allemaal loopt al een gesprek. */
+  allInConversation: boolean;
+  onRetry: () => void;
   onClose: () => void;
   onStart: (contact: MessagingContact) => void;
 }
 
-const NewConvModal = ({ contacts, loading, onClose, onStart }: NewConvModalProps) => (
+type ContactRow = { contact_id: string; contact_name: string; contact_role: string; subtitle: string };
+
+const mapContactRow = (r: ContactRow): MessagingContact => ({
+  id: r.contact_id,
+  name: r.contact_name,
+  role: r.contact_role,
+  subtitle: r.subtitle,
+});
+
+const pendingInviteText = (n: number) =>
+  n === 1
+    ? '1 trainer is uitgenodigd, maar heeft nog niet ingelogd.'
+    : `${n} trainers zijn uitgenodigd, maar hebben nog niet ingelogd.`;
+
+export const NewConvEmptyState = ({ error, pendingInvites, allInConversation, onRetry }: {
+  error: string | null;
+  pendingInvites: number;
+  allInConversation: boolean;
+  onRetry: () => void;
+}) => {
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <AlertCircle size={28} className="mx-auto mb-2 text-red-400" />
+        <p className="text-sm font-semibold text-gray-900">Contacten laden mislukt</p>
+        <p className="text-[11px] text-gray-400 mt-1 px-4 break-words">{error}</p>
+        <button
+          onClick={onRetry}
+          className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+          style={{ background: ACCENT }}
+        >
+          <RefreshCw size={13} /> Opnieuw proberen
+        </button>
+      </div>
+    );
+  }
+
+  if (pendingInvites > 0) {
+    return (
+      <div className="text-center py-8 px-4">
+        <MailWarning size={28} className="mx-auto mb-2 text-amber-400" />
+        <p className="text-sm font-semibold text-gray-900">Nog niemand om mee te chatten</p>
+        <p className="text-[11px] text-gray-400 mt-1">
+          {pendingInviteText(pendingInvites)} Zodra ze hun account activeren kun je hier een gesprek starten.
+        </p>
+      </div>
+    );
+  }
+
+  if (allInConversation) {
+    return (
+      <div className="text-center py-8 px-4">
+        <MessageSquare size={28} className="mx-auto mb-2 text-gray-300" />
+        <p className="text-sm font-semibold text-gray-900">Iedereen zit al in een gesprek</p>
+        <p className="text-[11px] text-gray-400 mt-1">
+          Je hebt met al je contacten een lopend gesprek. Open het in de lijst hiernaast.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-8 text-gray-400">
+      <Users size={28} className="mx-auto mb-2 text-gray-300" />
+      <p className="text-sm">Geen contacten beschikbaar</p>
+    </div>
+  );
+};
+
+const NewConvModal = ({
+  contacts, loading, error, pendingInvites, allInConversation, onRetry, onClose, onStart,
+}: NewConvModalProps) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -85,10 +163,12 @@ const NewConvModal = ({ contacts, loading, onClose, onStart }: NewConvModalProps
             <Loader2 className="animate-spin h-6 w-6" style={{ color: ACCENT }} />
           </div>
         ) : contacts.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <Users size={28} className="mx-auto mb-2 text-gray-300" />
-            <p className="text-sm">Geen contacten beschikbaar</p>
-          </div>
+          <NewConvEmptyState
+            error={error}
+            pendingInvites={pendingInvites}
+            allInConversation={allInConversation}
+            onRetry={onRetry}
+          />
         ) : (
           <div className="space-y-2">
             {contacts.map(c => (
@@ -385,6 +465,9 @@ const MessagingInbox = ({
   const [showNewModal, setShowNewModal] = useState(false);
   const [contacts, setContacts] = useState<MessagingContact[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [contactsError, setContactsError] = useState<string | null>(null);
+  const [pendingInvites, setPendingInvites] = useState(0);
+  const [allInConversation, setAllInConversation] = useState(false);
   const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
@@ -463,51 +546,63 @@ const MessagingInbox = ({
 
   // ── Load contacts for new conversation modal ────────────────────────────────
 
-  const openNewModal = async () => {
-    setShowNewModal(true);
+  const loadContacts = useCallback(async () => {
     setLoadingContacts(true);
+    setContactsError(null);
     try {
       let rows: MessagingContact[] = [];
+      let pending = 0;
 
       if (currentUserRole === 'club_admin' && clubId) {
-        const { data } = await supabase.rpc('get_club_trainer_emails', { p_club_id: clubId });
-        rows = (data ?? [])
-          .filter((r: { coach_id: string | null }) => !!r.coach_id) // alleen coaches die de uitnodiging al geaccepteerd hebben (echt account nodig voor een gesprek)
-          .map((r: { coach_id: string; email: string; team_name: string; coach_role?: string }) => ({
-            id: r.coach_id,
+        const { data, error } = await supabase.rpc('get_club_trainer_emails', { p_club_id: clubId });
+        if (error) throw error;
+        const trainers = (data ?? []) as { coach_id: string | null; email: string; team_name: string; coach_role?: string }[];
+        // Een gesprek koppelt twee accounts; een coach die de uitnodiging nog niet
+        // accepteerde heeft er geen (coach_id NULL) en kan dus nog niet chatten.
+        pending = trainers.filter(r => !r.coach_id).length;
+        rows = trainers
+          .filter(r => !!r.coach_id)
+          .map(r => ({
+            id: r.coach_id as string,
             name: r.team_name,
             role: 'coach',
             subtitle: r.coach_role === 'assistant' ? `${r.email} · Assistent` : r.email,
           }));
       } else if (currentUserRole === 'coach' && teamId) {
-        const { data } = await supabase.rpc('get_coach_contacts', {
+        const { data, error } = await supabase.rpc('get_coach_contacts', {
           p_coach_id: currentUserId,
           p_team_id: teamId,
         });
-        rows = (data ?? []).map((r: { contact_id: string; contact_name: string; contact_role: string; subtitle: string }) => ({
-          id: r.contact_id,
-          name: r.contact_name,
-          role: r.contact_role,
-          subtitle: r.subtitle,
-        }));
+        if (error) throw error;
+        rows = ((data ?? []) as ContactRow[]).map(mapContactRow);
       } else if (currentUserRole === 'parent') {
-        const { data } = await supabase.rpc('get_parent_contacts', { p_parent_id: currentUserId });
-        rows = (data ?? []).map((r: { contact_id: string; contact_name: string; contact_role: string; subtitle: string }) => ({
-          id: r.contact_id,
-          name: r.contact_name,
-          role: r.contact_role,
-          subtitle: r.subtitle,
-        }));
+        const { data, error } = await supabase.rpc('get_parent_contacts', { p_parent_id: currentUserId });
+        if (error) throw error;
+        rows = ((data ?? []) as ContactRow[]).map(mapContactRow);
       }
 
       // Filter out contacts that already have a conversation with us
       const existingContactIds = new Set(
         conversations.flatMap(c => c.participant_ids.filter(id => id !== currentUserId))
       );
-      setContacts(rows.filter(c => !existingContactIds.has(c.id)));
+      const selectable = rows.filter(c => !existingContactIds.has(c.id));
+
+      setContacts(selectable);
+      setPendingInvites(pending);
+      setAllInConversation(rows.length > 0 && selectable.length === 0);
+    } catch (err) {
+      setContacts([]);
+      setPendingInvites(0);
+      setAllInConversation(false);
+      setContactsError(err instanceof Error ? err.message : 'Onbekende fout bij het laden van contacten.');
     } finally {
       setLoadingContacts(false);
     }
+  }, [currentUserRole, currentUserId, clubId, teamId, conversations]);
+
+  const openNewModal = () => {
+    setShowNewModal(true);
+    void loadContacts();
   };
 
   // ── Start conversation with a contact ──────────────────────────────────────
@@ -635,6 +730,10 @@ const MessagingInbox = ({
           <NewConvModal
             contacts={contacts}
             loading={loadingContacts}
+            error={contactsError}
+            pendingInvites={pendingInvites}
+            allInConversation={allInConversation}
+            onRetry={loadContacts}
             onClose={() => setShowNewModal(false)}
             onStart={startConversation}
           />
