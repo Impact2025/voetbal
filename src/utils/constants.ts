@@ -117,7 +117,7 @@ export const TRAINING_THEMES = [
   { id: 'Kleine Partijvorm 4v4', label: 'Partijvorm', emoji: '🏟️' },
 ] as const;
 
-const makeEvaluation = (): Evaluation => ({
+export const makeEvaluation = (): Evaluation => ({
   skills: Object.fromEntries(skillKeys.map(k => [k, 5])) as Evaluation['skills'],
   matchRating: 5,
   comments: '',

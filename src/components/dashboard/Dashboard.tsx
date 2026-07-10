@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, WeekChallengeCompletion, Streak, SeasonWeekPlan } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,7 +6,7 @@ import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, Che
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
-import { NEON_COLOR, COACH_COLOR, skillKeys, SKILL_GROUPS, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations } from '../../utils/constants';
+import { NEON_COLOR, COACH_COLOR, skillKeys, SKILL_GROUPS, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations, makeEvaluation } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import { hashPin } from '../../utils/crypto';
 import { exportPlayerPdf } from '../../utils/pdfExport';
@@ -125,7 +125,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [isClubPro, setIsClubPro] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadPlayerNotifications, setUnreadPlayerNotifications] = useState(0);
-  const skipRealtimeRef = useRef(false);
+  // Eigen schrijfacties zetten dit venster; realtime-events daarbinnen worden genegeerd
+  // zodat een fetchData() de nog niet doorgekomen update niet terugdraait.
+  const suppressRealtimeUntilRef = useRef(0);
+  const pendingEvalRef = useRef<{ playerId: string; evaluations: Player['evaluations']; snapshot: Player['evaluations'] } | null>(null);
+  const evalSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userData.teamId) return;
@@ -191,7 +195,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
 
     supabase.channel(`public:players:team_id=eq.${userData.teamId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
-        if (skipRealtimeRef.current) { skipRealtimeRef.current = false; return; }
+        if (Date.now() < suppressRealtimeUntilRef.current) return;
         fetchData();
       })
       .subscribe();
@@ -428,10 +432,45 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
   };
 
-  const handleUpdateEvaluation = async (field, value) => {
-    if (userData.role !== 'coach' || !activePlayer) return;
+  const flushEvaluationSave = useCallback(async () => {
+    const pending = pendingEvalRef.current;
+    if (!pending) return;
+    pendingEvalRef.current = null;
+    if (evalSaveTimerRef.current) { clearTimeout(evalSaveTimerRef.current); evalSaveTimerRef.current = null; }
 
-    const newEvaluations = JSON.parse(JSON.stringify(activePlayer.evaluations));
+    suppressRealtimeUntilRef.current = Date.now() + 3000;
+
+    // .select() is essentieel: bij een RLS-blokkade geeft Supabase géén error terug,
+    // maar 0 geraakte rijen. Zonder deze check lijkt opslaan te lukken en springt de
+    // waarde bij de eerstvolgende fetch stilletjes terug.
+    const { data, error } = await supabase
+      .from('players')
+      .update({ evaluations: pending.evaluations })
+      .eq('id', pending.playerId)
+      .select('id');
+
+    if (error || !data?.length) {
+      suppressRealtimeUntilRef.current = 0;
+      console.error('Error updating evaluation:', error ?? 'update raakte 0 rijen (RLS?)');
+      toast.error('Opslaan mislukt: ' + (error?.message ?? 'je hebt geen rechten om deze speler te bewerken'));
+      setPlayers(prev => prev.map(p => p.id === pending.playerId ? { ...p, evaluations: pending.snapshot } : p));
+    }
+  }, []);
+
+  const handleUpdateEvaluation = (field: string, value: unknown) => {
+    if (userData.role === 'player' || !activePlayer) return;
+
+    const playerId = activePlayer.id;
+    // Wissel van speler? Eerst het openstaande werk van de vorige speler wegschrijven.
+    if (pendingEvalRef.current && pendingEvalRef.current.playerId !== playerId) flushEvaluationSave();
+
+    const pending = pendingEvalRef.current?.playerId === playerId ? pendingEvalRef.current : null;
+    const base = pending?.evaluations ?? activePlayer.evaluations ?? {};
+    const snapshot = pending?.snapshot ?? activePlayer.evaluations ?? {};
+
+    const newEvaluations = JSON.parse(JSON.stringify(base));
+    if (!newEvaluations[activeTab]) newEvaluations[activeTab] = makeEvaluation();
+
     const path = field.split('.');
     let currentLevel = newEvaluations[activeTab];
     for (let i = 0; i < path.length - 1; i++) {
@@ -440,17 +479,16 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
     currentLevel[path[path.length - 1]] = value;
 
-    setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, evaluations: newEvaluations } : p));
-    skipRealtimeRef.current = true;
+    setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, evaluations: newEvaluations } : p));
 
-    const { error } = await supabase.from('players').update({ evaluations: newEvaluations }).eq('id', activePlayer.id);
-    if (error) {
-      console.error('Error updating evaluation:', error);
-      skipRealtimeRef.current = false;
-      toast.error('Opslaan mislukt: ' + error.message);
-      setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, evaluations: activePlayer.evaluations } : p));
-    }
+    // Slepen aan een slider vuurt tientallen wijzigingen; bundel ze tot één write.
+    pendingEvalRef.current = { playerId, evaluations: newEvaluations, snapshot };
+    suppressRealtimeUntilRef.current = Date.now() + 3000;
+    if (evalSaveTimerRef.current) clearTimeout(evalSaveTimerRef.current);
+    evalSaveTimerRef.current = setTimeout(flushEvaluationSave, 400);
   };
+
+  useEffect(() => () => { flushEvaluationSave(); }, [flushEvaluationSave]);
 
   const handleSaveHomework = async (newHomework) => {
     await supabase.from('custom_homework').insert({ ...newHomework, team_id: userData.teamId });

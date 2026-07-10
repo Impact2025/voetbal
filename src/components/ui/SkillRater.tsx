@@ -21,16 +21,21 @@ const SkillRater = ({ label, value, onChange, disabled = false, color = '#00FF9D
     return clamp(Math.round(pct * 10) || 1);
   };
 
+  const emit = (next: number) => {
+    if (next === value) return;
+    onChange(next);
+  };
+
   const onDown = (e: React.PointerEvent) => {
     if (disabled) return;
     dragging.current = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    onChange(fromPointer(e.clientX));
+    emit(fromPointer(e.clientX));
   };
 
   const onMove = (e: React.PointerEvent) => {
     if (!dragging.current || disabled) return;
-    onChange(fromPointer(e.clientX));
+    emit(fromPointer(e.clientX));
   };
 
   const onUp = () => { dragging.current = false; };
