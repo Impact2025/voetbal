@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { getAdminClient } from './_lib/supabaseAdmin.js';
 import { SendEmailSchema, validateOrError } from './_lib/validate.js';
+import { MAIL_FROM } from './_lib/mailFrom.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -111,7 +112,7 @@ export default async function handler(req: Req, res: Res) {
 
   try {
     const { error } = await resend.emails.send({
-      from: `${clubName} via Skillkaart <onboarding@resend.dev>`,
+      from: MAIL_FROM,
       to,
       replyTo: senderEmail || undefined,
       subject,

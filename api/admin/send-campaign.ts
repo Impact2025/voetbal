@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { verifySuperadmin } from '../_lib/adminGuard.js';
 import { getAdminClient, logAdminAction } from '../_lib/supabaseAdmin.js';
 import { unsubscribeUrl } from '../_lib/mailToken.js';
+import { MAIL_FROM } from '../_lib/mailFrom.js';
 
 interface Req {
   method: string;
@@ -108,7 +109,6 @@ export default async function handler(req: Req, res: Res) {
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt.' });
   const resend = new Resend(resendKey);
-  const from = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
   const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers['host'] || ''}`;
 
   let sent = 0;
@@ -118,7 +118,7 @@ export default async function handler(req: Req, res: Res) {
     const payload = group.map((r) => {
       const url = unsubscribeUrl(baseUrl, r.email);
       return {
-        from,
+        from: MAIL_FROM,
         to: [r.email],
         subject: campaign.subject,
         html: renderHtml(campaign.subject, campaign.body, r.name, url),

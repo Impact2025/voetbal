@@ -9,6 +9,7 @@ import { fetchClubSubscriptionTier, setClubProStatus } from '../../lib/trainingL
 import {
   createTeam, updateTeam, archiveTeam, unarchiveTeam,
   fetchTeamCoaches, fetchClubCoaches, addExistingCoachToTeam, inviteCoach, removeCoachFromTeam,
+  deleteFailedInvite,
   type TeamDraft,
 } from '../../lib/teamManagement';
 import Card from '../ui/Card';
@@ -164,8 +165,12 @@ const AddCoachModal = ({ team, clubId, clubName, senderEmail, existingCoachIds, 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) { toast.error('Vul een e-mailadres in.'); return; }
     setSaving(true);
+    // De uitnodigingsrij moet vóór de mail bestaan, want de link bevat het
+    // invite_token. Komt de mail niet aan, dan draaien we de rij terug —
+    // anders blijft er een uitnodiging staan die niemand ooit heeft ontvangen.
+    let invite: TeamCoach | null = null;
     try {
-      const invite = await inviteCoach({ teamId: team.id, clubId, email: inviteEmail.trim(), role });
+      invite = await inviteCoach({ teamId: team.id, clubId, email: inviteEmail.trim(), role });
       const link = `${window.location.origin}/?coachInvite=${invite.invite_token}`;
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -187,6 +192,18 @@ const AddCoachModal = ({ team, clubId, clubName, senderEmail, existingCoachIds, 
       onAdded();
       onClose();
     } catch (err) {
+      if (invite) {
+        try {
+          await deleteFailedInvite(invite.id);
+        } catch {
+          // Opruimen mislukt ook: laat de rij staan en meld het, zodat de
+          // club-admin hem handmatig kan intrekken in plaats van vast te lopen
+          // op "e-mailadres is al uitgenodigd" bij een nieuwe poging.
+          toast.error('Uitnodiging niet verstuurd én niet opgeruimd. Trek hem handmatig in.');
+          setSaving(false);
+          return;
+        }
+      }
       toast.error((err as Error).message);
     } finally {
       setSaving(false);

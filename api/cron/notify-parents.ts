@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import webpush from 'web-push';
 import { verifyCron } from '../_lib/adminGuard.js';
 import { getAdminClient } from '../_lib/supabaseAdmin.js';
+import { MAIL_FROM } from '../_lib/mailFrom.js';
 
 interface Req { method: string; headers: Record<string, string | undefined> }
 interface Res {
@@ -130,7 +131,6 @@ export default async function handler(req: Req, res: Res) {
     return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt.' });
   }
   const resend = new Resend(resendKey);
-  const from = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
   const db = getAdminClient();
 
   const vapidPublic = process.env.VAPID_PUBLIC_KEY;
@@ -208,7 +208,7 @@ export default async function handler(req: Req, res: Res) {
       if (channel === 'email' || channel === 'both') {
         try {
           await resend.emails.send({
-            from,
+            from: MAIL_FROM,
             to: [email],
             subject: `Skillkaart · ${playerName} was actief 👟`,
             html: renderEmail(group.map(r => ({

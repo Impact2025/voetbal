@@ -123,6 +123,21 @@ export async function inviteCoach(params: {
   return data as TeamCoach;
 }
 
+/**
+ * Verwijdert een uitnodiging die nooit is aangekomen (mail-verzending mislukt).
+ * Hard delete in plaats van status 'removed': de coach heeft nooit iets ontvangen,
+ * dus er is geen historie om te bewaren. De status-guard voorkomt dat een coach
+ * die inmiddels geaccepteerd heeft alsnog wordt weggegooid.
+ */
+export async function deleteFailedInvite(teamCoachId: string): Promise<void> {
+  const { error } = await supabase
+    .from('team_coaches')
+    .delete()
+    .eq('id', teamCoachId)
+    .eq('status', 'invited');
+  if (error) throw new Error(error.message);
+}
+
 export async function removeCoachFromTeam(teamCoachId: string, teamId: string, coachId: string | null): Promise<void> {
   const { error } = await supabase
     .from('team_coaches')

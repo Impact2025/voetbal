@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { getAdminClient } from './supabaseAdmin.js';
+import { MAIL_FROM } from './mailFrom.js';
 
 const REPORT_TO = 'v.munster@weareimpact.nl';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -144,7 +145,7 @@ export async function buildAndSendReport(period: 'daily' | 'monthly'): Promise<{
   const today = new Date().toLocaleDateString('nl-NL');
 
   const { error: sendErr } = await resend.emails.send({
-    from: 'Skillkaart Admin <onboarding@resend.dev>',
+    from: MAIL_FROM,
     to: [REPORT_TO],
     subject: `Skillkaart ${title} — ${today}`,
     html,

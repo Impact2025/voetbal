@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
+import { MAIL_FROM } from './_lib/mailFrom.js';
 
 const APP_URL = 'https://skillkaart.nl';
 
@@ -210,9 +211,8 @@ export default async function handler(req: Req, res: Res) {
 
   try {
     const resend = new Resend(resendKey);
-    const FROM = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
     const { data, error } = await resend.emails.send({
-      from: FROM,
+      from: MAIL_FROM,
       to: [to],
       subject: `Volg de voortgang van ${playerName} op Skillkaart`,
       html: renderHtml(playerName, linkCode, expiresAt, senderName ?? '', magicLink),

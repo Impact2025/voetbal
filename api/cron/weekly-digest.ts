@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { verifyCron } from '../_lib/adminGuard.js';
 import { getAdminClient } from '../_lib/supabaseAdmin.js';
+import { MAIL_FROM } from '../_lib/mailFrom.js';
 
 interface Req { method: string; headers: Record<string, string | undefined> }
 interface Res {
@@ -242,7 +243,6 @@ export default async function handler(req: Req, res: Res) {
   if (!resendKey) return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt.' });
 
   const resend = new Resend(resendKey);
-  const from = process.env.MAIL_FROM || 'Skillkaart <onboarding@resend.dev>';
   const db = getAdminClient();
 
   try {
@@ -294,7 +294,7 @@ export default async function handler(req: Req, res: Res) {
         });
 
         await resend.emails.send({
-          from,
+          from: MAIL_FROM,
           to: [email],
           subject: `Skillkaart · De week van ${player.player_name}`,
           html: renderDigest({
