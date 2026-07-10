@@ -43,6 +43,9 @@ const hashError = (() => {
 const hasRecoveryCode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('code');
 // Magic link via implicit flow: Supabase server-generated invite links redirect with #access_token=…
 const hasInviteHash = typeof window !== 'undefined' && window.location.hash.includes('access_token=');
+// Coach-uitnodiging (?coachInvite=…) wordt in AuthComponent afgehandeld; zonder deze
+// vlag toont App de LandingPage en mount AuthComponent nooit, waardoor de link niets doet.
+const hasCoachInvite = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('coachInvite');
 const getSessionSafe = () => {
   const isRecoveryUrl = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
   const hasStoredSession = Object.keys(localStorage).some(
@@ -66,7 +69,7 @@ export default function Skillkaart() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [consentGiven, setConsentGiven] = useState(hasConsented);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showAuth, setShowAuth] = useState(!!hashError);
+  const [showAuth, setShowAuth] = useState(!!hashError || hasCoachInvite);
   const [showParentAuth, setShowParentAuth] = useState(false);
   const [showParentDemo, setShowParentDemo] = useState(false);
   const lastKnownUserId = useRef(null);

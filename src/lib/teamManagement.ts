@@ -154,48 +154,47 @@ export async function removeCoachFromTeam(teamCoachId: string, teamId: string, c
   }
 }
 
-export interface TeamCoachInvite extends TeamCoach {
+/** Publieke weergave van een uitnodiging: bevat bewust géén invite_token. */
+export interface CoachInvite {
+  id: string;
+  email: string;
+  team_id: string;
+  club_id: string;
+  role: 'head' | 'assistant';
   team_name: string;
 }
 
-export async function fetchInviteByToken(token: string): Promise<TeamCoachInvite | null> {
-  const { data, error } = await supabase
-    .from('team_coaches')
-    .select('*, teams(team_name)')
-    .eq('invite_token', token)
-    .eq('status', 'invited')
-    .maybeSingle();
-  if (error || !data) return null;
-  const row = data as TeamCoach & { teams: { team_name: string } | null };
-  return { ...row, team_name: row.teams?.team_name ?? row.team_id };
+/**
+ * Een uitnodiging kan om drie redenen niet bruikbaar zijn, en die moeten
+ * uit elkaar te houden zijn: een verlopen link vraagt om een andere melding
+ * dan een netwerkstoring. Vandaar een expliciet resultaat in plaats van null.
+ */
+export type InviteLookup =
+  | { status: 'ok'; invite: CoachInvite }
+  | { status: 'not_found' }
+  | { status: 'error'; message: string };
+
+export async function fetchInviteByToken(token: string): Promise<InviteLookup> {
+  const { data, error } = await supabase.rpc('get_coach_invite', { p_token: token });
+  if (error) return { status: 'error', message: error.message };
+  const row = (data as CoachInvite[] | null)?.[0];
+  if (!row) return { status: 'not_found' };
+  return { status: 'ok', invite: row };
 }
 
-/** Rondt een coach-uitnodiging af nadat het account is aangemaakt: koppelt profiel + team_coaches-rij. */
+/**
+ * Rondt een coach-uitnodiging af nadat het account is aangemaakt. Draait
+ * server-side in één transactie (zie supabase/secure_team_coaches.sql), zodat
+ * team_coaches, teams.coach_id en profiles niet half bijgewerkt kunnen raken.
+ */
 export async function acceptCoachInvite(token: string, coachId: string, email: string): Promise<{ teamId: string; clubId: string }> {
-  const { data: invite, error: findError } = await supabase
-    .from('team_coaches')
-    .select('*')
-    .eq('invite_token', token)
-    .eq('status', 'invited')
-    .single();
-  if (findError || !invite) throw new Error('Deze uitnodiging is niet meer geldig.');
-
-  const row = invite as TeamCoach;
-  const { error: updateError } = await supabase
-    .from('team_coaches')
-    .update({ coach_id: coachId, status: 'active', joined_at: new Date().toISOString() })
-    .eq('id', row.id);
-  if (updateError) throw new Error(updateError.message);
-
-  if (row.role === 'head') await setTeamHeadIfEmpty(row.team_id, coachId);
-
-  await supabase.from('profiles').insert({
-    id: coachId,
-    role: 'coach',
-    team_id: row.team_id,
-    club_id: row.club_id,
-    email: email.trim().toLowerCase(),
+  const { data, error } = await supabase.rpc('accept_coach_invite', {
+    p_token: token,
+    p_coach_id: coachId,
+    p_email: email,
   });
-
+  if (error) throw new Error(error.message);
+  const row = (data as { team_id: string; club_id: string }[] | null)?.[0];
+  if (!row) throw new Error('Deze uitnodiging is niet meer geldig.');
   return { teamId: row.team_id, clubId: row.club_id };
 }

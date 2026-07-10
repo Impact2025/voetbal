@@ -8,7 +8,7 @@ import { NEON_COLOR } from '../../utils/constants';
 import type { UserData } from '../../types';
 import { hashPin } from '../../utils/crypto';
 import { checkRateLimit, recordFailedAttempt, clearAttempts } from '../../utils/rateLimit';
-import { fetchInviteByToken, acceptCoachInvite, type TeamCoachInvite } from '../../lib/teamManagement';
+import { fetchInviteByToken, acceptCoachInvite, type CoachInvite } from '../../lib/teamManagement';
 
 interface AuthComponentProps {
   onPlayerLogin: (playerData: UserData & Record<string, unknown>) => void;
@@ -49,19 +49,30 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   const [rememberCoach, setRememberCoach] = useState(false);
   const [forgotPasswordOrigin, setForgotPasswordOrigin] = useState<'coachLogin' | 'clubAdminLogin'>('coachLogin');
   const [slowHint, setSlowHint] = useState(false);
-  const [invite, setInvite] = useState<TeamCoachInvite | null>(null);
+  const [invite, setInvite] = useState<CoachInvite | null>(null);
+  // Het token komt uit de URL en wordt niet meer door de server teruggegeven.
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
 
   useEffect(() => { if (isRecovering) setView('resetPassword'); }, [isRecovering]);
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get('coachInvite');
     if (!token) return;
-    fetchInviteByToken(token).then(found => {
-      if (found) {
-        setInvite(found);
-        setEmail(found.email);
+    fetchInviteByToken(token).then(result => {
+      if (result.status === 'ok') {
+        setInvite(result.invite);
+        setInviteToken(token);
+        setEmail(result.invite.email);
         setView('coachRegister');
+        return;
       }
+      // Zonder deze takken deed een verlopen of ingetrokken link helemaal niets.
+      setView('coachLogin');
+      setError(
+        result.status === 'not_found'
+          ? 'Deze uitnodiging is niet meer geldig. Mogelijk is hij al gebruikt of ingetrokken — vraag je club-admin om een nieuwe.'
+          : `Uitnodiging kon niet worden geladen: ${result.message}`
+      );
     });
   }, []);
 
@@ -82,13 +93,13 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       const t = setTimeout(() => setSlowHint(true), 8000);
       try {
         if (isRegistering) {
-          if (invite) {
+          if (invite && inviteToken) {
             const { data, error } = await withTimeout(
               supabase.auth.signUp({ email: invite.email, password }),
               45000, 'Registratie duurt te lang. Controleer je verbinding.'
             );
             if (error) throw error;
-            await acceptCoachInvite(invite.invite_token!, data.user!.id, invite.email);
+            await acceptCoachInvite(inviteToken, data.user!.id, invite.email);
           } else {
             if (!newTeamId.trim()) throw new Error('Een unieke Team ID is verplicht om een team te registreren.');
             const { data: teamData } = await supabase.from('teams').select('id').eq('id', newTeamId).single();
