@@ -194,28 +194,15 @@ function testsFor(profile, periodIdx) {
   const duel = s[10];
 
   return {
-    balvaardigheid: {
-      hooghouden: `${Math.round((18 + techniek * 4) * grow)}`,
-      tikken: `${Math.round((22 + techniek * 6) * grow)}`,
-      slalom: `${round1(clamp((13.5 - techniek * 0.4) * lowGrow, 6, 16))}`,
-      aannemen: `${clamp(Math.round(techniek * grow), 1, 10)}`,
-      wandpass: `${Math.round((10 + techniek * 2) * grow)}`,
-    },
-    schietenPassing: {
-      nauwkeurigheidSchieten: `${clamp(Math.round(scoren * grow), 1, 10)}`,
-      passNauwkeurigheid: `${clamp(Math.round(passen * grow), 1, 10)}`,
-      schotkracht: `${Math.round((48 + snelheid * 3 + scoren) * grow)}`,
-    },
-    fysiekConditie: {
+    sprintWendbaarheid: {
       sprint10m: `${round1(clamp((2.5 - (snelheid - 5) * 0.06) * lowGrow, 1.6, 3.4))}`,
-      herhaaldeSprints: `${round1(clamp((1.0 + (10 - snelheid) * 0.05) * lowGrow, 0.4, 1.6))}`,
-      uithoudingsvermogen: `${Math.round((1100 + duel * 42) * grow)}`,
-      sprongkracht: `${Math.round((28 + duel * 2.4) * grow)}`,
+      sprint25m: `${round1(clamp((5.2 - (snelheid - 5) * 0.11) * lowGrow, 3.6, 6.8))}`,
+      wendbaarheid: `${round1(clamp((11 - wendbaar * 0.18) * lowGrow, 6, 15))}`,
     },
-    coordinatieInzicht: {
-      reactietest: `${round1(clamp((0.42 - wendbaar * 0.008) * lowGrow, 0.22, 0.6))}`,
-      duel1v1: `${clamp(Math.round((a1v1 + v1v1) / 2 / 2), 1, 5)}`,
-      spelintelligentie: `${clamp(Math.round((s[12] + s[13]) / 2 / 2), 1, 5)}`,
+    balvaardigheid: {
+      dribbel: `${round1(clamp((13.5 - techniek * 0.4) * lowGrow, 6, 16))}`,
+      passing: `${clamp(Math.round(passen * grow), 1, 10)}`,
+      schieten: `${clamp(Math.round(scoren * grow), 1, 10)}`,
     },
   };
 }

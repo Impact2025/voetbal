@@ -33,10 +33,8 @@ export interface TestCategory {
 }
 
 export interface TestState {
+  sprintWendbaarheid: TestCategory;
   balvaardigheid: TestCategory;
-  schietenPassing: TestCategory;
-  fysiekConditie: TestCategory;
-  coordinatieInzicht: TestCategory;
 }
 
 export interface TrainingPlanSection {

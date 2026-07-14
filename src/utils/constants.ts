@@ -67,17 +67,13 @@ export const DEFAULT_WEEKLY_QUESTIONS: string[] = [
 ];
 
 export const initialTestState: TestState = {
-  balvaardigheid: { hooghouden: '', tikken: '', slalom: '', aannemen: '', wandpass: '' },
-  schietenPassing: { nauwkeurigheidSchieten: '', passNauwkeurigheid: '', schotkracht: '' },
-  fysiekConditie: { sprint10m: '', herhaaldeSprints: '', uithoudingsvermogen: '', sprongkracht: '' },
-  coordinatieInzicht: { reactietest: '', duel1v1: '', spelintelligentie: '' },
+  sprintWendbaarheid: { sprint10m: '', sprint25m: '', wendbaarheid: '' },
+  balvaardigheid: { dribbel: '', passing: '', schieten: '' },
 };
 
 export const testLabels: Record<string, { label: string; tests: Record<string, string> }> = {
-  balvaardigheid: { label: 'Balvaardigheid', tests: { hooghouden: 'Hooghouden (aantal)', tikken: 'Binnen-/Buitenkant Tikken (aantal/30s)', slalom: 'Slalom Dribbel (sec)', aannemen: 'Aannemen uit Lucht (x/10)', wandpass: 'Wandpass Controle (x/30)' } },
-  schietenPassing: { label: 'Schieten & Passing', tests: { nauwkeurigheidSchieten: 'Nauwkeurigheid Schieten (x/10)', passNauwkeurigheid: 'Pass Nauwkeurigheid (x/10)', schotkracht: 'Schotkracht (km/u)' } },
-  fysiekConditie: { label: 'Fysiek & Conditie', tests: { sprint10m: 'Sprinttest 10m (sec)', herhaaldeSprints: 'Herhaalde Sprints (verschil sec)', uithoudingsvermogen: 'Uithoudingsvermogen (m/6min)', sprongkracht: 'Sprongkracht (cm)' } },
-  coordinatieInzicht: { label: 'Coördinatie & Inzicht', tests: { reactietest: 'Reactietest (sec)', duel1v1: '1-tegen-1 Duel (x/5)', spelintelligentie: 'Spelintelligentie (score 1-5)' } },
+  sprintWendbaarheid: { label: 'Sprint & Wendbaarheid', tests: { sprint10m: '10 meter sprint (sec)', sprint25m: '25 meter sprint (sec)', wendbaarheid: 'Wendbaarheid (sec)' } },
+  balvaardigheid: { label: 'Balvaardigheid', tests: { dribbel: 'Dribbel (sec)', passing: 'Passing (x/10)', schieten: 'Schieten (x/10)' } },
 };
 
 export const homeworkSuggestions: HomeworkSuggestion[] = [
