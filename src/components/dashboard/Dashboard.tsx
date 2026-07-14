@@ -182,11 +182,11 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         : DEFAULT_EVALUATION_PERIODS;
       setActiveTab(prev => (periods.includes(prev) ? prev : periods[0]));
 
-      if (userData.role !== 'player' && normalizedPlayers.length > 0) {
-        setActivePlayerId(prev => prev || normalizedPlayers[0].id);
-      } else if (userData.role === 'player') {
+      if (userData.role === 'player') {
         setActivePlayerId(user.id);
       }
+      // Coach/club_admin: geen auto-selectie — start op het spelers-overzicht
+      // (PlayersDashboard). De coach klikt zelf een speler om diens dashboard te openen.
       setDataLoaded(true);
     };
 
