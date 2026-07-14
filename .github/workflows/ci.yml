@@ -31,11 +31,9 @@ jobs:
 
       - name: TypeScript check
         run: npx tsc --noEmit
-        continue-on-error: true  # TODO: fix TS errors, then remove this
 
       - name: Lint
         run: npm run lint
-        continue-on-error: true
 
       - name: Tests
         run: npm run test -- --run

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
+import LazyRadar from './LazyRadar';
 import { Trophy, Users, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from '../ui/Card';
@@ -131,14 +131,18 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
             <span className="text-sm font-normal text-gray-400">— {activeTab}</span>
           </h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis dataKey="subject" tick={<ColoredAxisTick colorMap={subjectColorMap} />} />
-                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                <Radar name="Team" dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.35} dot={<ColoredRadarDot />} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <LazyRadar>
+              {(C) => (
+                <C.ResponsiveContainer width="100%" height="100%">
+                  <C.RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                    <C.PolarGrid stroke="#e5e7eb" />
+                    <C.PolarAngleAxis dataKey="subject" tick={<ColoredAxisTick colorMap={subjectColorMap} />} />
+                    <C.PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                    <C.Radar name="Team" dataKey="value" stroke={COACH_COLOR} fill={COACH_COLOR} fillOpacity={0.35} dot={<ColoredRadarDot />} />
+                  </C.RadarChart>
+                </C.ResponsiveContainer>
+              )}
+            </LazyRadar>
           </div>
         </Card>
       </div>

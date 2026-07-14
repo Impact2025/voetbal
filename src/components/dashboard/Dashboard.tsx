@@ -9,7 +9,6 @@ import { generateIndividualPlan } from '../../lib/trainingAI';
 import { NEON_COLOR, COACH_COLOR, skillKeys, SKILL_GROUPS, DEFAULT_EVALUATION_PERIODS, DEFAULT_WEEKLY_QUESTIONS, createInitialEvaluations, makeEvaluation } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import { hashPin } from '../../utils/crypto';
-import { exportPlayerPdf } from '../../utils/pdfExport';
 import type { TeamSession } from '../../types';
 import Card from '../ui/Card';
 import ToolButton from '../ui/ToolButton';
@@ -973,7 +972,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                           <ToolButton light onClick={() => setIsTestsVisible(true)}>
                             <FileText size={13} /> Testen
                           </ToolButton>
-                          <ToolButton light onClick={() => exportPlayerPdf(activePlayer, teamData.team_name || 'Team', teamPeriods)}>
+                          <ToolButton light onClick={async () => {
+                            const { exportPlayerPdf } = await import('../../utils/pdfExport');
+                            exportPlayerPdf(activePlayer, teamData.team_name || 'Team', teamPeriods);
+                          }}>
                             <Download size={13} /> PDF
                           </ToolButton>
                         </div>

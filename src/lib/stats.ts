@@ -87,6 +87,108 @@ export async function insertChallengeEvents(
   await supabase.from('stat_events').insert(rows);
 }
 
+/**
+ * Verwijdert stat_events die horen bij één specifieke voltooiing (coach trekt
+ * goedkeuring in). We matchen op event_type + meta.homework_id / meta.challenge_id,
+ * zodat alleen de XP-as bijdrages van díe ene opdracht wegvallen en de rest van de
+ * speler-historie intact blijft.
+ */
+export async function removeStatEvents(
+  playerId: string,
+  teamId: string,
+  eventType: StatEvent['event_type'],
+  refKey: 'homework_id' | 'challenge_id',
+  refId: string,
+): Promise<void> {
+  await supabase
+    .from('stat_events')
+    .delete()
+    .eq('player_id', playerId)
+    .eq('team_id', teamId)
+    .eq('event_type', eventType)
+    .contains('meta', { [refKey]: refId });
+}
+
+/**
+ * Gate-functie: pas bij coach-goedkeuring wordt de huiswerk-voltooiing
+ * (completed_homework_ids) + XP + streak toegekend. Idempotent: als het al
+ * voltooid is, gebeurt er niets.
+ */
+export async function grantHomeworkCompletion(
+  playerId: string,
+  teamId: string,
+  hwId: string,
+  currentCompleted: string[],
+  onStatsRecomputed: (stats: PlayerStats, oldTier: PlayerStats['tier']) => void,
+  onStreak: (s: Streak | null) => void,
+): Promise<void> {
+  if (currentCompleted.includes(hwId)) return;
+
+  const newCompleted = [...currentCompleted, hwId];
+  await supabase.from('players').update({ completed_homework_ids: newCompleted }).eq('id', playerId);
+
+  const oldTier = (await fetchAndRecomputeStats(playerId, teamId))?.tier ?? 'brons';
+  await Promise.all([
+    insertStatEvents(playerId, teamId, 'homework_done', { homework_id: hwId }),
+    insertStatEvents(playerId, teamId, 'video_submitted', { homework_id: hwId }),
+    incrementStreak(playerId).then(onStreak),
+  ]);
+  const updated = await fetchAndRecomputeStats(playerId, teamId);
+  if (updated) onStatsRecomputed(updated, oldTier);
+}
+
+/**
+ * Gate-functie: pas bij coach-goedkeuring wordt de challenge-voltooiing + XP + streak
+ * toegekend. Idempotent via de bestaande challenge_completions-rij.
+ */
+export async function grantChallengeCompletion(
+  completionId: string,
+  playerId: string,
+  teamId: string,
+  category: Challenge['category'],
+  challengeId: string,
+  onStatsRecomputed: (stats: PlayerStats, oldTier: PlayerStats['tier']) => void,
+  onStreak: (s: Streak | null) => void,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from('challenge_completions')
+    .select('*')
+    .eq('id', completionId)
+    .maybeSingle();
+  if (existing?.granted) return;
+
+  const oldTier = (await fetchAndRecomputeStats(playerId, teamId))?.tier ?? 'brons';
+  await Promise.all([
+    insertChallengeEvents(playerId, teamId, category, challengeId),
+    incrementStreak(playerId).then(onStreak),
+  ]);
+  await supabase.from('challenge_completions').update({ granted: true }).eq('id', completionId);
+  const updated = await fetchAndRecomputeStats(playerId, teamId);
+  if (updated) onStatsRecomputed(updated, oldTier);
+}
+
+/**
+ * Trekt een eerdere goedkeuring in: verwijdert XP-events + decrementeert streak.
+ * Zonder straf (geen tier-verlaging door penalty, wel natuurlijke herberekening).
+ */
+export async function revokeCompletionRewards(
+  playerId: string,
+  teamId: string,
+  ref:
+    | { kind: 'homework'; hwId: string }
+    | { kind: 'challenge'; completionId: string; challengeId: string },
+  onStreak: (s: Streak | null) => void,
+): Promise<void> {
+  if (ref.kind === 'homework') {
+    await removeStatEvents(playerId, teamId, 'homework_done', 'homework_id', ref.hwId);
+    await removeStatEvents(playerId, teamId, 'video_submitted', 'homework_id', ref.hwId);
+  } else {
+    await removeStatEvents(playerId, teamId, 'challenge_done', 'challenge_id', ref.challengeId);
+  }
+  await decrementStreak(playerId).then(onStreak);
+  await fetchAndRecomputeStats(playerId, teamId);
+}
+
 export async function fetchAndRecomputeStats(
   playerId: string,
   teamId: string,

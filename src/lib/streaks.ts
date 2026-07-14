@@ -80,3 +80,46 @@ export async function incrementStreak(playerId: string): Promise<Streak | null> 
 
   return (data as Streak) ?? null;
 }
+
+/**
+ * Trekt één activiteit van de huidige week-streak af (coach trekt goedkeuring in).
+ * Clampt op 0 — we verlagen nooit onder nul, en corrigeert best_week_count niet
+ * achteraf (vermijdt straf bij een onschuldige "un-approve").
+ */
+export async function decrementStreak(playerId: string): Promise<Streak | null> {
+  const currentWeek = getWeekStart();
+
+  const { data: existing } = await supabase
+    .from('streaks')
+    .select('*')
+    .eq('player_id', playerId)
+    .maybeSingle();
+
+  // Geen streak-rij (bijv. op een verse DB) → niets om af te trekken.
+  if (!existing) return null;
+
+  const isCurrentWeek = (existing.week_start ?? '') === currentWeek;
+  const prevCount = isCurrentWeek ? (existing.activities_count ?? 0) : 0;
+  const newCount = Math.max(0, prevCount - 1);
+  const weekGoal = existing.week_goal ?? 2;
+  const flameState: Streak['flame_state'] = newCount >= weekGoal ? 'complete' : 'active';
+
+  const { data } = await supabase
+    .from('streaks')
+    .upsert(
+      {
+        player_id:       playerId,
+        week_start:      currentWeek,
+        activities_count: newCount,
+        week_goal:       weekGoal,
+        best_week_count: existing.best_week_count ?? 0,
+        recovery_used:   existing.recovery_used ?? false,
+        flame_state:     flameState,
+      },
+      { onConflict: 'player_id' },
+    )
+    .select()
+    .single();
+
+  return (data as Streak) ?? null;
+}

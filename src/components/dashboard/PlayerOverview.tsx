@@ -1,8 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import {
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  Radar, ResponsiveContainer,
-} from 'recharts';
+import LazyRadar from './LazyRadar';
 import {
   Wand2, Loader2, TrendingUp, TrendingDown, Minus,
   Target, BookOpen, Zap, Shield,
@@ -649,17 +646,21 @@ const PlayerOverview = ({ player, players, teamData, activeTab, avatarStats, onA
             }
           </p>
           <div className="h-52">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
-                <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis
-                  dataKey="subject"
-                  tick={{ fill: '#6b7280', fontSize: isYoung ? 11 : 10 }}
-                />
-                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                <Radar name="Jij" dataKey="jij" stroke={level.color} fill={level.color} fillOpacity={0.4} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <LazyRadar>
+              {(C) => (
+                <C.ResponsiveContainer width="100%" height="100%">
+                  <C.RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
+                    <C.PolarGrid stroke="#e5e7eb" />
+                    <C.PolarAngleAxis
+                      dataKey="subject"
+                      tick={{ fill: '#6b7280', fontSize: isYoung ? 11 : 10 }}
+                    />
+                    <C.PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                    <C.Radar name="Jij" dataKey="jij" stroke={level.color} fill={level.color} fillOpacity={0.4} />
+                  </C.RadarChart>
+                </C.ResponsiveContainer>
+              )}
+            </LazyRadar>
           </div>
         </Card>
       </motion.div>
