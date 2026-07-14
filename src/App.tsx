@@ -171,9 +171,9 @@ export default function Skillkaart() {
                 .from('parent_links').select('player_id')
                 .eq('parent_id', session.user.id).eq('verified', true).order('created_at');
               const linkedPlayerIds = (links ?? []).map(l => l.player_id);
-              setUserData({ ...data, teamId: data.team_id, linkedPlayerId: linkedPlayerIds[0] ?? null, linkedPlayerIds });
+              setUserData({ ...data, uid: session.user.id, teamId: data.team_id, linkedPlayerId: linkedPlayerIds[0] ?? null, linkedPlayerIds });
             } else {
-              setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
+              setUserData(data ? { ...data, uid: session.user.id, teamId: data.team_id, clubId: data.club_id } : null);
             }
             lastKnownUserId.current = session.user.id;
           }
@@ -248,9 +248,9 @@ export default function Skillkaart() {
               .from('parent_links').select('player_id')
               .eq('parent_id', session.user.id).eq('verified', true).order('created_at');
             const linkedPlayerIds = (links ?? []).map(l => l.player_id);
-            setUserData({ ...data, teamId: data.team_id, linkedPlayerId: linkedPlayerIds[0] ?? null, linkedPlayerIds });
+            setUserData({ ...data, uid: session.user.id, teamId: data.team_id, linkedPlayerId: linkedPlayerIds[0] ?? null, linkedPlayerIds });
           } else {
-            setUserData(data ? { ...data, teamId: data.team_id, clubId: data.club_id } : null);
+            setUserData(data ? { ...data, uid: session.user.id, teamId: data.team_id, clubId: data.club_id } : null);
           }
           lastKnownUserId.current = session.user.id;
         } catch { setSession(null); setUserData(null); }

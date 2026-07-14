@@ -635,8 +635,10 @@ const MessagingInbox = ({
       const newConv = data as Conversation;
       setConversations(prev => [newConv, ...prev]);
       openConversation(newConv.id);
-    } catch {
-      toast.error('Gesprek starten mislukt');
+    } catch (err) {
+      console.error('startConversation mislukt:', err);
+      const msg = err instanceof Error ? err.message : '';
+      toast.error(msg ? `Gesprek starten mislukt: ${msg}` : 'Gesprek starten mislukt');
     }
   };
 
