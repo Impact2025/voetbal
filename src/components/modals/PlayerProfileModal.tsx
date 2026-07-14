@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Copy, Camera, RefreshCw, User, X } from 'lucide-react';
+import { Loader2, Copy, RefreshCw, User, X } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import Avatar from '../Avatar';
 import { copyToClipboard } from '../../utils/clipboard';
-import { uploadAvatar } from '../../lib/storage';
 import { COACH_COLOR } from '../../utils/constants';
 import type { Player } from '../../types';
 import toast from 'react-hot-toast';
@@ -23,42 +23,25 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onRese
   const [age, setAge] = useState('');
   const [preferredFoot, setPreferredFoot] = useState('Rechts');
   const [position, setPosition] = useState('');
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [resettingPin, setResettingPin] = useState(false);
   const [newPin, setNewPin] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (player) {
       setAge(player.age || '');
       setPreferredFoot(player.preferred_foot || 'Rechts');
       setPosition(player.position || '');
-      setAvatarPreview(null);
-      setAvatarFile(null);
       setNewPin(null);
     }
   }, [player]);
 
   if (!isVisible || !player) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error('Afbeelding mag maximaal 2 MB zijn.'); return; }
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  };
-
   const handleSave = async () => {
     setLoading(true);
     try {
-      let avatar_url: string | undefined;
-      if (avatarFile) {
-        avatar_url = await uploadAvatar(avatarFile, teamId, player.name);
-      }
-      await onSave(player.id, { age, preferred_foot: preferredFoot, position, ...(avatar_url ? { avatar_url } : {}) });
+      await onSave(player.id, { age, preferred_foot: preferredFoot, position });
       onClose();
     } catch (err) {
       toast.error((err as Error).message || 'Opslaan mislukt.');
@@ -66,8 +49,6 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onRese
       setLoading(false);
     }
   };
-
-  const currentAvatar = avatarPreview || player.avatar_url;
 
   return (
     <AnimatePresence>
@@ -94,25 +75,21 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onRese
             </div>
 
             <div className="p-6 space-y-5">
-              {/* Avatar */}
+              {/* Avatar (door speler zelf gekozen) */}
               <div className="flex flex-col items-center">
-                <div className="relative">
-                  <img
-                    src={currentAvatar}
-                    alt={player.name}
-                    className="w-20 h-20 rounded-full border-2 border-emerald-200 object-cover"
+                <div className="rounded-2xl border-2 border-emerald-200 overflow-hidden">
+                  <Avatar
+                    config={player.avatar_config}
+                    avatarUrl={player.avatar_url}
+                    name={player.name}
+                    size={80}
                   />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white transition-colors"
-                    style={{ backgroundColor: COACH_COLOR }}
-                    title="Foto wijzigen"
-                  >
-                    <Camera size={13} className="text-white" />
-                  </button>
                 </div>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <p className="text-xs text-gray-400 mt-2">Klik op het camera-icoontje voor een foto (max 2 MB)</p>
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  {player.avatar_config
+                    ? `${player.name} heeft zelf een baller gebouwd`
+                    : 'De speler kiest zelf een avatar in de app'}
+                </p>
               </div>
 
               <div className="space-y-4">

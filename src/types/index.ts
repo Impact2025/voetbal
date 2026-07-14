@@ -87,6 +87,7 @@ export interface Player {
   position: string;
   pin: string;
   avatar_url: string;
+  avatar_config?: import('../lib/avatar/catalog').AvatarConfig | null;
   evaluations: Record<string, Evaluation>;
   completed_homework_ids: string[];
   weekly_question_responses: string[];
