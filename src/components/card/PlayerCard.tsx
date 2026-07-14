@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Flame, Star, Zap, Eye, Users } from 'lucide-react';
 import { detectAgeGroup } from '../../lib/trainingAI';
 import { TIER_CONFIG, tierProgress, nextTierXP } from '../../lib/cardTier';
+import Avatar from '../Avatar';
 import type { Player, PlayerStats, StatAxis } from '../../types';
 
 interface PlayerCardProps {
@@ -113,11 +114,12 @@ const PlayerCard = ({ player, stats }: PlayerCardProps) => {
                 className="w-20 h-20 rounded-2xl p-0.5"
                 style={{ background: `linear-gradient(135deg, ${tierCfg.color}, ${tierCfg.color}60)` }}
               >
-                <img
-                  src={player.avatar_url}
-                  alt={player.name}
-                  className="w-full h-full rounded-2xl object-cover"
-                  style={{ backgroundColor: tierCfg.bgTo }}
+                <Avatar
+                  config={player.avatar_config}
+                  avatarUrl={player.avatar_url}
+                  name={player.name}
+                  size={76}
+                  className="w-full h-full rounded-2xl"
                 />
               </div>
               {/* XP badge */}
