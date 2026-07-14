@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Video, Upload, Loader2, CheckCircle2, AlertCircle, RotateCcw, Play } from 'lucide-react';
+import { Video, Upload, Loader2, CheckCircle2, AlertCircle, RotateCcw, Play, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadHomeworkVideo } from '../../lib/storage';
 import { extractVideoFrames, analyzeMovementVideo } from '../../lib/ai';
@@ -320,6 +320,11 @@ const VideoSubmissionCard = ({
                   <Play size={11} /> {showVideo ? 'Verberg' : 'Bekijk video'}
                 </button>
               )}
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3" style={{ backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
+              <Clock size={13} className="shrink-0" />
+              <p className="text-xs font-semibold">Inzending klaar — wacht op goedkeuring van je coach voor de beloning (XP &amp; streak).</p>
             </div>
 
             {showVideo && submission.video_url && (

@@ -297,6 +297,7 @@ export interface ChallengeCompletion {
   video_url?: string;
   video_ai_feedback?: string;
   coach_reviewed?: boolean;
+  granted?: boolean;
   completed_at: string;
 }
 

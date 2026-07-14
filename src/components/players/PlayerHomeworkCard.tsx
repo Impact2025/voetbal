@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ClipboardList, CheckCircle2, Camera } from 'lucide-react';
+import { ClipboardList, CheckCircle2, Camera, Clock } from 'lucide-react';
 import Card from '../ui/Card';
 import VideoSubmissionCard from '../homework/VideoSubmissionCard';
 import { getYoutubeEmbedUrl } from '../../utils/youtube';
@@ -21,22 +21,27 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
   const latestSubmission = submissions
     .filter(s => s.homework_id === hw.id && s.player_id === player.id)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  // Pas "Voltooid!" als de coach de inzending heeft goedgekeurd (voltooing = goedkeuring).
+  const isApproved = isCompleted && !!latestSubmission?.coach_reviewed;
+  const awaitingReview = !isCompleted && latestSubmission?.feedback_status === 'done' && !latestSubmission?.coach_reviewed;
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
       className="rounded-2xl overflow-hidden"
       style={
-        isCompleted
+        isApproved
           ? { background: '#ecfdf5', border: '1px solid #a7f3d0' }
+          : awaitingReview
+          ? { background: '#fffbeb', border: '1px solid #fde68a' }
           : isFocused
           ? { background: '#ffffff', border: `1px solid ${COACH_COLOR}40` }
           : { background: '#f9fafb', border: '1px solid #e5e7eb' }
       }
     >
+
       {/* Accent stripe voor gefocust item */}
       {isFocused && !isCompleted && (
         <div
@@ -67,8 +72,8 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
           <p className="text-sm text-gray-500 leading-relaxed">{hw.description}</p>
         </div>
 
-        {/* Voltooid status — alleen tonen als het klaar is */}
-        {isCompleted && (
+        {/* Voltooid status — alleen tonen bij coach-goedkeuring */}
+        {isApproved && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -77,6 +82,19 @@ const HomeworkItem = ({ hw, player, teamId, submissions, onSubmissionComplete, i
           >
             <CheckCircle2 size={15} />
             <span className="text-sm font-bold">Voltooid!</span>
+          </motion.div>
+        )}
+
+        {/* Wacht op goedkeuring — speler heeft video + AI-feedback, coach moet nog keuren */}
+        {awaitingReview && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl mb-4"
+            style={{ backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}
+          >
+            <Clock size={15} />
+            <span className="text-sm font-bold">Wacht op goedkeuring coach</span>
           </motion.div>
         )}
 

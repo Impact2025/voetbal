@@ -53,8 +53,15 @@ import PushNotificationSender from '../notifications/PushNotificationSender';
 import InstallModal from '../modals/InstallModal';
 import { usePWA } from '../../lib/usePWA';
 import { type AvatarConfig, type PlayerStats as AvatarStats } from '../../lib/avatar/catalog';
-import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
-import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
+import {
+  insertStatEvents,
+  insertChallengeEvents,
+  fetchAndRecomputeStats,
+  grantHomeworkCompletion,
+  grantChallengeCompletion,
+  revokeCompletionRewards,
+} from '../../lib/stats';
+import { getOrCreateStreak, incrementStreak, decrementStreak } from '../../lib/streaks';
 import { getActiveTeamChallenge } from '../../lib/teamChallenge';
 import { ageToAgeGroup, fetchCurrentWeekChallenge } from '../../lib/trainingLibrary';
 import type { PlayerStats, CardTier, TeamChallenge } from '../../types';
@@ -544,48 +551,88 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     }
   };
 
-  const handleToggleSubmissionReview = async (submission: HomeworkSubmission) => {
-    const coach_reviewed = !submission.coach_reviewed;
-    setSubmissions(prev => prev.map(s => s.id === submission.id ? { ...s, coach_reviewed } : s));
-    await supabase.from('homework_submissions').update({ coach_reviewed }).eq('id', submission.id);
-  };
-
-  const handleToggleChallengeReview = async (completion: ChallengeCompletion) => {
-    const coach_reviewed = !completion.coach_reviewed;
-    setTeamChallengeCompletions(prev => prev.map(c => c.id === completion.id ? { ...c, coach_reviewed } : c));
-    await supabase.from('challenge_completions').update({ coach_reviewed }).eq('id', completion.id);
-  };
-
-  const handleSubmissionComplete = async (submission: HomeworkSubmission) => {
+  // Speler-kant: video + AI-feedback is binnen, maar voltooiing (completed_homework_ids)
+  // + XP + streak volgen pas bij coach-goedkeuring. Hier alleen de UI-state bijwerken
+  // zodat de speler zijn inzending + feedback ziet staan, met "Wacht op goedkeuring".
+  const handleSubmissionComplete = (submission: HomeworkSubmission) => {
     setSubmissions(prev => {
       const idx = prev.findIndex(s => s.id === submission.id);
       if (idx !== -1) return prev.map(s => s.id === submission.id ? submission : s);
       return [submission, ...prev];
     });
+  };
 
-    if (userData.role !== 'player' || !userData.teamId || !activePlayer) return;
+  // Coach keurt huiswerk goed → nu pas voltooiing + XP + streak toekennen.
+  const handleToggleSubmissionReview = async (submission: HomeworkSubmission) => {
+    const coach_reviewed = !submission.coach_reviewed;
+    setSubmissions(prev => prev.map(s => s.id === submission.id ? { ...s, coach_reviewed } : s));
+    await supabase.from('homework_submissions').update({ coach_reviewed }).eq('id', submission.id);
 
+    const submPlayer = players.find(p => p.id === submission.player_id);
     const hwId = submission.homework_id;
-    const isAlreadyDone = activePlayer.completed_homework_ids.includes(hwId);
+    if (!submPlayer || !hwId) return;
 
-    if (!isAlreadyDone) {
-      // Markeer huiswerk automatisch als voltooid na video + AI feedback
-      const newCompletedIds = [...activePlayer.completed_homework_ids, hwId];
-      await supabase.from('players').update({ completed_homework_ids: newCompletedIds }).eq('id', user.id);
-      setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, completed_homework_ids: newCompletedIds } : p));
+    if (coach_reviewed) {
+      await grantHomeworkCompletion(
+        submPlayer.id,
+        submission.team_id,
+        hwId,
+        submPlayer.completed_homework_ids || [],
+        (stats, oldTier) => {
+          setPlayers(prev => prev.map(p => p.id === submPlayer.id ? { ...p, completed_homework_ids: [...(p.completed_homework_ids || []), hwId] } : p));
+          setPlayerStats(stats);
+          if (activePlayer?.id === submPlayer.id && stats.tier !== oldTier) setPendingTierUp(stats.tier);
+        },
+        (s) => { if (activePlayer?.id === submPlayer.id) setStreak(s); },
+      );
+    } else {
+      // Coach trekt goedkeuring in → beloning terugdraaien (zonder straf).
+      await revokeCompletionRewards(
+        submPlayer.id,
+        submission.team_id,
+        { kind: 'homework', hwId },
+        (s) => { if (activePlayer?.id === submPlayer.id) setStreak(s); },
+      );
+      setPlayers(prev => prev.map(p => p.id === submPlayer.id ? { ...p, completed_homework_ids: (p.completed_homework_ids || []).filter(id => id !== hwId) } : p));
+      const refreshed = await fetchAndRecomputeStats(submPlayer.id, submission.team_id);
+      if (refreshed) setPlayerStats(refreshed);
+    }
+  };
 
-      // Award XP + streak (zelfde logica als handleToggleHomeworkStatus)
-      const oldTier = playerStats?.tier ?? 'brons';
-      await Promise.all([
-        insertStatEvents(user.id, userData.teamId, 'homework_done', { homework_id: hwId }),
-        insertStatEvents(user.id, userData.teamId, 'video_submitted', { homework_id: hwId }),
-        incrementStreak(user.id).then(s => { if (s) setStreak(s); }),
-      ]);
-      const updated = await fetchAndRecomputeStats(user.id, userData.teamId);
-      if (updated) {
-        setPlayerStats(updated);
-        if (updated.tier !== oldTier) setPendingTierUp(updated.tier);
-      }
+  // Coach keurt challenge goed → nu pas voltooiing + XP + streak toekennen.
+  const handleToggleChallengeReview = async (completion: ChallengeCompletion) => {
+    const coach_reviewed = !completion.coach_reviewed;
+    setTeamChallengeCompletions(prev => prev.map(c => c.id === completion.id ? { ...c, coach_reviewed } : c));
+    await supabase.from('challenge_completions').update({ coach_reviewed }).eq('id', completion.id);
+
+    const compPlayer = players.find(p => p.id === completion.player_id);
+    if (!compPlayer) return;
+    const challenge = CHALLENGES.find(c => c.id === completion.challenge_id);
+    if (!challenge) return;
+
+    if (coach_reviewed) {
+      await grantChallengeCompletion(
+        completion.id,
+        compPlayer.id,
+        completion.team_id,
+        challenge.category,
+        completion.challenge_id,
+        (stats, oldTier) => {
+          setPlayerStats(stats);
+          if (activePlayer?.id === compPlayer.id && stats.tier !== oldTier) setPendingTierUp(stats.tier);
+        },
+        (s) => { if (activePlayer?.id === compPlayer.id) setStreak(s); },
+      );
+    } else {
+      await revokeCompletionRewards(
+        compPlayer.id,
+        completion.team_id,
+        { kind: 'challenge', completionId: completion.id, challengeId: completion.challenge_id },
+        (s) => { if (activePlayer?.id === compPlayer.id) setStreak(s); },
+      );
+      await supabase.from('challenge_completions').update({ granted: false }).eq('id', completion.id);
+      const refreshed = await fetchAndRecomputeStats(compPlayer.id, completion.team_id);
+      if (refreshed) setPlayerStats(refreshed);
     }
   };
 
@@ -597,9 +644,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     const challenge = CHALLENGES.find(c => c.id === challengeId);
     if (!challenge) return null;
 
-    const oldTier = playerStats?.tier ?? 'brons';
-
-    // Sla completion op in DB met video data
+    // Sla completion op in DB met video data — NOG NIET goedgekeurd, dus geen XP/streak.
     const { data: completion } = await supabase
       .from('challenge_completions')
       .insert({
@@ -609,23 +654,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         reflection: reflection || null,
         video_url: videoUrl || null,
         video_ai_feedback: videoAIFeedback || null,
+        granted: false,
       })
       .select()
       .single();
 
     if (completion) {
       setChallengeCompletions(prev => [...prev, completion as ChallengeCompletion]);
-    }
-
-    await Promise.all([
-      insertChallengeEvents(user.id, userData.teamId, challenge.category, challengeId),
-      incrementStreak(user.id).then(s => { if (s) setStreak(s); }),
-    ]);
-
-    const updated = await fetchAndRecomputeStats(user.id, userData.teamId);
-    if (updated) {
-      setPlayerStats(updated);
-      if (updated.tier !== oldTier) setPendingTierUp(updated.tier);
     }
 
     return completion?.id ?? null;
@@ -1166,6 +1201,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                                 <p className="text-sm font-semibold text-gray-900 truncate">{submPlayer.name}</p>
                                 <p className="text-xs text-gray-500 truncate">{hw.title}</p>
                               </div>
+                              {sub.feedback_status === 'done' && !sub.coach_reviewed && (
+                                <span className="text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full" style={{ color: '#b45309', backgroundColor: '#fef3c7' }}>Wacht op goedkeuring</span>
+                              )}
                               {sub.coach_reviewed && <CheckCircle2 size={15} className="shrink-0" style={{ color: COACH_COLOR }} />}
                               <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>{statusLabel}</span>
                             </summary>
@@ -1182,14 +1220,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                                   onClick={() => handleToggleSubmissionReview(sub)}
                                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
                                     sub.coach_reviewed
-                                      ? 'text-white'
-                                      : 'bg-white text-gray-500 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                                      ? 'bg-white text-gray-500 border border-gray-200 hover:border-rose-300 hover:text-rose-700'
+                                      : 'text-white'
                                   }`}
-                                  style={sub.coach_reviewed ? { backgroundColor: COACH_COLOR } : {}}
+                                  style={!sub.coach_reviewed ? { backgroundColor: COACH_COLOR } : {}}
+                                  title={sub.coach_reviewed ? 'Goedkeuring intrekken (XP/streak worden teruggedraaid)' : 'Keur goed → speler krijgt pas Voltooid + XP + streak'}
                                 >
-                                  <CheckCircle2 size={13} /> {sub.coach_reviewed ? 'Goedgekeurd' : 'Goedkeuren'}
+                                  <CheckCircle2 size={13} /> {sub.coach_reviewed ? 'Goedkeuring intrekken' : 'Goedkeuren & belonen'}
                                 </button>
                               </div>
+                              {sub.coach_reviewed && (
+                                <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                                  <CheckCircle2 size={11} /> Voltooid — XP &amp; streak toegekend aan {submPlayer.name.split(' ')[0]}
+                                </p>
+                              )}
                             </div>
                           </details>
                         );
@@ -1320,6 +1364,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               <p className="text-sm font-semibold text-gray-900 truncate">{compPlayer.name}</p>
                               <p className="text-xs text-gray-500 truncate">{challenge.title}</p>
                             </div>
+                            {!comp.coach_reviewed && (
+                              <span className="text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full" style={{ color: '#b45309', backgroundColor: '#fef3c7' }}>Wacht op goedkeuring</span>
+                            )}
                             {comp.coach_reviewed && <CheckCircle2 size={15} className="shrink-0" style={{ color: COACH_COLOR }} />}
                           </summary>
                           <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
@@ -1333,14 +1380,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                                 onClick={() => handleToggleChallengeReview(comp)}
                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
                                   comp.coach_reviewed
-                                    ? 'text-white'
-                                    : 'bg-white text-gray-500 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                                    ? 'bg-white text-gray-500 border border-gray-200 hover:border-rose-300 hover:text-rose-700'
+                                    : 'text-white'
                                 }`}
-                                style={comp.coach_reviewed ? { backgroundColor: COACH_COLOR } : {}}
+                                style={!comp.coach_reviewed ? { backgroundColor: COACH_COLOR } : {}}
+                                title={comp.coach_reviewed ? 'Goedkeuring intrekken (XP/streak worden teruggedraaid)' : 'Keur goed → speler krijgt pas Voltooid + XP + streak'}
                               >
-                                <CheckCircle2 size={13} /> {comp.coach_reviewed ? 'Goedgekeurd' : 'Goedkeuren'}
+                                <CheckCircle2 size={13} /> {comp.coach_reviewed ? 'Goedkeuring intrekken' : 'Goedkeuren & belonen'}
                               </button>
                             </div>
+                            {comp.coach_reviewed && (
+                              <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Voltooid — XP &amp; streak toegekend aan {compPlayer.name.split(' ')[0]}
+                              </p>
+                            )}
                           </div>
                         </details>
                       );

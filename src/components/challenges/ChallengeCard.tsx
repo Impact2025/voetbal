@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, CheckCircle2, Loader2, Wand2, Video, Upload, RotateCcw, Camera, Play } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, Loader2, Wand2, Video, Upload, RotateCcw, Camera, Play, Clock } from 'lucide-react';
 import { CATEGORY_META } from '../../data/challenges';
 import { getChallengeAIFeedback, extractVideoFrames, analyzeChallengeVideo } from '../../lib/ai';
 import { uploadChallengeVideo } from '../../lib/storage';
@@ -30,6 +30,9 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
   const [loadingAI, setLoadingAI] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [done, setDone] = useState(!!completion);
+  // Voltooid + beloond = pas bij coach-goedkeuring (granted). Daarvoor is de
+  // inzending alleen "ingediend" en wacht de speler op de coach.
+  const isApproved = !!completion?.coach_reviewed && !!completion?.granted;
 
   // Video state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,8 +155,8 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
       layout
       className="rounded-2xl border overflow-hidden"
       style={{
-        borderColor: done ? `${meta.color}40` : '#e5e7eb',
-        background: done ? meta.bg : '#ffffff',
+        borderColor: isApproved ? `${meta.color}40` : done ? '#fde68a' : '#e5e7eb',
+        background: isApproved ? meta.bg : done ? '#fffbeb' : '#ffffff',
       }}
     >
       {/* Header row */}
@@ -443,10 +446,17 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                     </motion.div>
                   ) : null}
 
-                  <div className="flex items-center gap-2 text-xs font-bold" style={{ color: meta.color }}>
-                    <CheckCircle2 size={13} />
-                    Uitdaging voltooid — XP toegevoegd aan jouw kaart!
-                  </div>
+                  {isApproved ? (
+                    <div className="flex items-center gap-2 text-xs font-bold" style={{ color: meta.color }}>
+                      <CheckCircle2 size={13} />
+                      Uitdaging voltooid — XP toegevoegd aan jouw kaart!
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
+                      <Clock size={13} className="shrink-0" />
+                      Inzending klaar — wacht op goedkeuring van je coach voor de XP.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
