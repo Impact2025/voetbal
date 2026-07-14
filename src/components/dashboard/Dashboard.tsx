@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } fro
 import toast, { Toaster } from 'react-hot-toast';
 import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, WeekChallengeCompletion, Streak, SeasonWeekPlan } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap, MessageSquare, ChevronLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
@@ -33,6 +33,7 @@ import TestResultsCard from '../evaluation/TestResultsCard';
 import TeamOverview from './TeamOverview';
 import CoachCharts from './CoachCharts';
 import PlayerOverview from './PlayerOverview';
+import PlayersDashboard from './PlayersDashboard';
 import CoachWeekAgenda from './CoachWeekAgenda';
 import TodayScreen from './TodayScreen';
 import QuestionPager from './QuestionPager';
@@ -855,53 +856,50 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             {mobileSection === 'spelers' && (
               <div className="space-y-4">
 
-                {/* Player selector – compact pill row */}
-                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                  {players.map(player => {
-                    const assignedCount = teamData.assigned_homework_ids?.length || 0;
-                    const completedCount = player.completed_homework_ids?.filter(id => teamData.assigned_homework_ids?.includes(id)).length || 0;
-                    const allDone = assignedCount > 0 && completedCount === assignedCount;
-                    const isActive = activePlayerId === player.id;
-                    return (
-                      <button
-                        key={player.id}
-                        onClick={() => setActivePlayerId(player.id)}
-                        className={`shrink-0 flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full border transition-all text-sm font-medium whitespace-nowrap ${
-                          isActive
-                            ? 'border-green-500 bg-green-50 text-gray-900'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        <img src={player.avatar_url} alt={player.name} className="w-7 h-7 rounded-full shrink-0" />
-                        {player.name.split(' ')[0]}
-                        {assignedCount > 0 && (
-                          <span className={`text-[11px] font-semibold tabular-nums ${allDone ? 'text-green-500' : 'text-gray-400'}`}>
-                            {completedCount}/{assignedCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() => setIsAddPlayerVisible(true)}
-                    className="shrink-0 flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full border-2 border-dashed border-gray-200 hover:border-green-500 transition-colors text-gray-400 hover:text-green-600 text-sm font-medium whitespace-nowrap"
-                  >
-                    <Plus size={14} /> Toevoegen
-                  </button>
-                </div>
-
-                {players.length === 0 && (
-                  <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
-                    <UserSquare size={40} className="mx-auto mb-3 text-gray-300" />
-                    <p className="text-gray-400 font-medium mb-3">Nog geen spelers in het team</p>
-                    <button onClick={() => setIsAddPlayerVisible(true)} className="px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: COACH_COLOR }}>
-                      Eerste speler toevoegen
-                    </button>
-                  </div>
+                {/* Geen speler geselecteerd → volledig spelers-dashboard */}
+                {!activePlayer && (
+                  <PlayersDashboard
+                    players={players}
+                    teamData={teamData}
+                    activeTab={activeTab}
+                    teamPeriods={teamPeriods}
+                    attendanceRecords={attendanceRecords}
+                    onSelectPlayer={(id) => setActivePlayerId(id)}
+                    onAddPlayer={() => setIsAddPlayerVisible(true)}
+                  />
                 )}
 
                 {activePlayer && (
                   <>
+                    {/* Terug naar overzicht + snelle spelerswissel */}
+                    <div className="flex items-center gap-2 -mb-1">
+                      <button
+                        onClick={() => setActivePlayerId(null)}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-colors text-sm font-semibold"
+                      >
+                        <ChevronLeft size={15} /> Alle spelers
+                      </button>
+                      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                        {players.map(player => {
+                          const isActive = activePlayerId === player.id;
+                          return (
+                            <button
+                              key={player.id}
+                              onClick={() => setActivePlayerId(player.id)}
+                              className={`shrink-0 flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full border transition-all text-sm font-medium whitespace-nowrap ${
+                                isActive
+                                  ? 'border-green-500 bg-green-50 text-gray-900'
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              <img src={player.avatar_url} alt={player.name} className="w-6 h-6 rounded-full shrink-0" />
+                              {player.name.split(' ')[0]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Player header */}
                     <Card light>
                       <div className="flex items-center gap-3">
