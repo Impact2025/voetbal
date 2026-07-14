@@ -20,8 +20,9 @@ export const DEFAULT_AVATAR: AvatarConfig = {
 
 // Speler-statistieken die unlocks bepalen.
 export interface PlayerStats {
-  attendanceCount: number;
-  attendancePct: number | null;
+  attendanceCount: number;       // aantal gelogde sessies (venster: laatste 20)
+  presentCount: number;          // aantal daadwerkelijk aanwezig
+  attendancePct: number | null;  // aanwezigheids-ratio over het venster
   avgSkill: number;
   homeworkDone: number;
 }
@@ -30,6 +31,7 @@ export interface UnlockRule {
   metric: keyof PlayerStats;
   gte: number;
   label: string; // getoond bij vergrendelde items
+  and?: { metric: keyof PlayerStats; gte: number }; // extra voorwaarde (bv. pct + min. sessies)
 }
 
 export interface AvatarOption {
@@ -67,8 +69,8 @@ export const HAIR_COLORS: (AvatarOption & { value: string })[] = [
   { id: 'auburn', label: 'Rossig',   value: '#A9662E' },
   { id: 'blond',  label: 'Blond',    value: '#E0C068' },
   { id: 'grey',   label: 'Grijs',    value: '#B0B0B0' },
-  { id: 'neon',   label: 'Neon',     value: '#00FF9D', unlock: { metric: 'avgSkill', gte: 7, label: 'Gem. skill 7+' } },
-  { id: 'blue',   label: 'IJsblauw', value: '#5AC8FA', unlock: { metric: 'homeworkDone', gte: 5, label: '5 huiswerk af' } },
+  { id: 'neon',   label: 'Neon',     value: '#00FF9D', unlock: { metric: 'avgSkill', gte: 6.5, label: 'Gem. skill 6,5+' } },
+  { id: 'blue',   label: 'IJsblauw', value: '#5AC8FA', unlock: { metric: 'homeworkDone', gte: 3, label: '3 huiswerk af' } },
 ];
 
 // ---- Achtergrond / kit-kleuren ----
@@ -82,7 +84,7 @@ export const BACKGROUNDS: (AvatarOption & { from: string; to: string; jersey: st
   { id: 'pink',    label: 'Roze',      from: '#EC4899', to: '#C42E76', jersey: '#E03F8C' },
   { id: 'slate',   label: 'Grafiet',   from: '#4B5563', to: '#2C333E', jersey: '#3F4753' },
   { id: 'gold',    label: 'Goud',      from: '#F5C542', to: '#D19A1C', jersey: '#ECB731',
-    unlock: { metric: 'attendanceCount', gte: 10, label: '10 trainingen' } },
+    unlock: { metric: 'presentCount', gte: 15, label: '15x aanwezig' } },
 ];
 
 // ---- Extra's / accessoires ----
@@ -90,15 +92,19 @@ export const ACCESSORIES: AvatarOption[] = [
   { id: 'headband', label: 'Zweetband' },
   { id: 'glasses',  label: 'Bril' },
   { id: 'cap',      label: 'Pet' },
-  { id: 'captain',  label: 'Aanvoerdersband', unlock: { metric: 'attendanceCount', gte: 8, label: '8 trainingen' } },
-  { id: 'crown',    label: 'Kroon',           unlock: { metric: 'attendancePct', gte: 80, label: '80% aanwezig' } },
+  { id: 'captain',  label: 'Aanvoerdersband', unlock: { metric: 'presentCount', gte: 6, label: '6x aanwezig' } },
+  { id: 'crown',    label: 'Kroon',           unlock: { metric: 'attendancePct', gte: 85, label: '85% aanwezig (min. 10)', and: { metric: 'attendanceCount', gte: 10 } } },
 ];
 
 export function isUnlocked(rule: UnlockRule | undefined, stats: PlayerStats): boolean {
   if (!rule) return true;
-  const val = stats[rule.metric];
-  if (val === null || val === undefined) return false;
-  return val >= rule.gte;
+  const meets = (metric: keyof PlayerStats, gte: number) => {
+    const val = stats[metric];
+    return val !== null && val !== undefined && val >= gte;
+  };
+  if (!meets(rule.metric, rule.gte)) return false;
+  if (rule.and && !meets(rule.and.metric, rule.and.gte)) return false;
+  return true;
 }
 
 export function skinById(id: string) {
@@ -113,6 +119,35 @@ export function backgroundById(id: string) {
 
 /** Aantal onderdelen dat de speler nog kan ontgrendelen (voor badge/teaser). */
 export function lockedCount(stats: PlayerStats): number {
-  const all = [...HAIR_COLORS, ...BACKGROUNDS, ...ACCESSORIES];
-  return all.filter(o => o.unlock && !isUnlocked(o.unlock, stats)).length;
+  return UNLOCKABLES.filter(o => !isUnlocked(o.unlock, stats)).length;
+}
+
+export type UnlockCategory = 'hairColor' | 'background' | 'accessory';
+
+export interface Unlockable {
+  id: string;
+  label: string;
+  category: UnlockCategory;
+  unlock: UnlockRule;
+}
+
+/** Alle onderdelen die achter een milestone zitten. */
+export const UNLOCKABLES: Unlockable[] = [
+  ...HAIR_COLORS.filter(c => c.unlock).map(c => ({ id: c.id, label: `${c.label} haar`, category: 'hairColor' as const, unlock: c.unlock! })),
+  ...BACKGROUNDS.filter(b => b.unlock).map(b => ({ id: b.id, label: `${b.label} kit`, category: 'background' as const, unlock: b.unlock! })),
+  ...ACCESSORIES.filter(a => a.unlock).map(a => ({ id: a.id, label: a.label, category: 'accessory' as const, unlock: a.unlock! })),
+];
+
+/** Ids van unlockables die nu ontgrendeld zijn. */
+export function unlockedIds(stats: PlayerStats): string[] {
+  return UNLOCKABLES.filter(u => isUnlocked(u.unlock, stats)).map(u => u.id);
+}
+
+/** Toont een unlockable op de eigen baller (voor de celebratie-preview). */
+export function previewConfig(item: Unlockable, base: AvatarConfig): AvatarConfig {
+  switch (item.category) {
+    case 'hairColor': return { ...base, hairColor: item.id };
+    case 'background': return { ...base, background: item.id };
+    case 'accessory': return { ...base, accessory: item.id };
+  }
 }
