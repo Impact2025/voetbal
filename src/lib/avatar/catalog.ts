@@ -69,7 +69,9 @@ export const HAIR_COLORS: (AvatarOption & { value: string })[] = [
   { id: 'auburn', label: 'Rossig',   value: '#A9662E' },
   { id: 'blond',  label: 'Blond',    value: '#E0C068' },
   { id: 'grey',   label: 'Grijs',    value: '#B0B0B0' },
-  { id: 'neon',   label: 'Neon',     value: '#00FF9D', unlock: { metric: 'avgSkill', gte: 6.5, label: 'Gem. skill 6,5+' } },
+  // Ethisch: cosmetics hangen aan INZET (binnen controle van het kind), niet aan
+  // een subjectieve skill-beoordeling door de coach.
+  { id: 'neon',   label: 'Neon',     value: '#00FF9D', unlock: { metric: 'presentCount', gte: 10, label: '10x aanwezig' } },
   { id: 'blue',   label: 'IJsblauw', value: '#5AC8FA', unlock: { metric: 'homeworkDone', gte: 3, label: '3 huiswerk af' } },
 ];
 
@@ -105,6 +107,14 @@ export function isUnlocked(rule: UnlockRule | undefined, stats: PlayerStats): bo
   if (!meets(rule.metric, rule.gte)) return false;
   if (rule.and && !meets(rule.and.metric, rule.and.gte)) return false;
   return true;
+}
+
+/** Voortgang richting een unlock (voor de indicator op vergrendelde items). */
+export function unlockProgress(rule: UnlockRule, stats: PlayerStats): { current: number; target: number; pct: number } {
+  const raw = stats[rule.metric];
+  const current = (raw === null || raw === undefined) ? 0 : raw;
+  const pct = rule.gte <= 0 ? 100 : Math.min(100, Math.round((current / rule.gte) * 100));
+  return { current: Math.round(current), target: rule.gte, pct };
 }
 
 export function skinById(id: string) {

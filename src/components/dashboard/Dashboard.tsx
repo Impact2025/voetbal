@@ -53,6 +53,7 @@ const PlayerNotificationsInbox = lazy(() => import('../notifications/PlayerNotif
 import PushNotificationSender from '../notifications/PushNotificationSender';
 import InstallModal from '../modals/InstallModal';
 import { usePWA } from '../../lib/usePWA';
+import { type AvatarConfig, type PlayerStats as AvatarStats } from '../../lib/avatar/catalog';
 import { insertStatEvents, insertChallengeEvents, fetchAndRecomputeStats } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak } from '../../lib/streaks';
 import { getActiveTeamChallenge } from '../../lib/teamChallenge';
@@ -294,6 +295,30 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     if (userData.role === 'player') return players.find(p => p.id === user.id);
     return players.find(p => p.id === activePlayerId);
   }, [players, activePlayerId, user.id, userData.role]);
+
+  // Avatar-stats + opslaan (alleen relevant voor de speler-zelfweergave)
+  const avatarStats = useMemo<AvatarStats | undefined>(() => {
+    if (userData.role !== 'player' || !activePlayer) return undefined;
+    const mine = attendanceRecords.filter(a => a.player_id === activePlayer.id).slice(0, 20);
+    const present = mine.filter(a => a.present).length;
+    const evals = Object.values(activePlayer.evaluations ?? {});
+    const lastSkills = evals.length ? evals[evals.length - 1]?.skills : undefined;
+    const avgSkill = lastSkills
+      ? skillKeys.reduce((s, k) => s + (lastSkills[k] ?? 0), 0) / skillKeys.length
+      : 0;
+    return {
+      attendanceCount: mine.length,
+      presentCount: present,
+      attendancePct: mine.length ? Math.round((present / mine.length) * 100) : null,
+      avgSkill,
+      homeworkDone: activePlayer.completed_homework_ids?.length ?? 0,
+    };
+  }, [userData.role, activePlayer, attendanceRecords]);
+
+  const handleSaveAvatar = async (config: AvatarConfig) => {
+    await supabase.from('players').update({ avatar_config: config }).eq('id', user.id);
+    setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, avatar_config: config } : p));
+  };
 
   // Basis-weekchallenge (gratis, uit het seizoensprogramma van deze week) voor de speler
   useEffect(() => {
@@ -1699,7 +1724,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           {/* ════════════════ IK — alle data, rustig & opt-in ════════════════ */}
           {mobileSection === 'ik' && (
             <div className="space-y-5">
-              <PlayerOverview player={activePlayer} players={players} teamData={teamData} activeTab={activeTab} />
+              <PlayerOverview player={activePlayer} players={players} teamData={teamData} activeTab={activeTab} avatarStats={avatarStats} onAvatarSave={handleSaveAvatar} />
 
               {/* Coach-evaluatie per periode (alleen-lezen) */}
               <Card>

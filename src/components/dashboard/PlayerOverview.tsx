@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, ResponsiveContainer,
@@ -6,13 +6,20 @@ import {
 import {
   Wand2, Loader2, TrendingUp, TrendingDown, Minus,
   Target, BookOpen, Zap, Shield,
-  Crosshair, Brain, MessageSquare, CircleDot, Medal,
+  Crosshair, Brain, MessageSquare, CircleDot, Medal, Pencil,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../ui/Card';
+import AvatarArt from '../AvatarArt';
+import AvatarBuilder from '../AvatarBuilder';
+import UnlockCelebration from '../UnlockCelebration';
 import { skillKeys, SKILL_GROUPS, SKILL_LABELS, evaluationPeriods, COACH_COLOR } from '../../utils/constants';
 import { callAI } from '../../lib/ai';
 import { computeSkillMedal, findBiggestGrowth, SKILL_MEDAL_CONFIG } from '../../lib/skillMedals';
+import {
+  DEFAULT_AVATAR, unlockedIds, UNLOCKABLES,
+  type AvatarConfig, type PlayerStats as AvatarStats, type Unlockable,
+} from '../../lib/avatar/catalog';
 import type { Player, Team } from '../../types';
 
 interface PlayerOverviewProps {
@@ -20,6 +27,9 @@ interface PlayerOverviewProps {
   players: Player[];
   teamData: Partial<Team>;
   activeTab: string;
+  /** Alleen aanwezig in de speler-zelfweergave ("Ik"): maakt de avatar bewerkbaar. */
+  avatarStats?: AvatarStats;
+  onAvatarSave?: (config: AvatarConfig) => Promise<void>;
 }
 
 const LEVELS = [
@@ -155,9 +165,29 @@ const SkillCircle = ({ skill, value, previousValue, color = COACH_COLOR, isYoung
   );
 };
 
-const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverviewProps) => {
+const PlayerOverview = ({ player, players, teamData, activeTab, avatarStats, onAvatarSave }: PlayerOverviewProps) => {
   const [aiInsight, setAiInsight] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [celebration, setCelebration] = useState<Unlockable[]>([]);
+
+  const editable = Boolean(avatarStats && onAvatarSave);
+  const unlockedKey = avatarStats ? unlockedIds(avatarStats).join(',') : '';
+
+  // Detecteer nieuw ontgrendelde onderdelen en vier ze één keer.
+  useEffect(() => {
+    if (!avatarStats || !onAvatarSave) return;
+    const storageKey = `avatarUnlocks_${player.id}`;
+    const current = unlockedIds(avatarStats);
+    const raw = localStorage.getItem(storageKey);
+    if (raw === null) { localStorage.setItem(storageKey, JSON.stringify(current)); return; }
+    let seen: string[] = [];
+    try { seen = JSON.parse(raw) as string[]; } catch { seen = []; }
+    const fresh = current.filter(id => !seen.includes(id));
+    localStorage.setItem(storageKey, JSON.stringify(current));
+    if (fresh.length) setCelebration(UNLOCKABLES.filter(u => fresh.includes(u.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlockedKey, player.id]);
 
   const ageNum = parseInt(player.age ?? '10', 10);
   const isYoung = !isNaN(ageNum) && ageNum <= 9;
@@ -266,20 +296,42 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
 
           <div className="relative p-4">
             <div className="flex items-start gap-4">
-              {/* Avatar with ring */}
+              {/* Avatar with ring — tappable "Bouw je baller" in de zelfweergave */}
               <div className="relative shrink-0">
-                <div
-                  className="w-20 h-20 rounded-full p-0.5"
-                  style={{ background: `conic-gradient(${level.color} ${levelProgress}%, #e5e7eb ${levelProgress}%)` }}
+                <button
+                  type="button"
+                  onClick={() => editable && setBuilderOpen(true)}
+                  disabled={!editable}
+                  className={editable ? 'block active:scale-95 transition-transform' : 'block cursor-default'}
+                  aria-label={editable ? 'Bouw je baller' : undefined}
                 >
-                  <img
-                    src={player.avatar_url}
-                    alt={player.name}
-                    className="w-full h-full rounded-full object-cover border-2 border-white"
-                  />
-                </div>
+                  <div
+                    className="w-20 h-20 rounded-full p-0.5"
+                    style={{ background: `conic-gradient(${level.color} ${levelProgress}%, #e5e7eb ${levelProgress}%)` }}
+                  >
+                    <div className="w-full h-full rounded-full overflow-hidden border-2 border-white bg-gray-100">
+                      {player.avatar_config ? (
+                        <AvatarArt config={player.avatar_config} className="w-full h-full" />
+                      ) : player.avatar_url ? (
+                        <img src={player.avatar_url} alt={player.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl font-black text-gray-400">
+                          {player.name?.charAt(0)?.toUpperCase() ?? '?'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {editable && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow"
+                      style={{ backgroundColor: COACH_COLOR }}
+                    >
+                      <Pencil size={11} className="text-white" strokeWidth={2.5} />
+                    </span>
+                  )}
+                </button>
                 <div
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded-full whitespace-nowrap"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded-full whitespace-nowrap pointer-events-none"
                   style={{ backgroundColor: level.color, color: '#000' }}
                 >
                   {level.name}
@@ -655,6 +707,26 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
             </div>
           </Card>
         </motion.div>
+      )}
+
+      {/* ── Avatar builder + unlock-celebratie (alleen zelfweergave) ── */}
+      {editable && avatarStats && onAvatarSave && (
+        <AvatarBuilder
+          isOpen={builderOpen}
+          onClose={() => setBuilderOpen(false)}
+          initial={player.avatar_config ?? DEFAULT_AVATAR}
+          name={player.name}
+          stats={avatarStats}
+          onSave={onAvatarSave}
+        />
+      )}
+      {celebration.length > 0 && (
+        <UnlockCelebration
+          items={celebration}
+          baseConfig={player.avatar_config ?? DEFAULT_AVATAR}
+          onClose={() => setCelebration([])}
+          onOpenBuilder={() => setBuilderOpen(true)}
+        />
       )}
 
     </div>
