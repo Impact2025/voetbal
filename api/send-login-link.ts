@@ -1,10 +1,13 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { MAIL_FROM } from './_lib/mailFrom.js';
+import { applyCors } from './_lib/cors.js';
+import { overRateLimit } from './_lib/rateLimit.js';
+import { SendLoginLinkSchema, validateOrError } from './_lib/validate.js';
 
 const APP_URL = 'https://skillkaart.nl';
 
-interface Req { method: string; body: { email?: string; linkCode?: string } }
+interface Req { method: string; headers: Record<string, string | undefined>; body: { email?: string; linkCode?: string } }
 interface Res {
   status: (c: number) => Res;
   json: (d: unknown) => void;
@@ -64,19 +67,20 @@ function renderHtml(magicLink: string, email: string): string {
 }
 
 export default async function handler(req: Req, res: Res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') { res.status(405).end(); return; }
 
-  const email = (req.body?.email ?? '').trim();
-  if (!email.includes('@')) {
-    res.status(400).json({ error: 'Ongeldig e-mailadres.' });
+  if (!validateOrError(SendLoginLinkSchema, req.body, res)) return;
+
+  const email = (req.body?.email ?? '').trim().toLowerCase();
+  const linkCode = (req.body?.linkCode ?? '').trim().toUpperCase();
+
+  // Durable limiet per e-mailadres — voorkomt mail-bombing van een slachtoffer
+  // (de per-IP-limiet in middleware.ts is in-memory per edge-node en dus lek).
+  if (await overRateLimit(`login-link:${email}`, 3, 900)) {
+    res.status(429).json({ error: 'Te veel aanvragen voor dit adres. Probeer het over 15 minuten opnieuw.' });
     return;
   }
-  const linkCode = (req.body?.linkCode ?? '').trim().toUpperCase();
 
   const resendKey = process.env.RESEND_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -101,10 +105,10 @@ export default async function handler(req: Req, res: Res) {
     });
 
     if (error || !data?.properties?.action_link) {
-      console.warn('[send-login-link] generateLink mislukt voor', email, error?.message);
-      res.status(404).json({
-        error: 'Geen account gevonden voor dit e-mailadres. Vraag de coach om een uitnodiging.',
-      });
+      // Anti-enumeratie: geef hetzelfde antwoord als bij succes, zodat een
+      // aanvaller niet kan aftasten welke e-mailadressen een account hebben.
+      console.warn('[send-login-link] generateLink mislukt (geen mail verstuurd):', error?.message);
+      res.json({ ok: true });
       return;
     }
 

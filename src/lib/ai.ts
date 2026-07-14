@@ -1,5 +1,24 @@
 // AI loopt via de serverless proxy /api/ai — de OpenRouter-key blijft server-side.
+import { supabase } from './supabase';
+
 const AI_PROXY_URL = '/api/ai';
+
+// De proxy vereist een identiteit: een Supabase Bearer-token (coach/club/
+// ouder) of het speler-uuid uit de PIN-sessie (X-Player-Id).
+async function authHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return { Authorization: `Bearer ${session.access_token}` };
+  } catch { /* geen Supabase-sessie — mogelijk speler-login */ }
+  try {
+    const raw = localStorage.getItem('playerSession');
+    if (raw) {
+      const parsed = JSON.parse(raw) as { uid?: string };
+      if (parsed.uid) return { 'X-Player-Id': parsed.uid };
+    }
+  } catch { /* corrupte sessie negeren */ }
+  return {};
+}
 
 interface AICallOptions {
   max_tokens?: number;
@@ -24,12 +43,13 @@ async function postAI(
   opts: { max_tokens?: number; temperature?: number; retries?: number; delay?: number } = {},
 ): Promise<string> {
   const { max_tokens, temperature, retries = 3, delay = 1000 } = opts;
+  const auth = await authHeaders();
 
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(AI_PROXY_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify({ messages, max_tokens, temperature }),
       });
 

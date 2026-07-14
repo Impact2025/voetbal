@@ -5,6 +5,7 @@ import {
   Save, Loader2, Check, Zap, Settings2, BookOpen,
 } from 'lucide-react';
 import Card from '../ui/Card';
+import toast from 'react-hot-toast';
 import {
   fetchAllClubTrainingConfigs, upsertClubTrainingConfig,
   fetchSeasonPlan, fetchClubWeekOverrides, upsertWeekOverride,
@@ -331,9 +332,14 @@ const ClubTrainingTab = ({ clubId, isSuperAdmin = false }: ClubTrainingTabProps)
 
   const handleTogglePro = async () => {
     setTogglingPro(true);
-    await setClubProStatus(clubId, !isPro);
-    setIsPro(p => !p);
-    setTogglingPro(false);
+    try {
+      await setClubProStatus(clubId, !isPro);
+      setIsPro(p => !p);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setTogglingPro(false);
+    }
   };
 
   const handleToggleAgeGroup = async (ag: string, enable: boolean) => {

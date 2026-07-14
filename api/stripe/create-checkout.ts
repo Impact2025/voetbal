@@ -2,11 +2,12 @@ import type Stripe from 'stripe';
 import { getStripe, stripeConfigured } from '../_lib/stripe.js';
 import { getAdminClient } from '../_lib/supabaseAdmin.js';
 import { CreateCheckoutSchema, validateOrError } from '../_lib/validate.js';
+import { applyCors } from '../_lib/cors.js';
 
 interface Req {
   method: string;
   headers: Record<string, string | undefined>;
-  body: { priceId?: string; couponCode?: string; email?: string };
+  body: { priceId?: string; couponCode?: string; email?: string; clubId?: string };
 }
 interface Res {
   status: (code: number) => Res;
@@ -18,10 +19,7 @@ interface Res {
 // Publiek: maakt een Stripe Checkout-sessie (abonnement) en past een
 // couponcode toe. Aanroepbaar vanaf de pricing/upgrade-pagina.
 export default async function handler(req: Req, res: Res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).end();
   if (!stripeConfigured()) return res.status(400).json({ error: 'Stripe is niet geconfigureerd.' });
 
@@ -31,7 +29,7 @@ export default async function handler(req: Req, res: Res) {
   const priceId = req.body?.priceId || process.env.STRIPE_PRICE_ID;
   if (!priceId) return res.status(400).json({ error: 'priceId of STRIPE_PRICE_ID ontbreekt.' });
 
-  const { couponCode, email } = req.body;
+  const { couponCode, email, clubId } = req.body;
   const base = process.env.PUBLIC_BASE_URL || `https://${req.headers['host'] || ''}`;
   const db = getAdminClient();
   const stripe = getStripe();
@@ -61,7 +59,8 @@ export default async function handler(req: Req, res: Res) {
     customer_email: email || undefined,
     success_url: process.env.STRIPE_SUCCESS_URL || `${base}/?upgrade=success`,
     cancel_url: process.env.STRIPE_CANCEL_URL || `${base}/?upgrade=cancel`,
-    metadata: { couponCode: couponCode?.toUpperCase().trim() || '' },
+    // clubId zorgt dat de webhook weet welke club op PRO gezet moet worden.
+    metadata: { couponCode: couponCode?.toUpperCase().trim() || '', clubId: clubId?.trim() || '' },
   };
   if (Object.keys(sub).length) params.subscription_data = sub;
   if (discounts) params.discounts = discounts;

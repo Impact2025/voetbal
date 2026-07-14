@@ -17,6 +17,7 @@ export const CreateCheckoutSchema = z.object({
   priceId: z.string().optional(),
   couponCode: z.string().max(50).optional(),
   email: z.string().email().optional(),
+  clubId: z.string().max(100).optional(),
 });
 
 // ─── Blog generatie ─────────────────────────────────────────────────────────
@@ -35,6 +36,32 @@ export const SendParentInviteSchema = z.object({
   linkCode: z.string().min(3).max(20),
   expiresAt: z.string().min(1),
   senderName: z.string().max(200).optional(),
+});
+
+// ─── Coach uitnodiging ─────────────────────────────────────────────────────
+
+export const SendCoachInviteSchema = z.object({
+  to: z.string().email(),
+  coachName: z.string().max(200).optional(),
+  teamName: z.string().min(1).max(200),
+  clubName: z.string().min(1).max(200),
+  inviteToken: z.string().min(10).max(100),
+  role: z.enum(['head', 'assistant']),
+  senderName: z.string().max(200).optional(),
+});
+
+// ─── Login-link (ouders/coaches, wachtwoordloos) ───────────────────────────
+
+export const SendLoginLinkSchema = z.object({
+  email: z.string().email().max(254),
+  linkCode: z.string().max(20).optional(),
+});
+
+// ─── Club-tier (superadmin) ────────────────────────────────────────────────
+
+export const SetClubTierSchema = z.object({
+  clubId: z.string().min(1).max(100),
+  tier: z.enum(['free', 'pro']),
 });
 
 // ─── Campaign ───────────────────────────────────────────────────────────────

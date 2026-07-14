@@ -133,11 +133,26 @@ export async function upsertWeekOverride(
   }, { onConflict: 'club_id,age_group,week_number' });
 }
 
+/**
+ * Zet de PRO-status van een club via het superadmin-endpoint. De directe
+ * client-side update op clubs.subscription_tier is vervallen: een DB-trigger
+ * weigert die (zie supabase/secure_club_billing.sql), zodat PRO alleen via
+ * Stripe of de superadmin geactiveerd kan worden. Gooit bij fouten.
+ */
 export async function setClubProStatus(clubId: string, isPro: boolean): Promise<void> {
-  await supabase
-    .from('clubs')
-    .update({ subscription_tier: isPro ? 'pro' : 'free' })
-    .eq('id', clubId);
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Niet ingelogd.');
+
+  const res = await fetch('/api/admin/set-club-tier', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ clubId, tier: isPro ? 'pro' : 'free' }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({} as { error?: string }));
+    throw new Error((data as { error?: string }).error || 'PRO-status bijwerken mislukt.');
+  }
 }
 
 /** Zet een numerieke spelersleeftijd om naar het dichtstbijzijnde seizoensprogramma-label (O8..O12). */

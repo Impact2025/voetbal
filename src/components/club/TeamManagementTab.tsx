@@ -308,9 +308,14 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
 
   const handleTogglePro = async () => {
     setTogglingPro(true);
-    await setClubProStatus(clubId, !isPro);
-    setIsPro(p => !p);
-    setTogglingPro(false);
+    try {
+      await setClubProStatus(clubId, !isPro);
+      setIsPro(p => !p);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setTogglingPro(false);
+    }
   };
 
   const toggleExpand = (id: string) => setExpanded(prev => {

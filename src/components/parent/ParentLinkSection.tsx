@@ -74,9 +74,11 @@ export default function ParentLinkSection({ playerId, teamId, playerName, sender
     if (!email.includes('@') || !status) return;
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch('/api/send-parent-invite', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           to: email.trim(),
           playerName,

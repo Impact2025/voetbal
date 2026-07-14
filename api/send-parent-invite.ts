@@ -1,11 +1,17 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { MAIL_FROM } from './_lib/mailFrom.js';
+import { applyCors } from './_lib/cors.js';
+import { getCallerWithRole } from './_lib/authn.js';
+import { getAdminClient } from './_lib/supabaseAdmin.js';
+import { overRateLimit } from './_lib/rateLimit.js';
+import { SendParentInviteSchema, validateOrError } from './_lib/validate.js';
 
 const APP_URL = 'https://skillkaart.nl';
 
 interface Req {
   method: string;
+  headers: Record<string, string | undefined>;
   body: {
     to: string;
     playerName: string;
@@ -183,22 +189,37 @@ function renderHtml(
 }
 
 export default async function handler(req: Req, res: Res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Alleen ingelogde coaches/clubbeheerders mogen ouder-uitnodigingen sturen.
+  const caller = await getCallerWithRole(req.headers['authorization'], ['coach', 'club_admin', 'superadmin']);
+  if (!caller) {
+    return res.status(401).json({ error: 'Geen toegang. Alleen coaches en clubbeheerders kunnen uitnodigingen sturen.' });
+  }
+
+  if (await overRateLimit(`parent-invite:${caller.id}`, 20, 3600)) {
+    return res.status(429).json({ error: 'Te veel uitnodigingen verstuurd. Probeer het over een uur opnieuw.' });
+  }
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
     return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt in Vercel omgevingsvariabelen.' });
   }
 
+  if (!validateOrError(SendParentInviteSchema, req.body, res)) return;
+
   const { to, playerName, linkCode, expiresAt, senderName } = req.body;
 
-  if (!to?.includes('@') || !playerName || !linkCode || !expiresAt) {
-    return res.status(400).json({ error: 'Ontbrekende verplichte velden.' });
+  // De koppelcode moet echt bestaan — voorkomt dat het endpoint met een
+  // verzonnen code als mail-kanon wordt gebruikt.
+  const { data: link } = await getAdminClient()
+    .from('parent_links')
+    .select('link_code')
+    .eq('link_code', linkCode.trim().toUpperCase())
+    .maybeSingle();
+  if (!link) {
+    return res.status(400).json({ error: 'Koppelcode niet gevonden. Genereer eerst een code voor deze speler.' });
   }
 
   // Generate Supabase magic link (fails silently → falls back to code email)

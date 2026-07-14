@@ -40,7 +40,9 @@ export default async function handler(req: Req, res: Res) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as {
       id: string;
-      metadata?: { couponCode?: string };
+      metadata?: { couponCode?: string; clubId?: string };
+      customer?: string | { id: string } | null;
+      subscription?: string | { id: string } | null;
       customer_email?: string | null;
       customer_details?: { email?: string | null } | null;
       amount_total?: number | null;
@@ -48,6 +50,31 @@ export default async function handler(req: Req, res: Res) {
     };
     const code = session.metadata?.couponCode?.trim();
     const email = session.customer_details?.email || session.customer_email || null;
+
+    // Betaling afgerond → club op PRO. De clubId komt uit de checkout-metadata;
+    // zonder clubId loggen we het event zodat de superadmin handmatig kan koppelen.
+    const clubId = session.metadata?.clubId?.trim();
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null;
+    if (clubId) {
+      const { error: upErr } = await db
+        .from('clubs')
+        .update({ subscription_tier: 'pro', stripe_customer_id: customerId, stripe_subscription_id: subscriptionId })
+        .eq('id', clubId);
+      await logAdminAction({
+        actorEmail: 'system:stripe',
+        action: upErr ? 'club_pro_activation_failed' : 'club_upgraded_pro',
+        target: clubId,
+        meta: { email, session: session.id, subscription: subscriptionId, error: upErr?.message ?? null },
+      });
+    } else {
+      await logAdminAction({
+        actorEmail: 'system:stripe',
+        action: 'checkout_completed_unmapped',
+        target: email,
+        meta: { session: session.id, subscription: subscriptionId },
+      });
+    }
 
     if (code) {
       const { data: coupon } = await db.from('coupons').select('id, redeemed_count').eq('code', code.toUpperCase()).maybeSingle();
@@ -60,6 +87,25 @@ export default async function handler(req: Req, res: Res) {
         await db.from('coupons').update({ redeemed_count: c.redeemed_count + 1 }).eq('id', c.id);
         await logAdminAction({ actorEmail: 'system:stripe', action: 'coupon_redeemed', target: code, meta: { email, session: session.id } });
       }
+    }
+  }
+
+  // Abonnement beëindigd → club terug naar free.
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object as { id: string };
+    const { data: club } = await db
+      .from('clubs')
+      .select('id')
+      .eq('stripe_subscription_id', sub.id)
+      .maybeSingle();
+    if (club) {
+      await db.from('clubs').update({ subscription_tier: 'free' }).eq('id', (club as { id: string }).id);
+      await logAdminAction({
+        actorEmail: 'system:stripe',
+        action: 'club_downgraded_free',
+        target: (club as { id: string }).id,
+        meta: { subscription: sub.id },
+      });
     }
   }
 

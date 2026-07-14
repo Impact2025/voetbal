@@ -1,11 +1,17 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { MAIL_FROM } from './_lib/mailFrom.js';
+import { applyCors } from './_lib/cors.js';
+import { getCallerWithRole } from './_lib/authn.js';
+import { getAdminClient } from './_lib/supabaseAdmin.js';
+import { overRateLimit } from './_lib/rateLimit.js';
+import { SendCoachInviteSchema, validateOrError } from './_lib/validate.js';
 
 const APP_URL = 'https://skillkaart.nl';
 
 interface Req {
   method: string;
+  headers: Record<string, string | undefined>;
   body: {
     to: string;
     coachName?: string;
@@ -159,22 +165,37 @@ function renderHtml(
 }
 
 export default async function handler(req: Req, res: Res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Alleen ingelogde clubbeheerders mogen coach-uitnodigingen sturen.
+  const caller = await getCallerWithRole(req.headers['authorization'], ['club_admin', 'superadmin']);
+  if (!caller) {
+    return res.status(401).json({ error: 'Geen toegang. Alleen clubbeheerders kunnen coaches uitnodigen.' });
+  }
+
+  if (await overRateLimit(`coach-invite:${caller.id}`, 20, 3600)) {
+    return res.status(429).json({ error: 'Te veel uitnodigingen verstuurd. Probeer het over een uur opnieuw.' });
+  }
 
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
     return res.status(500).json({ error: 'RESEND_API_KEY ontbreekt in Vercel omgevingsvariabelen.' });
   }
 
+  if (!validateOrError(SendCoachInviteSchema, req.body, res)) return;
+
   const { to, coachName, teamName, clubName, inviteToken, role, senderName } = req.body;
 
-  if (!to?.includes('@') || !teamName || !clubName || !inviteToken || (role !== 'head' && role !== 'assistant')) {
-    return res.status(400).json({ error: 'Ontbrekende verplichte velden.' });
+  // Het invite-token moet horen bij een openstaande uitnodiging — voorkomt
+  // dat het endpoint met een verzonnen token als mail-kanon wordt gebruikt.
+  const { data: invite } = await getAdminClient()
+    .from('team_coaches')
+    .select('id')
+    .eq('invite_token', inviteToken)
+    .maybeSingle();
+  if (!invite) {
+    return res.status(400).json({ error: 'Uitnodiging niet gevonden. Maak de uitnodiging eerst aan.' });
   }
 
   // Supabase invite-magic-link (bevestigt e-mail + logt in). Fails silently → fallback naar handmatieke link.
