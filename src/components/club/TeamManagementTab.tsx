@@ -171,7 +171,6 @@ const AddCoachModal = ({ team, clubId, clubName, senderEmail, existingCoachIds, 
     let invite: TeamCoach | null = null;
     try {
       invite = await inviteCoach({ teamId: team.id, clubId, email: inviteEmail.trim(), role });
-      const link = `${window.location.origin}/?coachInvite=${invite.invite_token}`;
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       const res = await fetch('/api/send-coach-invite', {

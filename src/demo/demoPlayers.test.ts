@@ -5,7 +5,6 @@ import {
   PERIODS,
   scoreFor,
   finalScore,
-  skillAvg,
 } from './demoPlayers.mjs';
 
 /**
@@ -94,10 +93,8 @@ describe('demo players — REAL variation (the point of the task)', () => {
     const board = demoPlayers
       .map((p) => ({ name: p.name, score: finalScore(p) }))
       .sort((a, b) => b.score - a.score);
-    // eslint-disable-next-line no-console
     console.log('\n  TOP PERFORMERS (demo):');
     board.forEach((r, i) => {
-      // eslint-disable-next-line no-console
       console.log(`   ${i + 1}. ${r.name.padEnd(16)} ${r.score}`);
     });
     // sanity: at least one clearly-different score exists
