@@ -72,7 +72,10 @@ const PlayersDashboard = ({
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('score');
 
-  const assignedIds = teamData.assigned_homework_ids ?? [];
+  const assignedIds = useMemo(
+    () => teamData.assigned_homework_ids ?? [],
+    [teamData.assigned_homework_ids],
+  );
   const prevPeriod = useMemo(() => {
     const idx = teamPeriods.indexOf(activeTab);
     return idx > 0 ? teamPeriods[idx - 1] : null;

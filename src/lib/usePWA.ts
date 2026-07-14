@@ -1,15 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
-/**
- * Installeerbare PWA hook:
- * - Vangt beforeinstallprompt af (Android)
- * - Geeft showInstallPrompt functie om handmatig te triggeren
- * - Biedt canInstall status voor UI
- * - Beheert push subscription aan/uit
- */
+// iOS Safari exposeert `navigator.standalone` (niet in de standaard lib-types).
+interface IOSNavigator extends Navigator {
+  standalone?: boolean;
+}
+
+// Het beforeinstallprompt-event wordt (nog) niet volledig getypeerd door de
+// standaard DOM lib — we definieren hier het minimale oppervlak dat we gebruiken.
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => void;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 export function usePWA() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [vapidKey] = useState(() => {
@@ -37,7 +42,7 @@ export function usePWA() {
   // ── Check of al geïnstalleerd (display-mode) ──
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      || (window.navigator as any).standalone === true;
+      || (window.navigator as IOSNavigator).standalone === true;
     if (isStandalone) {
       setCanInstall(false);
     }
@@ -79,7 +84,7 @@ export function usePWA() {
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey) as any,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
       }
 
@@ -136,7 +141,7 @@ export function usePWA() {
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(parentVapidKey) as any,
+          applicationServerKey: urlBase64ToUint8Array(parentVapidKey),
         });
       }
 

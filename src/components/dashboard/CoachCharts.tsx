@@ -12,7 +12,7 @@ interface CoachChartsProps {
 
 export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProps) {
   const [chartsReady, setChartsReady] = useState(false);
-  const [Charts, setCharts] = useState<any>(null);
+  const [Charts, setCharts] = useState<typeof import('recharts') | null>(null);
 
   // Dynamische import — apart chunk via Vite
   useMemo(() => {

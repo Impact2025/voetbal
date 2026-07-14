@@ -57,7 +57,10 @@ const StatChip = ({ label, value, sub, icon, warn = false }: StatChipProps) => (
 );
 
 const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOverviewProps) => {
-  const assignedIds = teamData.assigned_homework_ids ?? [];
+  const assignedIds = useMemo(
+    () => teamData.assigned_homework_ids ?? [],
+    [teamData.assigned_homework_ids],
+  );
 
   const playerStats = useMemo(() => players.map(p => {
     const ev = p.evaluations?.[activeTab];

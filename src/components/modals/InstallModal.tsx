@@ -4,6 +4,11 @@ import { Download, Bell, BellOff, CheckCircle2, Smartphone } from 'lucide-react'
 import { COACH_COLOR } from '../../utils/constants';
 import { usePWA } from '../../lib/usePWA';
 
+// iOS Safari exposeert `navigator.standalone` (niet in de standaard lib-types).
+interface IOSNavigator extends Navigator {
+  standalone?: boolean;
+}
+
 type InstallRole = 'player' | 'coach' | 'parent' | 'club_admin';
 
 const ROLE_COPY: Record<InstallRole, { title: string; subtitle: string }> = {
@@ -56,7 +61,7 @@ export default function InstallModal({ playerId, open, onClose, role = 'player' 
 
   const isStandalone = typeof window !== 'undefined' && (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    (window.navigator as IOSNavigator).standalone === true
   );
 
   return (

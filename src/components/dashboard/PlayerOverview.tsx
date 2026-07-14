@@ -162,7 +162,10 @@ const PlayerOverview = ({ player, players, teamData, activeTab }: PlayerOverview
   const ageNum = parseInt(player.age ?? '10', 10);
   const isYoung = !isNaN(ageNum) && ageNum <= 9;
 
-  const assignedIds = teamData.assigned_homework_ids ?? [];
+  const assignedIds = useMemo(
+    () => teamData.assigned_homework_ids ?? [],
+    [teamData.assigned_homework_ids],
+  );
   const currentEval = player.evaluations?.[activeTab];
 
   const previousEval = useMemo(() => {

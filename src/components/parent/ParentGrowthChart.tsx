@@ -56,7 +56,7 @@ function buildWeeklySeries(statEvents: GrowthEvent[], attendance: AttendanceReco
 
 export default function ParentGrowthChart({ statEvents, attendance, weeks = 10 }: ParentGrowthChartProps) {
   const [chartsReady, setChartsReady] = useState(false);
-  const [Charts, setCharts] = useState<any>(null);
+  const [Charts, setCharts] = useState<typeof import('recharts') | null>(null);
 
   // Dynamische import — apart chunk via Vite, alleen geladen als deze tab opent
   useMemo(() => {

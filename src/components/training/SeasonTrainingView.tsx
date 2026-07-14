@@ -330,6 +330,7 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
       }
       setLoading(false);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- activeAgeGroup bewust weggelaten: effect laadt op clubId; ageGroup wisselen mag geen volledige her-lad trigger
   }, [clubId]);
 
   useEffect(() => {

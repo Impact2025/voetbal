@@ -88,6 +88,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
           : `Uitnodiging kon niet worden geladen: ${result.message}`
       );
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- claimInvite is een stable async fn; alleen bij mount de invite laden
   }, []);
 
   // Rondt een coach-uitnodiging af nadat de (magic-link) sessie is hersteld.

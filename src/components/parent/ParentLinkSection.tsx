@@ -35,6 +35,7 @@ export default function ParentLinkSection({ playerId, teamId, playerName, sender
     setEmail('');
     setMailSent(false);
     void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load niet in dep-array: zou oneindige re-render loop geven (load → setState → re-render)
   }, [playerId]);
 
   const load = async () => {

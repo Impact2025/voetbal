@@ -99,10 +99,10 @@ export default function TeamChat({
         });
       });
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- activeChannel/role bewust weggelaten: anders her-join bij elke channel-wissel
   }, [teamId, userData.uid]);
 
-  // ── Load messages & subscribe ────────────────────────────────────────────
-
+  // ── Load messages & subscribe ────────────────────────────────────────
   useEffect(() => {
     if (!activeChannel) return;
 
