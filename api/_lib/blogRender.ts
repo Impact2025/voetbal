@@ -147,6 +147,22 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
     <a class="cta" href="${baseUrl}/">Probeer Skillkaart →</a>
     <p style="margin-top:32px"><a href="${baseUrl}/blog">← Alle artikelen</a></p>
   </div>
+  <script>
+  // Leesteller: telt echte bezoekers (de HTML is edge-cached, dus server-side
+  // tellen kan niet). sendBeacon overleeft ook het wegnavigeren. Eén keer per
+  // artikel per browser-sessie zodat refreshen niet blijft optellen.
+  (function(){
+    try{
+      var slug=${JSON.stringify(post.slug)};
+      var k='sk_viewed_'+slug;
+      if(sessionStorage.getItem(k))return;
+      sessionStorage.setItem(k,'1');
+      var u=${JSON.stringify(baseUrl)}+'/api/blog-view?slug='+encodeURIComponent(slug);
+      if(navigator.sendBeacon){navigator.sendBeacon(u);}
+      else{fetch(u,{method:'POST',keepalive:true}).catch(function(){});}
+    }catch(e){}
+  })();
+  </script>
 </body></html>`;
 }
 

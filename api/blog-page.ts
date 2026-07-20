@@ -51,22 +51,10 @@ export default async function handler(req: Req, res: Res) {
         const { data: all } = await selectPosts(db);
         return res.status(404).send(renderIndexPage((all ?? []) as unknown as BlogPost[], baseUrl));
       }
-      // Leesteller ophogen — best-effort, nooit blokkerend en niet voor bots.
-      // In Vercel serverless wordt de functie na de response bevroren, dus we
-      // AWAITEN de RPC (met korte timeout) i.p.v. fire-and-forget — anders
-      // draait 'ie niet af en telt niks.
-      const ua = (req.headers['user-agent'] || '').toLowerCase();
-      const isBot = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|embedly|preview/.test(ua);
-      if (!isBot) {
-        try {
-          await Promise.race([
-            db.rpc('increment_blog_view', { p_slug: slug }),
-            new Promise((resolve) => setTimeout(resolve, 1500)),
-          ]);
-        } catch {
-          /* RPC bestaat nog niet of faalt? Stil negeren. */
-        }
-      }
+      // Let op: view-tracking gebeurt NIET hier. De blog-HTML wordt door Vercel
+      // ge-edge-cached (s-maxage), dus deze functie draait niet per bezoeker.
+      // Tellen doet de client via een beacon naar /api/blog-view (zie
+      // renderPostPage) — dat endpoint is niet gecached.
       return res.status(200).send(renderPostPage(data as unknown as BlogPost, baseUrl));
     }
 
