@@ -14,6 +14,19 @@ export interface BlogPost {
   author: string;
   published_at: string | null;
   updated_at: string;
+  view_count?: number;
+}
+
+// Leestijd in minuten uit de HTML-body (200 wpm, min. 3 min).
+function readingMinutes(html: string): number {
+  const words = (html || '').replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(3, Math.round(words / 200));
+}
+
+// Compacte weergave van leescijfers: 1.2k voor duizendtallen.
+function fmtViews(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace('.0', '') + 'k';
+  return String(n);
 }
 
 const esc = (s: string) =>
@@ -72,6 +85,15 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
   const title = post.meta_title || post.title;
   const description = post.meta_description || post.excerpt;
   const dateStr = post.published_at ? new Date(post.published_at).toLocaleDateString('nl-NL', { dateStyle: 'long' }) : '';
+  const mins = readingMinutes(post.body);
+  const views = post.view_count || 0;
+  const metaBits = [
+    post.category ? esc(post.category) : '',
+    dateStr,
+    esc(post.author),
+    `${mins} min lezen`,
+    views >= 10 ? `${fmtViews(views)} keer gelezen` : '',
+  ].filter(Boolean).join(' · ');
 
   // BreadcrumbList JSON-LD
   const breadcrumbLd = JSON.stringify({
@@ -120,7 +142,7 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
     <a class="brand" href="${baseUrl}/blog">SKILLKAART</a>
     ${coverImageHtml}
     <h1>${esc(post.title)}</h1>
-    <div class="meta">${post.category ? `${esc(post.category)} · ` : ''}${dateStr ? `${dateStr} · ` : ''}${esc(post.author)}</div>
+    <div class="meta">${metaBits}</div>
     <article>${post.body}</article>
     <a class="cta" href="${baseUrl}/">Probeer Skillkaart →</a>
     <p style="margin-top:32px"><a href="${baseUrl}/blog">← Alle artikelen</a></p>
@@ -143,8 +165,13 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
   }
   const topCats = [...catCounts.entries()].sort((a, b) => b[1] - a[1]);
 
-  // "Meest gelezen" = top 3 op basis van keyword-lengte als proxy (geen views data)
-  const popular = [...posts].sort((a, b) => (b.keywords?.length || 0) - (a.keywords?.length || 0)).slice(0, 3);
+  // "Meest gelezen" op echte leescijfers (view_count). Zolang er nog geen
+  // views zijn (verse DB / migratie net gedraaid) valt het terug op de meest
+  // recente artikelen, zodat het blok nooit leeg of willekeurig oogt.
+  const hasViews = posts.some((p) => (p.view_count || 0) > 0);
+  const popular = hasViews
+    ? [...posts].sort((a, b) => (b.view_count || 0) - (a.view_count || 0)).slice(0, 4)
+    : posts.slice(0, 4);
 
   const catPills = topCats.map(([cat, count]) =>
     `<button class="cat-pill" data-cat="${esc(cat)}" onclick="filterCat('${esc(cat)}')">${esc(cat)} <span class="count">${count}</span></button>`
@@ -156,7 +183,12 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
         <span class="tag">${featured.category ? esc(featured.category) : 'Artikel'}</span>
         <h2>${esc(featured.title)}</h2>
         <p>${esc(featured.excerpt)}</p>
-        <span class="meta">${featured.published_at ? new Date(featured.published_at).toLocaleDateString('nl-NL', { dateStyle: 'long' }) : ''}</span>
+        <div class="featured-meta">
+          <span class="meta">${featured.published_at ? new Date(featured.published_at).toLocaleDateString('nl-NL', { dateStyle: 'long' }) : ''}</span>
+          <span class="dot">·</span>
+          <span class="meta">${readingMinutes(featured.body)} min lezen</span>
+          ${(featured.view_count || 0) >= 10 ? `<span class="dot">·</span><span class="meta">${fmtViews(featured.view_count || 0)} gelezen</span>` : ''}
+        </div>
         <span class="read-more">Lees verder →</span>
       </div>
     </a>` : '';
@@ -168,7 +200,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
       <p>${esc(p.excerpt)}</p>
       <div class="card-footer">
         <span class="meta">${p.published_at ? new Date(p.published_at).toLocaleDateString('nl-NL', { dateStyle: 'long' }) : ''}</span>
-        <span class="read-time">${Math.max(3, Math.round(p.body.split(' ').length / 200))} min lezen</span>
+        <span class="read-time">${readingMinutes(p.body)} min${(p.view_count || 0) >= 10 ? ` · ${fmtViews(p.view_count || 0)} gelezen` : ''}</span>
       </div>
     </a>`).join('');
 
@@ -177,7 +209,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
       <span class="popular-num">${popular.indexOf(p) + 1}</span>
       <div>
         <span class="popular-title">${esc(p.title)}</span>
-        <span class="meta">${p.category || ''}</span>
+        <span class="meta">${(p.view_count || 0) >= 10 ? `${fmtViews(p.view_count || 0)} keer gelezen` : `${readingMinutes(p.body)} min lezen`}</span>
       </div>
     </a>`).join('');
 
@@ -205,6 +237,8 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .featured:hover{border-color:#00FF9D}
 .featured-body h2{font-size:22px;margin:10px 0 8px}
 .featured-body p{color:#475569;font-size:14px;margin:0 0 12px;line-height:1.6}
+.featured-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 4px}
+.featured-meta .dot{color:#cbd5e1}
 .read-more{display:inline-block;margin-top:8px;color:#00FF9D;font-weight:700;font-size:14px}
 .card{border:1px solid #e2e8f0;border-radius:14px;padding:20px;margin:14px 0;display:block;text-decoration:none;color:inherit;transition:border-color .2s,box-shadow .15s}
 .card:hover{border-color:#00FF9D88;box-shadow:0 2px 8px #00000008}
@@ -289,12 +323,12 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
       <div class="sidebar">
         ${popular.length > 0 ? `
         <div class="sidebar-section">
-          <h3>🔍 Meest gelezen</h3>
+          <h3>Meest gelezen</h3>
           ${popularHtml}
         </div>` : ''}
 
         <div class="sidebar-section">
-          <h3>📂 Categorieën</h3>
+          <h3>Categorieën</h3>
           ${topCats.map(([cat, count]) => `
             <a href="#" class="popular-item" onclick="event.preventDefault();filterCat('${esc(cat)}')">
               <div><span class="popular-title" style="font-size:13px">${esc(cat)}</span><span class="meta">${count} artikel${count !== 1 ? 'en' : ''}</span></div>
