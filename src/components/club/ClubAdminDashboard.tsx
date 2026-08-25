@@ -187,7 +187,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
           const tp = players.filter(p => p.team_id === team.id);
           const periods: string[] = Array.isArray(team.evaluation_periods) && (team.evaluation_periods as string[]).length
             ? (team.evaluation_periods as string[])
-            : ['Check-in 1', 'Check-in 2', 'Check-in 3'];
+            : ['Evaluatie I', 'Evaluatie II'];
           const assigned: string[] = Array.isArray(team.assigned_homework_ids) ? (team.assigned_homework_ids as string[]) : [];
 
           const latestPeriod = periods[periods.length - 1];
@@ -245,7 +245,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
       const keyAvg = allPlayers.length
         ? allPlayers.reduce((ps, p) => {
             const team = teams.find(t => t.id === p.team_id);
-            const period = team?.evaluation_periods.at(-1) ?? 'Check-in 1';
+            const period = team?.evaluation_periods.at(-1) ?? 'Evaluatie I';
             return ps + (p.evaluations?.[period]?.skills?.[s.key] ?? 5);
           }, 0) / allPlayers.length
         : 5;
@@ -368,7 +368,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         const a = allPlayers.length
           ? allPlayers.reduce((ps, p) => {
               const t = teams.find(t2 => t2.id === p.team_id);
-              const period = t?.evaluation_periods.at(-1) ?? 'Check-in 1';
+              const period = t?.evaluation_periods.at(-1) ?? 'Evaluatie I';
               return ps + (p.evaluations?.[period]?.skills?.[s.key] ?? 5);
             }, 0) / allPlayers.length
           : 5;

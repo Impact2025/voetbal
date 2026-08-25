@@ -1,6 +1,6 @@
 import { FileText } from 'lucide-react';
 import Card from '../ui/Card';
-import { initialTestState, testLabels, COACH_COLOR } from '../../utils/constants';
+import { initialTestState, testLabels, testDayLabel, COACH_COLOR } from '../../utils/constants';
 import type { Player } from '../../types';
 
 interface TestResultsCardProps {
@@ -16,7 +16,7 @@ const TestResultsCard = ({ player, period }: TestResultsCardProps) => {
 
   return (
     <Card>
-      <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><FileText size={20} style={{ color: COACH_COLOR }} />Testresultaten ({period})</h3>
+      <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><FileText size={20} style={{ color: COACH_COLOR }} />Testresultaten ({testDayLabel(period)})</h3>
       {!hasResults ? (
         <p className="text-gray-500">Nog geen testresultaten ingevoerd voor deze periode.</p>
       ) : (

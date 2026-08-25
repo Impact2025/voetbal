@@ -153,7 +153,6 @@ SPELERSPROFIEL:
 
 EVALUATIE (${period}):
 ${skillLines}
-- Wedstrijdcijfer: ${currentEval.matchRating}/10
 - Coach notities: "${currentEval.comments || 'geen'}"
 
 Sterkste skills: ${topSkills}

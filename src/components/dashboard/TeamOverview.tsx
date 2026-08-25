@@ -66,7 +66,7 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
     const ev = p.evaluations?.[activeTab];
     const avgSkill = ev ? skillKeys.reduce((s, k) => s + (ev.skills[k] ?? 5), 0) / skillKeys.length : 5;
     const hwDone = assignedIds.filter(id => p.completed_homework_ids?.includes(id)).length;
-    return { player: p, avgSkill, matchRating: ev?.matchRating ?? 0, hwDone };
+    return { player: p, avgSkill, hwDone };
   }).sort((a, b) => b.avgSkill - a.avgSkill), [players, activeTab, assignedIds]);
 
   const teamAvg = playerStats.length
@@ -187,7 +187,7 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
         <Card light>
           <h3 className="text-lg font-bold text-gray-900 mb-3">Spelers Ranglijst</h3>
           <div className="divide-y divide-gray-100">
-            {playerStats.map(({ player, avgSkill, matchRating, hwDone }, idx) => {
+            {playerStats.map(({ player, avgSkill, hwDone }, idx) => {
               const medalColor = idx === 0 ? '#ca8a04' : idx === 1 ? '#6b7280' : idx === 2 ? '#92400e' : '#d1d5db';
               const score = (avgSkill * 10).toFixed(0);
               return (
@@ -205,10 +205,6 @@ const TeamOverview = ({ players, teamData, activeTab, onSelectPlayer }: TeamOver
                     <div className="text-right">
                       <div className="font-bold text-gray-900">{score}</div>
                       <div className="text-[10px] text-gray-400 uppercase">score</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900">{matchRating}</div>
-                      <div className="text-[10px] text-gray-400 uppercase">rating</div>
                     </div>
                     {assignedIds.length > 0 && (
                       <CheckCircle2 size={16} className={hwDone === assignedIds.length ? 'text-green-400' : 'text-gray-600'} />

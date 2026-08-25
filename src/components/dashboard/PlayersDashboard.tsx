@@ -18,13 +18,12 @@ interface PlayersDashboardProps {
   onAddPlayer: () => void;
 }
 
-type SortKey = 'score' | 'name' | 'attention' | 'rating';
+type SortKey = 'score' | 'name' | 'attention';
 
 interface PlayerRow {
   player: Player;
   score: number;          // 0–100
   avgSkill: number;       // 0–10
-  matchRating: number;
   trend: number | null;   // score-delta vs previous period (0–100), null if no prior data
   hwDone: number;
   hwTotal: number;
@@ -123,7 +122,6 @@ const PlayersDashboard = ({
       player: p,
       score,
       avgSkill,
-      matchRating: ev?.matchRating ?? 0,
       trend,
       hwDone,
       hwTotal: assignedIds.length,
@@ -142,7 +140,6 @@ const PlayersDashboard = ({
     sorted.sort((a, b) => {
       switch (sortKey) {
         case 'name': return a.player.name.localeCompare(b.player.name);
-        case 'rating': return b.matchRating - a.matchRating;
         case 'attention': return (a.avgSkill - b.avgSkill); // lowest first
         case 'score':
         default: return b.score - a.score;
@@ -158,7 +155,6 @@ const PlayersDashboard = ({
   const sortOptions: { key: SortKey; label: string }[] = [
     { key: 'score', label: 'Score' },
     { key: 'attention', label: 'Aandacht' },
-    { key: 'rating', label: 'Rating' },
     { key: 'name', label: 'Naam' },
   ];
 
@@ -227,7 +223,7 @@ const PlayersDashboard = ({
       {/* Player cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {filtered.map(row => {
-          const { player, score, matchRating, trend, hwDone, hwTotal, attendancePct, groupAverages, weakest, needsAttention: attn } = row;
+          const { player, score, trend, hwDone, hwTotal, attendancePct, groupAverages, weakest, needsAttention: attn } = row;
           const sc = scoreColor(score);
           return (
             <motion.button
@@ -283,11 +279,7 @@ const PlayersDashboard = ({
                 </div>
 
                 {/* Footer metrics */}
-                <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-1 text-center">
-                  <div>
-                    <div className="text-sm font-black text-gray-900 tabular-nums">{matchRating || '—'}</div>
-                    <div className="text-[9px] text-gray-400 uppercase tracking-wide">Rating</div>
-                  </div>
+                <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-1 text-center">
                   <div>
                     <div className={`text-sm font-black tabular-nums ${hwTotal > 0 && hwDone === hwTotal ? 'text-green-600' : 'text-gray-900'}`}>
                       {hwTotal > 0 ? `${hwDone}/${hwTotal}` : '—'}

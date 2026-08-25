@@ -22,7 +22,7 @@ const GOUD_THRESHOLD = 1.5;
 const ZILVER_THRESHOLD = 0.5;
 
 /**
- * Medailles belonen groei t.o.v. de vorige check-in, nooit het absolute niveau —
+ * Medailles belonen groei t.o.v. de vorige evaluatie, nooit het absolute niveau —
  * zo blijft een van nature zwakkere skill net zo goed medaille-waardig als een sterke.
  */
 export function computeSkillMedal(current: number, previous: number | undefined): SkillMedalResult {

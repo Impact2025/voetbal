@@ -57,7 +57,6 @@ describe('demo players — full coverage', () => {
       for (const period of PERIODS) {
         expect(p.evaluations[period].comments.length).toBeGreaterThan(10);
         expect(p.evaluations[period].trainingPlan.length).toBeGreaterThan(5);
-        expect(p.evaluations[period].matchRating).toBeGreaterThanOrEqual(1);
       }
     }
   });
@@ -81,11 +80,11 @@ describe('demo players — REAL variation (the point of the task)', () => {
     expect(sorted[sorted.length - 1]).toBeGreaterThan(sorted[0]);
   });
 
-  it('every player shows an upward trend across the 3 check-ins', () => {
+  it('every player shows an upward trend across the 2 evaluaties', () => {
     for (const p of demoPlayers) {
-      const c1 = scoreFor(p.evaluations, PERIODS[0]);
-      const c3 = scoreFor(p.evaluations, PERIODS[2]);
-      expect(c3, `${p.name} should improve`).toBeGreaterThanOrEqual(c1);
+      const first = scoreFor(p.evaluations, PERIODS[0]);
+      const last = scoreFor(p.evaluations, PERIODS[PERIODS.length - 1]);
+      expect(last, `${p.name} should improve`).toBeGreaterThanOrEqual(first);
     }
   });
 

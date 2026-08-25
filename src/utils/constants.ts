@@ -57,8 +57,15 @@ export const SKILL_LABELS: Record<string, string> = Object.fromEntries(
   SKILL_GROUPS.flatMap(g => g.skills.map(s => [s.key, s.label]))
 );
 
-export const evaluationPeriods: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
-export const DEFAULT_EVALUATION_PERIODS: string[] = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
+export const evaluationPeriods: string[] = ['Evaluatie I', 'Evaluatie II'];
+export const DEFAULT_EVALUATION_PERIODS: string[] = ['Evaluatie I', 'Evaluatie II'];
+
+/** Testdagen volgen dezelfde twee momenten in het seizoen als de evaluaties. */
+export const TEST_DAY_LABELS: Record<string, string> = {
+  'Evaluatie I': 'Testdag I',
+  'Evaluatie II': 'Testdag II',
+};
+export const testDayLabel = (period: string): string => TEST_DAY_LABELS[period] ?? period;
 
 export const DEFAULT_WEEKLY_QUESTIONS: string[] = [
   'Wat maakt een team goed?',
@@ -115,7 +122,6 @@ export const TRAINING_THEMES = [
 
 export const makeEvaluation = (): Evaluation => ({
   skills: Object.fromEntries(skillKeys.map(k => [k, 5])) as Evaluation['skills'],
-  matchRating: 5,
   comments: '',
   fitness: { yoyo: '', cooper: '', sprint: '' },
   trainingPlan: '',
@@ -123,7 +129,6 @@ export const makeEvaluation = (): Evaluation => ({
 });
 
 export const createInitialEvaluations = (): Record<string, Evaluation> => ({
-  'Check-in 1': makeEvaluation(),
-  'Check-in 2': makeEvaluation(),
-  'Check-in 3': makeEvaluation(),
+  'Evaluatie I': makeEvaluation(),
+  'Evaluatie II': makeEvaluation(),
 });

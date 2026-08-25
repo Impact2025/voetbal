@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, FileText } from 'lucide-react';
 import Card from '../ui/Card';
-import { COACH_COLOR, skillKeys, SKILL_GROUPS, evaluationPeriods } from '../../utils/constants';
+import { COACH_COLOR, skillKeys, SKILL_GROUPS, evaluationPeriods, testLabels, testDayLabel } from '../../utils/constants';
 import type { Player } from '../../types';
 
 interface CoachChartsProps {
@@ -41,9 +41,14 @@ export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProp
       .map(p => {
         const ev = activePlayer.evaluations![p];
         const avg = skillKeys.reduce((s, k) => s + (ev.skills?.[k] ?? 5), 0) / skillKeys.length;
-        return { name: p, 'Gem. Skill': parseFloat(avg.toFixed(1)), 'Wedstrijdcijfer': ev.matchRating ?? 0 };
+        return { name: p, 'Gem. Skill': parseFloat(avg.toFixed(1)) };
       });
   }, [activePlayer]);
+
+  const testData = activePlayer.evaluations?.[activeTab]?.tests;
+  const hasTestResults = !!testData && Object.values(testData).some(category =>
+    Object.values(category as Record<string, string>).some(value => value !== '')
+  );
 
   if (!chartsReady || !Charts) {
     return (
@@ -84,6 +89,29 @@ export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProp
         ))}
       </div>
 
+      {hasTestResults && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {Object.entries(testLabels).map(([categoryKey, categoryData]) => (
+            <Card light key={categoryKey}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-1.5">
+                <FileText size={13} style={{ color: COACH_COLOR }} /> {categoryData.label} — {testDayLabel(activeTab)}
+              </p>
+              <ul className="space-y-1.5 text-sm">
+                {Object.entries(categoryData.tests).map(([testKey, testLabel]) => {
+                  const value = (testData?.[categoryKey as keyof typeof testData] as Record<string, string> | undefined)?.[testKey];
+                  return value ? (
+                    <li key={testKey} className="flex justify-between">
+                      <span className="text-gray-500">{testLabel.split(' (')[0]}:</span>
+                      <span className="font-bold text-gray-900">{value}</span>
+                    </li>
+                  ) : null;
+                })}
+              </ul>
+            </Card>
+          ))}
+        </div>
+      )}
+
       <Card light>
         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-1.5">
           <TrendingUp size={13} style={{ color: COACH_COLOR }} /> Prestatie Trend
@@ -97,7 +125,6 @@ export default function CoachCharts({ activePlayer, activeTab }: CoachChartsProp
               <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, color: '#111827' }} />
               <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="Gem. Skill" stroke={COACH_COLOR} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="Wedstrijdcijfer" stroke="#8b5cf6" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>

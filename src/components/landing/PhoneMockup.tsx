@@ -146,7 +146,7 @@ export default function PhoneMockup() {
 
         {/* Period tabs */}
         <div className="bg-dark-700 px-3 py-2 flex gap-1">
-          {['Check-in 1', 'Check-in 2', 'Check-in 3'].map((p, i) => (
+          {['Evaluatie I', 'Evaluatie II'].map((p, i) => (
             <div
               key={p}
               className={`flex-1 text-center text-[8px] py-1 rounded font-semibold ${

@@ -13,8 +13,8 @@
  *   - the vitest test (src/demo/demoPlayers.test.ts) that proves real variation, and
  *   - scripts/seed-demo-players.mjs that pushes the data to Supabase.
  *
- * All values are fully filled: 17 skills × 3 periods + fitness + 15 tests + comments
- * + training plans + match ratings. Scores are deliberately varied (58 → 84).
+ * All values are fully filled: 17 skills × 2 periods + fitness + 15 tests + comments
+ * + training plans. Scores are deliberately varied (58 → 84).
  */
 
 // Must stay in sync with src/utils/constants.ts → skillKeys (17 keys)
@@ -25,16 +25,16 @@ export const SKILL_KEYS = [
   'discipline', 'aanwezigheid',
 ];
 
-export const PERIODS = ['Check-in 1', 'Check-in 2', 'Check-in 3'];
+export const PERIODS = ['Evaluatie I', 'Evaluatie II'];
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 export const round1 = (n) => Math.round(n * 10) / 10;
 
 /**
  * Per-player canonical profile.
- *  - skillsC3: the 17 skill values at "Check-in 3" (best form), in SKILL_KEYS order.
- *  - improvement: how many points the player started below their C3 form (drives
- *    the C1→C3 upward trend; lower = already elite, higher = late bloomer).
+ *  - skillsC3: the 17 skill values at "Evaluatie II" (best form), in SKILL_KEYS order.
+ *  - improvement: how many points the player started below their best form (drives
+ *    the Evaluatie I → II upward trend; lower = already elite, higher = late bloomer).
  *  - meta: identity / roster fields used by the seed push.
  *  - comments / plans: role + period specific coach notes (fully written Dutch copy).
  */
@@ -45,12 +45,10 @@ const PROFILES = {
     improvement: 3,
     comments: [
       'Noah is snel en gretig voorin, maar kiest nog te vaak voor eigen succes. Verdedigend veel ruimte voor groei.',
-      'Mooie stap! Noah combineert steeds beter en zijn snelheid is een écht wapen geworden. Blijft werken aan keuzes.',
       'Noah is uitgegroeid tot een gevaarlijke, snelle aanvaller. Zijn diepgang is TOP — blijf zo trainen!',
     ],
     plans: [
       'Samenspel: 2v1 combinatie · Doelschieten nauwkeurigheid · Sprint zonder bal',
-      'Afwerken na snelle actie · 1v1 aanvallen · Wandpass rechts verbeteren',
       'Sprint met bal 20m · Trucje bij de achterlijn · Hooghouden record verhogen',
     ],
   },
@@ -60,12 +58,10 @@ const PROFILES = {
     improvement: 2,
     comments: [
       'Tijs heeft uitstekend overzicht en verdeelt de bal slim. Snelheid is het enige verbeterpunt.',
-      'Tijs speelt op zijn hoogste niveau. Zijn inzicht is het beste van het team — een echte regisseur.',
       'Tijs is een compleet middenveldspeler met leiderschap. Klaar voor een hoger niveau!',
     ],
     plans: [
       'Sprinttraining explosief opstarten · Lange pass oefening · Positiespel 4v4',
-      'Voetenwerk verfijnen · Combinatie met wisselwerking · Eindschot vanuit tweede lijn',
       'Lange diagonale pass · Pressing oefening · Schot met beide benen',
     ],
   },
@@ -75,12 +71,10 @@ const PROFILES = {
     improvement: 2,
     comments: [
       'Sven is razendsnel en gevaarlijk voor doel. Verdedigend werk en inzicht kunnen beter.',
-      'Topgroei! Sven zet nu meer druk van voren. Zijn linkervoet is een wapen.',
       'Sven is de topscorer van het team en een inspiratie voor zijn teamgenoten!',
     ],
     plans: [
       'Pressing van voren oefenen · Eindschot links · Samenspel 2v2',
-      'Schottraining vanuit snelheid · Combinatiespel met wissel · Sprint-herstel oefening',
       'Afwerken in 1v1 situaties · Trucje op links · Sprint met bal 20m',
     ],
   },
@@ -90,12 +84,10 @@ const PROFILES = {
     improvement: 2,
     comments: [
       'Max is een technische speler met een goed schot. Zijn inzicht groeit gestaag.',
-      'Mooie progressie van Max. Techniek en schot zijn zijn beste eigenschappen.',
       'Max heeft een geweldig seizoen gehad. Zijn techniek en mentaliteit zijn top!',
     ],
     plans: [
       'Dribbel met schotmoment · Positiespel aanvaller · Wandpass training',
-      'Afwerken na actie · Combinatie 2v1 · Schottraining nauwkeurigheid',
       'Trucs op kleine ruimte · Eindschot training · Sprint met bal naar doel',
     ],
   },
@@ -105,12 +97,10 @@ const PROFILES = {
     improvement: 2,
     comments: [
       'Sander is een complete verdediger. Sterk in de lucht en slim in positie.',
-      'Mooie groei! Sander speelt nu ook goed mee in de opbouw. Echt compleet.',
       'Sander is een van de beste verdedigers van de competitie. Geweldig seizoen!',
     ],
     plans: [
       'Kopbal training · Opbouwen 3-4-3 · Duel winnen in de zestien',
-      'Lange bal vanuit verdediging · 1v1 winnen · Heading aanvallend en verdedigend',
       'Positiespel achterin · Interceptie timing · Opbouwen met aanvallende intentie',
     ],
   },
@@ -120,12 +110,10 @@ const PROFILES = {
     improvement: 1,
     comments: [
       'Boris is een explosieve aanvaller met een geweldig schot. Ons gevaarlijkste wapen.',
-      'Uitstekend! Boris scoort bijna elke training. Zijn techniek op snelheid is indrukwekkend.',
       'Boris is de beste aanvaller van zijn leeftijdscategorie. Een talent om te koesteren!',
     ],
     plans: [
       'Afwerken na 1v1 met keeper · Sprint 30m met bal · Aanname op hoge snelheid',
-      'Combinatie: dieptepass + afwerken · Schottraining beide benen · 1v1 duel wint hij standaard',
       'Werken aan zwakke voet · Samenspel onder druk · Mentale weerbaarheid bij tegenslag',
     ],
   },
@@ -135,12 +123,10 @@ const PROFILES = {
     improvement: 1,
     comments: [
       'Thijs is een echte regisseur. Zijn links is soms onhoudbaar. Verdedigend meer aandacht.',
-      'Thijs blijft groeien. Zijn techniek links is fenomenaal. Conditie mag iets beter.',
       'Thijs is klaar voor een hoger niveau. Zijn inzicht en linkerbeen zijn uitzonderlijk!',
     ],
     plans: [
       'Verdedigend positioneren · Pressing oefening · Diagonale pass links',
-      'Conditietraining interval · Pressing als team · Opbouwen vanuit achterlijn',
       'Lange diagonale bal · Eindschot met links · Weerbaarheid in duels',
     ],
   },
@@ -150,12 +136,10 @@ const PROFILES = {
     improvement: 3,
     comments: [
       'Luca heeft veel energie voorin en is gevaarlijk voor doel. Verdedigend nog wat meer inzet tonen.',
-      'Mooie groei te zien! Zijn schot is gevaarlijk en hij zet meer druk. Passing kan beter.',
       'Luca ontwikkelt zich tot een complete aanvaller. Top inzet, blijf zo doorgaan!',
     ],
     plans: [
       'Doelschieten vanuit de draai · Wandpass oefening links/rechts · Sprint met bal 10m',
-      'Combinatiespel 3v3 op klein veld · Inzicht trainen met positiespel · Schotkracht oefening',
       'Afwerken na combinatie · Dribbel met schotmoment · Hooghouden record verbeteren',
     ],
   },
@@ -171,7 +155,7 @@ function fitnessFor(profile, periodIdx) {
   const agility = s[9];     // wendbaarheid
   const power = s[10];      // duelkracht
   const ment = s[15];       // discipline (proxy for work rate)
-  const grow = [0.94, 0.97, 1.0][periodIdx]; // fitness improves over the season
+  const grow = [0.95, 1.0][periodIdx]; // fitness improves over the season
 
   const sprint30 = round1(clamp((5.8 - (speed - 5) * 0.14) / grow, 3.8, 7.5)); // sec, lower better
   const yoyo = Math.round(clamp((12 + (power + agility) / 2) * grow + (ment - 7), 12, 24) * 10) / 10; // level
@@ -181,8 +165,8 @@ function fitnessFor(profile, periodIdx) {
 
 function testsFor(profile, periodIdx) {
   const s = profile.skillsC3;
-  const grow = [0.9, 0.95, 1.0][periodIdx]; // skill tests improve over the season
-  const lowGrow = [1.08, 1.04, 1.0][periodIdx]; // "lower is better" tighten over time
+  const grow = [0.92, 1.0][periodIdx]; // skill tests improve over the season
+  const lowGrow = [1.06, 1.0][periodIdx]; // "lower is better" tighten over time
 
   const techniek = s[2];      // aannemen
   const passen = s[3];
@@ -207,22 +191,15 @@ function testsFor(profile, periodIdx) {
   };
 }
 
-function matchRatingFor(profile, periodIdx) {
-  const c3 = profile.skillsC3.reduce((a, b) => a + b, 0) / profile.skillsC3.length;
-  const ratings = [c3 - profile.improvement, c3 - profile.improvement / 2, c3].map((v) => clamp(Math.round(v), 1, 10));
-  return ratings[periodIdx];
-}
-
 // ── Build the full evaluation object for a player × period ───────────────────
 function buildEvaluation(profile, periodIdx) {
-  const dec = (profile.improvement * (2 - periodIdx)) / 2; // C1: full, C2: half, C3: 0
+  const dec = profile.improvement * (1 - periodIdx); // Evaluatie I: full gap, Evaluatie II: 0
   const skills = {};
   SKILL_KEYS.forEach((k, i) => {
     skills[k] = clamp(Math.round(profile.skillsC3[i] - dec), 2, 10);
   });
   return {
     skills,
-    matchRating: matchRatingFor(profile, periodIdx),
     comments: profile.comments[periodIdx],
     trainingPlan: profile.plans[periodIdx],
     fitness: fitnessFor(profile, periodIdx),

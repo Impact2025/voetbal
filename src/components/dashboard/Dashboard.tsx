@@ -14,7 +14,6 @@ import Card from '../ui/Card';
 import ToolButton from '../ui/ToolButton';
 import Slider from '../ui/Slider';
 import SkillRater from '../ui/SkillRater';
-import Input from '../ui/Input';
 import Textarea from '../ui/Textarea';
 import ConfirmModal from '../modals/ConfirmModal';
 import AttendanceCard from '../attendance/AttendanceCard';
@@ -722,7 +721,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     const sortedSkills = Object.entries(currentEval.skills).sort(([, a], [, b]) => b - a);
     const topSkills = sortedSkills.slice(0, 2).map(s => s[0]).join(', ');
     const bottomSkills = sortedSkills.slice(-2).map(s => s[0]).join(', ');
-    const prompt = `Schrijf een korte, bemoedigende feedback-opmerking in het Nederlands voor een jonge voetballer (7-12 jaar). Het wedstrijdcijfer was ${currentEval.matchRating}/10. De beste skills zijn: ${topSkills}. De skills die verbetering nodig hebben zijn: ${bottomSkills}. Begin met een compliment over de sterke punten en geef dan op een vriendelijke en constructieve manier één tip voor een verbeterpunt. Houd het onder de 40 woorden.`;
+    const prompt = `Schrijf een korte, bemoedigende feedback-opmerking in het Nederlands voor een jonge voetballer (7-12 jaar). De beste skills zijn: ${topSkills}. De skills die verbetering nodig hebben zijn: ${bottomSkills}. Begin met een compliment over de sterke punten en geef dan op een vriendelijke en constructieve manier één tip voor een verbeterpunt. Houd het onder de 40 woorden.`;
     const result = await callAI(prompt);
     handleUpdateEvaluation('comments', result);
     setIsGenerating(prev => ({ ...prev, comments: false }));
@@ -1039,16 +1038,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               </div>
                             </div>
                           ))}
-                          <div className="max-w-[200px]">
-                            <Input
-                              light
-                              label="Wedstrijdcijfer (0–10)"
-                              type="number"
-                              value={activePlayer.evaluations[activeTab]?.matchRating || ''}
-                              onChange={e => handleUpdateEvaluation('matchRating', parseFloat(e.target.value))}
-                              disabled={false}
-                            />
-                          </div>
                         </motion.div>
                       </AnimatePresence>
                     </Card>
@@ -1809,8 +1798,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                         ))}
                       </div>
                       <hr className="md:col-span-2 border-gray-200" />
-                      <Input light label="Wedstrijdcijfer (0-10)" type="number" value={activePlayer.evaluations[activeTab]?.matchRating || ''} onChange={() => {}} disabled={true} />
-                      <Textarea light label="Opmerkingen Coach" placeholder="Nog geen opmerkingen" value={activePlayer.evaluations[activeTab]?.comments || ''} onChange={() => {}} disabled={true} />
+                      <Textarea light label="Opmerkingen Coach" placeholder="Nog geen opmerkingen" value={activePlayer.evaluations[activeTab]?.comments || ''} onChange={() => {}} disabled={true} className="md:col-span-2" />
                     </div>
                   </motion.div>
                 </AnimatePresence>

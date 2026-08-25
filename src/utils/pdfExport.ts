@@ -61,20 +61,20 @@ export function exportPlayerPdf(player: Player, teamName: string, periods: strin
     columnStyles: { 0: { fontStyle: 'bold', cellWidth: 35 } },
   });
 
-  // Wedstrijdcijfers
+  // Gemiddelde skillscore per periode
   const finalY1 = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
   doc.setTextColor(0, 255, 157);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Wedstrijdcijfers', 14, finalY1);
+  doc.text('Gemiddelde skillscore', 14, finalY1);
 
   autoTable(doc, {
     startY: finalY1 + 4,
-    head: [['Periode', 'Wedstrijdcijfer', 'Gem. Skill']],
+    head: [['Periode', 'Gem. Skill']],
     body: periods.map(p => {
       const ev = player.evaluations?.[p];
       const avg = ev ? (skillKeys.reduce((s, k) => s + (ev.skills[k] ?? 0), 0) / skillKeys.length).toFixed(1) : '-';
-      return [p, String(ev?.matchRating ?? '-'), avg];
+      return [p, avg];
     }),
     theme: 'grid',
     headStyles: { fillColor: [0, 255, 157], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 9 },

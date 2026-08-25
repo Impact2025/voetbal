@@ -1,8 +1,8 @@
 const stats = [
   {
-    value: '7',
+    value: '17',
     unit: 'Skills',
-    description: 'Longitudinale voortgangsmeting met 3 vaste check-ins per seizoen om de échte ontwikkeling in kaart te brengen.',
+    description: 'Longitudinale voortgangsmeting met 2 vaste evaluaties per seizoen om de échte ontwikkeling in kaart te brengen.',
   },
   {
     value: '€12,50',

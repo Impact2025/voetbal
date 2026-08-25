@@ -265,7 +265,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab, avatarStats, onA
     setLoadingAI(true);
     const topSkills = strengths.map(s => SKILL_LABELS[s.key]).join(' en ');
     const weakSkills = improvements.map(s => SKILL_LABELS[s.key]).join(' en ');
-    const prompt = `Geef een korte, persoonlijke en motiverende analyse in het Nederlands voor een jonge voetballer (7-12 jaar). Naam: ${player.name}. Niveau: ${level.name} (score ${score}/100). Sterkste skills: ${topSkills}. Verbeterpunten: ${weakSkills}. Wedstrijdcijfer: ${currentEval.matchRating}/10. Geef: 1) Een compliment over de sterke punten. 2) Één concrete tip voor verbetering. 3) Een motiverende afsluitzin. Houd het onder de 60 woorden, informeel en enthousiast.`;
+    const prompt = `Geef een korte, persoonlijke en motiverende analyse in het Nederlands voor een jonge voetballer (7-12 jaar). Naam: ${player.name}. Niveau: ${level.name} (score ${score}/100). Sterkste skills: ${topSkills}. Verbeterpunten: ${weakSkills}. Geef: 1) Een compliment over de sterke punten. 2) Één concrete tip voor verbetering. 3) Een motiverende afsluitzin. Houd het onder de 60 woorden, informeel en enthousiast.`;
     const result = await callAI(prompt);
     setAiInsight(result);
     setLoadingAI(false);
@@ -385,35 +385,6 @@ const PlayerOverview = ({ player, players, teamData, activeTab, avatarStats, onA
                 </div>
               )}
             </div>
-
-            {/* Match rating strip */}
-            {currentEval?.matchRating > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Wedstrijdcijfer</span>
-                {isYoung ? (
-                  <span className="text-base font-black" style={{ color: currentEval.matchRating >= 7 ? COACH_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
-                    {'⭐'.repeat(Math.round(currentEval.matchRating / 2))}
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    {[...Array(10)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-4 h-1.5 rounded-full transition-all"
-                        style={{
-                          backgroundColor: i < currentEval.matchRating
-                            ? (currentEval.matchRating >= 7 ? COACH_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171')
-                            : '#e5e7eb',
-                        }}
-                      />
-                    ))}
-                    <span className="text-sm font-black ml-1" style={{ color: currentEval.matchRating >= 7 ? COACH_COLOR : currentEval.matchRating >= 5 ? '#f97316' : '#f87171' }}>
-                      {currentEval.matchRating}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </motion.div>
@@ -676,7 +647,7 @@ const PlayerOverview = ({ player, players, teamData, activeTab, avatarStats, onA
                   <tr className="text-gray-500 text-[9px] uppercase tracking-wide border-b border-gray-200">
                     <th className="text-left pb-2 font-semibold pl-1">Skill</th>
                     {evaluationPeriods.map(p => (
-                      <th key={p} className="text-center pb-2 font-semibold">{p.replace('Check-in ', 'CI')}</th>
+                      <th key={p} className="text-center pb-2 font-semibold">{p.replace('Evaluatie ', 'Ev. ')}</th>
                     ))}
                     <th className="text-center pb-2">+/-</th>
                   </tr>

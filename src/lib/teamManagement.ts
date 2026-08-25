@@ -19,7 +19,7 @@ export async function createTeam(clubId: string, draft: TeamDraft): Promise<Team
       team_name: draft.team_name,
       team_class: draft.team_class,
       coach_id: null,
-      evaluation_periods: ['Check-in 1', 'Check-in 2', 'Check-in 3'],
+      evaluation_periods: ['Evaluatie I', 'Evaluatie II'],
       assigned_homework_ids: [],
       weekly_questions: [],
     })

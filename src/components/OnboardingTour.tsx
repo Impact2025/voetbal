@@ -45,7 +45,7 @@ const COACH_STEPS: TourStep[] = [
     iconBg: '#fbbf241A',
     iconColor: '#fbbf24',
     title: 'Team Overzicht',
-    body: 'Zie direct hoe je team ervoor staat na elke check-in periode.',
+    body: 'Zie direct hoe je team ervoor staat na elke evaluatieperiode.',
     bullets: [
       'Team score (0–100) en gemiddelde per skill',
       'Radar-grafiek van het hele team',
@@ -58,10 +58,9 @@ const COACH_STEPS: TourStep[] = [
     iconBg: '#3b82f61A',
     iconColor: '#60a5fa',
     title: 'Spelers evalueren',
-    body: 'Selecteer een speler en vul na elke check-in de skills in. Alles wordt realtime opgeslagen.',
+    body: 'Selecteer een speler en vul na elke evaluatie de skills in. Alles wordt realtime opgeslagen.',
     bullets: [
-      '7 skills beoordelen op schaal 1–10 via sliders',
-      'Wedstrijdcijfer invullen per check-in periode',
+      '17 skills beoordelen op schaal 1–10 via sliders',
       'Coach-opmerkingen typen of met AI laten genereren',
       'Radar-chart en prestatie-trend per speler bekijken',
     ],
@@ -151,7 +150,7 @@ const PLAYER_STEPS: TourStep[] = [
     iconBg: '#3b82f61A',
     iconColor: '#60a5fa',
     title: 'Tabblad: Ik',
-    body: 'Wil je de details? Hier vind je je skills, je groei per check-in en de tips van je coach.',
+    body: 'Wil je de details? Hier vind je je skills, je groei per evaluatie en de tips van je coach.',
     bullets: [
       'Jouw skills en hoe je groeit',
       'Coach-feedback en trainingsplan',

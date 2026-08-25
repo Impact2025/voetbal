@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, X } from 'lucide-react';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
-import { initialTestState, testLabels } from '../../utils/constants';
+import { initialTestState, testLabels, testDayLabel } from '../../utils/constants';
 import type { Player, TestState } from '../../types';
 
 interface TestsModalProps {
@@ -52,7 +52,7 @@ const TestsModal = ({ isVisible, onClose, player, period, onUpdate }: TestsModal
           <div className="sticky top-0 bg-white/98 backdrop-blur-md p-4 border-b border-gray-100 flex justify-between items-center z-10 rounded-t-2xl">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <FileText size={20} className="text-emerald-600" />
-              Testresultaten — {player.name} ({period})
+              Testresultaten — {player.name} ({testDayLabel(period)})
             </h2>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
               <X size={18} />

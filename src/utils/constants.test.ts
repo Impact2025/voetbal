@@ -31,11 +31,4 @@ describe('createInitialEvaluations', () => {
       }
     }
   });
-
-  it('each period has matchRating of 5', () => {
-    const evaluations = createInitialEvaluations();
-    for (const period of evaluationPeriods) {
-      expect(evaluations[period].matchRating).toBe(5);
-    }
-  });
 });

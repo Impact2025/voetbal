@@ -68,7 +68,6 @@ export interface TeamSession {
 
 export interface Evaluation {
   skills: SkillScores;
-  matchRating: number;
   comments: string;
   trainingPlan: string;
   structuredPlan?: StructuredTrainingPlan;
@@ -217,7 +216,6 @@ export interface RadarDataPoint {
 export interface LineChartDataPoint {
   name: string;
   'Gem. Skill': number;
-  'Wedstrijdcijfer': number;
 }
 
 export type SubmissionStatus = 'pending' | 'processing' | 'done' | 'error';
