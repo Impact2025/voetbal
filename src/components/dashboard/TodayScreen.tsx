@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Target, Trophy, ArrowDown, CheckCircle2, Sparkles, MessageSquare } from 'lucide-react';
+import { Flame, Target, Trophy, ArrowRight, CheckCircle2, Sparkles, MessageSquare } from 'lucide-react';
 import { COACH_COLOR } from '../../utils/constants';
 import type { Player, CustomHomework, Streak } from '../../types';
 
@@ -13,6 +13,7 @@ interface TodayScreenProps {
   /** Gratis basis-uitdaging uit het seizoensprogramma van deze week, of null als er geen is / al gedaan is. */
   weekChallenge: string | null;
   onCompleteWeekChallenge: () => Promise<void>;
+  onGoToHomework: () => void;
 }
 
 const greeting = () => {
@@ -27,7 +28,7 @@ const scrollTo = (id: string) => {
 };
 
 const TodayScreen = ({
-  player, streak, customHomework, assignedHomeworkIds, hasOpenQuestions, weekChallenge, onCompleteWeekChallenge,
+  player, streak, customHomework, assignedHomeworkIds, hasOpenQuestions, weekChallenge, onCompleteWeekChallenge, onGoToHomework,
 }: TodayScreenProps) => {
   const ageNum = parseInt(player.age ?? '10', 10);
   const isYoung = !isNaN(ageNum) && ageNum <= 9;
@@ -157,12 +158,12 @@ const TodayScreen = ({
                 whileTap={{ scale: 0.96, y: 2 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                 disabled={focus.kind === 'weekChallenge' && completing}
-                onClick={() => focus.kind === 'homework' ? scrollTo('today-homework') : handleCompleteWeekChallenge()}
+                onClick={() => focus.kind === 'homework' ? onGoToHomework() : handleCompleteWeekChallenge()}
                 className="mt-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-black text-white disabled:opacity-60"
                 style={{ backgroundColor: accent, boxShadow: `0 4px 0 ${accent}90` }}
               >
                 {focus.kind === 'homework'
-                  ? <>Upload je video voor feedback <ArrowDown size={18} /></>
+                  ? <>Upload je video voor feedback <ArrowRight size={18} /></>
                   : <>{completing ? 'Bezig...' : 'Klaar? Vink af'} <CheckCircle2 size={18} /></>}
               </motion.button>
             </>

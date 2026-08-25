@@ -81,9 +81,10 @@ const COACH_SECTIONS = [
 ] as const;
 
 const PLAYER_SECTIONS = [
-  { id: 'vandaag',  label: 'Vandaag',     icon: Flame },
-  { id: 'kaart',    label: 'Mijn Kaart',  icon: Trophy },
-  { id: 'ik',       label: 'Ik',          icon: User },
+  { id: 'vandaag',  label: 'Vandaag',              icon: Flame },
+  { id: 'huiswerk', label: 'Huiswerk & Challenges', icon: ClipboardList },
+  { id: 'kaart',    label: 'Mijn Kaart',            icon: Trophy },
+  { id: 'ik',       label: 'Ik',                    icon: User },
 ] as const;
 
 const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
@@ -1703,8 +1704,38 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 hasOpenQuestions={visibleQuestions.some(({ idx }) => !responseDrafts[idx]?.trim())}
                 weekChallenge={activeWeekChallengeText}
                 onCompleteWeekChallenge={handleCompleteWeekChallenge}
+                onGoToHomework={() => setMobileSection('huiswerk')}
               />
 
+              {/* Coach-vragen — paged, één vraag per scherm */}
+              {visibleQuestions.length > 0 && (
+                <div id="today-questions" className="scroll-mt-24">
+                  <Card>
+                    <div className="flex items-center gap-2 mb-4">
+                      <ShieldCheck size={18} style={{ color: COACH_COLOR }} />
+                      <h3 className="text-lg font-black text-gray-900">Vragen van je coach</h3>
+                    </div>
+                    <QuestionPager
+                      questions={visibleQuestions}
+                      responseDrafts={responseDrafts}
+                      onChangeResponse={(idx, value) => {
+                        const updated = [...responseDrafts];
+                        updated[idx] = value;
+                        setResponseDrafts(updated);
+                      }}
+                      onSave={handleSaveQuestionResponses}
+                      saving={savingResponses}
+                      isYoung={parseInt(activePlayer.age ?? '10', 10) <= 9}
+                    />
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════════════════ HUISWERK & CHALLENGES ════════════════ */}
+          {mobileSection === 'huiswerk' && (
+            <div className="space-y-5">
               {/* Team-uitdaging — collectief weekdoel, geen individuele ranking */}
               {teamChallenge && (
                 <TeamChallengeCard
@@ -1741,30 +1772,6 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   />
                 )}
               </div>
-
-              {/* Coach-vragen — paged, één vraag per scherm */}
-              {visibleQuestions.length > 0 && (
-                <div id="today-questions" className="scroll-mt-24">
-                  <Card>
-                    <div className="flex items-center gap-2 mb-4">
-                      <ShieldCheck size={18} style={{ color: COACH_COLOR }} />
-                      <h3 className="text-lg font-black text-gray-900">Vragen van je coach</h3>
-                    </div>
-                    <QuestionPager
-                      questions={visibleQuestions}
-                      responseDrafts={responseDrafts}
-                      onChangeResponse={(idx, value) => {
-                        const updated = [...responseDrafts];
-                        updated[idx] = value;
-                        setResponseDrafts(updated);
-                      }}
-                      onSave={handleSaveQuestionResponses}
-                      saving={savingResponses}
-                      isYoung={parseInt(activePlayer.age ?? '10', 10) <= 9}
-                    />
-                  </Card>
-                </div>
-              )}
             </div>
           )}
 
@@ -1865,6 +1872,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
               <button onClick={() => setMobileSection('vandaag')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'vandaag' ? COACH_COLOR : '#9ca3af' }}>
                 <Flame size={20} />
                 <span className="text-[9px] font-semibold tracking-wider uppercase">Vandaag</span>
+              </button>
+              <button onClick={() => setMobileSection('huiswerk')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'huiswerk' ? COACH_COLOR : '#9ca3af' }}>
+                <ClipboardList size={20} />
+                <span className="text-[9px] font-semibold tracking-wider uppercase">Huiswerk</span>
               </button>
               <button onClick={() => setMobileSection('kaart')} className="flex-1 flex flex-col items-center justify-center py-3 gap-1 active:opacity-70 transition-opacity" style={{ color: mobileSection === 'kaart' ? COACH_COLOR : '#9ca3af' }}>
                 <Trophy size={20} />
