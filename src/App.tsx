@@ -7,11 +7,13 @@ import AuthComponent from './components/auth/AuthComponent';
 import Dashboard from './components/dashboard/Dashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConsentModal from './components/modals/ConsentModal';
+import CookieConsentBanner from './components/CookieConsentBanner';
 import { hasConsented } from './lib/consent';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import LandingPage from './components/landing/LandingPage';
 import OnlineBanner from './components/OnlineBanner';
 import SWUpdateToast from './components/SWUpdateToast';
+import DemoPage from './components/DemoPage';
 
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
 const ParentDashboard    = lazy(() => import('./components/parent/ParentDashboard'));
@@ -21,6 +23,8 @@ const AdminLogin         = lazy(() => import('./components/admin/AdminLogin'));
 
 // True wanneer de gebruiker /admin bezoekt — rol-gated platform-admin.
 const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+// True wanneer de gebruiker /demo bezoekt — publieke pagina met demo-accounts (voorheen op het loginscherm).
+const isDemoRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/demo');
 
 // Redirect old domains to canonical domain, preserving hash (access_token, etc.) and search params.
 const OLD_HOSTNAMES = ['voetbal-flame.vercel.app', 'skills.weareimpact.nl'];
@@ -282,6 +286,10 @@ export default function Skillkaart() {
     lastKnownUserId.current = null;
   };
 
+  if (isDemoRoute) {
+    return <DemoPage />;
+  }
+
   if (showPrivacy) {
     return (
       <div style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
@@ -341,6 +349,8 @@ export default function Skillkaart() {
           onShowPrivacy={() => setShowPrivacy(true)}
         />
       )}
+
+      <CookieConsentBanner />
 
       <ErrorBoundary>
         {!(session && userData) || isRecovering ? (

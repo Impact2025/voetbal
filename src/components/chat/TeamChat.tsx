@@ -76,8 +76,6 @@ export default function TeamChat({
   const inputRef = useRef<HTMLInputElement>(null);
   const unsubRef = useRef<(() => void) | null>(null);
 
-  const role = userData.role as TeamChannelMessageRow['sender_role'];
-
   // ── Load channels ────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -89,7 +87,7 @@ export default function TeamChat({
         setChannels(chs);
         // Auto-join + set active
         const joinPromises = chs.map((ch) =>
-          joinChannel(ch.id, userData.uid, role).then(() => ch.id),
+          joinChannel(ch.id).then(() => ch.id),
         );
         Promise.all(joinPromises).then(() => {
           if (!activeChannel && chs.length > 0) {
@@ -110,7 +108,7 @@ export default function TeamChat({
     fetchMessages(activeChannel).then(setMessages);
 
     // Markeer als gelezen
-    updateLastRead(activeChannel, userData.uid);
+    updateLastRead(activeChannel);
 
     // Realtime subscription
     if (unsubRef.current) unsubRef.current();
@@ -120,7 +118,7 @@ export default function TeamChat({
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
-      updateLastRead(activeChannel, userData.uid);
+      updateLastRead(activeChannel);
     });
     unsubRef.current = sub.unsubscribe;
 
@@ -134,7 +132,7 @@ export default function TeamChat({
   useEffect(() => {
     if (!userData.uid) return;
     const interval = setInterval(() => {
-      fetchUnreadCounts(userData.uid).then((counts) => {
+      fetchUnreadCounts().then((counts) => {
         setUnread(counts);
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
         onUnreadChange?.(total);
@@ -158,7 +156,7 @@ export default function TeamChat({
 
     setSending(true);
     const msg = await sendMessage(
-      activeChannel, userData.uid, userName, role,
+      activeChannel, userName,
       text, undefined, replyTo?.id,
     );
     if (msg) {
@@ -168,7 +166,7 @@ export default function TeamChat({
     }
     setSending(false);
     inputRef.current?.focus();
-  }, [input, activeChannel, sending, userData.uid, userName, role, replyTo]);
+  }, [input, activeChannel, sending, userName, replyTo]);
 
   // ── Keyboard ────────────────────────────────────────────────────────────
 

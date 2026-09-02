@@ -21,6 +21,7 @@ const TYPE_META: Record<string, { label: string; color: string; bg: string }> = 
   warming_up: { label: 'Warming-up', color: '#ea580c', bg: '#ea580c18' },
   techniek:   { label: 'Techniek',   color: '#7c3aed', bg: '#7c3aed18' },
   partijvorm: { label: 'Partijvorm', color: '#16a34a', bg: '#16a34a18' },
+  test:       { label: 'Testdag',    color: '#dc2626', bg: '#dc262618' },
 };
 
 function getExerciseImage(

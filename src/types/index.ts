@@ -307,7 +307,7 @@ export interface WeekChallengeCompletion {
 
 // ── Training Library ─────────────────────────────────────────────────────────
 
-export type TrainingExerciseType = 'warming_up' | 'techniek' | 'partijvorm';
+export type TrainingExerciseType = 'warming_up' | 'techniek' | 'partijvorm' | 'test';
 
 export interface TrainingExercise {
   type: TrainingExerciseType;

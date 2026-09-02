@@ -1,67 +1,94 @@
 import { supabase } from './supabase';
+import { authHeaders } from './apiAuth';
 
-export async function uploadAvatar(file: File, teamId: string, playerName: string): Promise<string> {
-  if (file.size > 2 * 1024 * 1024) throw new Error('Afbeelding mag maximaal 2 MB zijn.');
-  const ext = file.name.split('.').pop() ?? 'jpg';
-  const safeName = playerName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
-  const path = `${teamId}/${safeName}_${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-  if (error) throw error;
-  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-  return data.publicUrl;
+// Huiswerk-/challenge-video's van kinderen gaan naar een privé bucket. De
+// speler vraagt via /api/media een kortlevende signed upload-URL aan (server
+// verifieert dat de speler zichzelf is en bepaalt het pad zelf, geen
+// client-gestuurd pad meer) en uploadt daarna rechtstreeks naar Supabase
+// Storage. Voor het bekijken wordt telkens een nieuwe signed URL opgehaald
+// via getSignedVideoUrl — zie src/components/ui/SignedVideo.tsx.
+// Zie supabase/fix_media_storage.sql voor de bucket-lockdown.
+
+async function requestUploadUrl(
+  playerId: string,
+  kind: 'homework' | 'challenge',
+  refId: string,
+  ext: string,
+): Promise<{ path: string; token: string }> {
+  const auth = await authHeaders();
+  const res = await fetch('/api/media', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...auth },
+    body: JSON.stringify({ action: 'uploadUrl', playerId, kind, refId, ext }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({} as { error?: string }));
+    throw new Error((data as { error?: string }).error || 'Upload-link genereren mislukt.');
+  }
+  return await res.json() as { path: string; token: string };
 }
 
-export async function uploadHomeworkVideo(
+/** Vraag een kortlevende signed URL op voor een opgeslagen video-pad (of legacy publieke URL). */
+export async function getSignedVideoUrl(pathOrUrl: string): Promise<string | null> {
+  if (!pathOrUrl) return null;
+  const auth = await authHeaders();
+  try {
+    const res = await fetch('/api/media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ action: 'viewUrl', path: pathOrUrl }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { url?: string };
+    return data.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function uploadVideo(
   file: File,
-  teamId: string,
   playerId: string,
-  homeworkId: string,
-  onProgress?: (pct: number) => void
+  kind: 'homework' | 'challenge',
+  refId: string,
+  onProgress?: (pct: number) => void,
 ): Promise<string> {
   const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
   if (file.size > MAX_SIZE) throw new Error('Video mag maximaal 100 MB zijn. Probeer een korte opname.');
 
   const ext = file.name.split('.').pop() ?? 'mp4';
-  const path = `${teamId}/${playerId}/${homeworkId}_${Date.now()}.${ext}`;
+  onProgress?.(5);
 
-  // Simulate progress for small files; real upload progress requires XHR
-  onProgress?.(10);
+  const { path, token } = await requestUploadUrl(playerId, kind, refId, ext);
+  onProgress?.(15);
 
   const { error } = await supabase.storage
     .from('homework-videos')
-    .upload(path, file, { upsert: false, contentType: file.type || 'video/mp4' });
-
+    .uploadToSignedUrl(path, token, file, { contentType: file.type || 'video/mp4' });
   if (error) throw error;
 
   onProgress?.(100);
+  // Sla het pad op (niet een publieke URL — de bucket is privé). Consumenten
+  // gebruiken <SignedVideo /> om er vlak voor weergave een geldige URL bij te halen.
+  return path;
+}
 
-  const { data } = supabase.storage.from('homework-videos').getPublicUrl(path);
-  return data.publicUrl;
+export async function uploadHomeworkVideo(
+  file: File,
+  _teamId: string,
+  playerId: string,
+  homeworkId: string,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  return uploadVideo(file, playerId, 'homework', homeworkId, onProgress);
 }
 
 export async function uploadChallengeVideo(
   file: File,
-  teamId: string,
+  _teamId: string,
   playerId: string,
   challengeId: string,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
 ): Promise<string> {
-  const MAX_SIZE = 100 * 1024 * 1024;
-  if (file.size > MAX_SIZE) throw new Error('Video mag maximaal 100 MB zijn. Probeer een korte opname.');
-
-  const ext = file.name.split('.').pop() ?? 'mp4';
-  const path = `challenges/${teamId}/${playerId}/${challengeId}_${Date.now()}.${ext}`;
-
-  onProgress?.(10);
-
-  const { error } = await supabase.storage
-    .from('homework-videos')
-    .upload(path, file, { upsert: false, contentType: file.type || 'video/mp4' });
-
-  if (error) throw error;
-
-  onProgress?.(100);
-
-  const { data } = supabase.storage.from('homework-videos').getPublicUrl(path);
-  return data.publicUrl;
+  return uploadVideo(file, playerId, 'challenge', challengeId, onProgress);
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, Loader2, Plus, ChevronDown, Pencil, Archive, ArchiveRestore,
-  UserPlus, X, Mail, Trash2, Shield as ShieldIcon, BarChart2,
+  UserPlus, X, Mail, Trash2, Shield as ShieldIcon, BarChart2, Upload,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { fetchClubSubscriptionTier, setClubProStatus } from '../../lib/trainingLibrary';
@@ -14,6 +14,7 @@ import {
 } from '../../lib/teamManagement';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
+import BulkImportPlayersModal from './BulkImportPlayersModal';
 import type { Team, TeamCoach } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -283,6 +284,7 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
   const [clubCoaches, setClubCoaches] = useState<{ coachId: string; email: string }[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showCreate, setShowCreate] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [addCoachTeam, setAddCoachTeam] = useState<Team | null>(null);
 
@@ -388,7 +390,10 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
         </Card>
       ) : (
         <>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowBulkImport(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+              <Upload size={14} /> Spelers importeren (CSV)
+            </button>
             <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity" style={{ backgroundColor: ACCENT }}>
               <Plus size={14} /> Nieuw team
             </button>
@@ -476,6 +481,14 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
 
       <AnimatePresence>
         {showCreate && <CreateTeamModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={refreshAll} />}
+        {showBulkImport && (
+          <BulkImportPlayersModal
+            clubId={clubId}
+            existingTeams={teams}
+            onClose={() => setShowBulkImport(false)}
+            onImported={refreshAll}
+          />
+        )}
         {editingTeam && <EditTeamModal team={editingTeam} onClose={() => setEditingTeam(null)} onSaved={refreshAll} />}
         {addCoachTeam && (
           <AddCoachModal

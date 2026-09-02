@@ -135,6 +135,7 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
   const [allPlayers, setAllPlayers] = useState<PlayerRow[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRow[]>([]);
   const [detailPlayerId, setDetailPlayerId] = useState<string | null>(null);
+  const [detailAvatarConfig, setDetailAvatarConfig] = useState<PlayerRow['avatar_config']>(undefined);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -174,7 +175,9 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
 
         const teamIds = rawTeams.map((t: { id: string }) => t.id);
         const [{ data: playersData }, { data: attendanceData }] = await Promise.all([
-          supabase.from('players').select('*').in('team_id', teamIds),
+          supabase.from('players')
+            .select('id,name,team_id,age,preferred_foot,position,avatar_url,evaluations,completed_homework_ids')
+            .in('team_id', teamIds),
           supabase.from('attendance').select('player_id,team_id,session_date,present').in('team_id', teamIds),
         ]);
 
@@ -341,7 +344,15 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
 
   const selectedTeam = selectedTeamId ? teams.find(t => t.id === selectedTeamId) : null;
 
-  const detailPlayer = detailPlayerId ? allPlayers.find(p => p.id === detailPlayerId) ?? null : null;
+  useEffect(() => {
+    setDetailAvatarConfig(undefined);
+    if (!detailPlayerId) return;
+    void supabase.from('players').select('avatar_config').eq('id', detailPlayerId).single()
+      .then(({ data }) => setDetailAvatarConfig(data?.avatar_config ?? null));
+  }, [detailPlayerId]);
+
+  const detailPlayerBase = detailPlayerId ? allPlayers.find(p => p.id === detailPlayerId) ?? null : null;
+  const detailPlayer = detailPlayerBase ? { ...detailPlayerBase, avatar_config: detailAvatarConfig } : null;
   const detailTeam = detailPlayer ? teams.find(t => t.id === detailPlayer.team_id) ?? null : null;
 
   const drilldownData = useMemo(() => {

@@ -11,6 +11,7 @@ import { copyToClipboard } from '../../utils/clipboard';
 import { hashPin } from '../../utils/crypto';
 import type { TeamSession } from '../../types';
 import Card from '../ui/Card';
+import SignedVideo from '../ui/SignedVideo';
 import ToolButton from '../ui/ToolButton';
 import Slider from '../ui/Slider';
 import SkillRater from '../ui/SkillRater';
@@ -699,7 +700,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const executeRemovePlayer = async () => {
     const { playerId } = confirmRemove;
     if (!playerId) return;
-    await supabase.from('players').delete().eq('id', playerId);
+    // RPC i.p.v. directe DELETE: verwijdert ook alle gekoppelde rijen (video's,
+    // streaks, chatberichten, ...) in één transactie — zie fix_player_delete_cascade.sql.
+    await supabase.rpc('delete_player_cascade', { p_player_id: playerId });
     setPlayers(prev => {
       const remaining = prev.filter(p => p.id !== playerId);
       if (activePlayerId === playerId) setActivePlayerId(remaining[0]?.id ?? null);
@@ -1198,7 +1201,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                               <span className="text-[10px] font-bold shrink-0" style={{ color: statusColor }}>{statusLabel}</span>
                             </summary>
                             <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
-                              {sub.video_url && <video src={sub.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />}
+                              {sub.video_url && <SignedVideo value={sub.video_url} className="w-full rounded-lg max-h-40 object-contain bg-black" />}
                               {sub.ai_feedback ? (
                                 <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{sub.ai_feedback}</p>
                               ) : (
@@ -1360,7 +1363,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                             {comp.coach_reviewed && <CheckCircle2 size={15} className="shrink-0" style={{ color: COACH_COLOR }} />}
                           </summary>
                           <div className="px-3 pb-3 border-t border-gray-200 pt-3 space-y-2">
-                            {comp.video_url && <video src={comp.video_url} controls playsInline className="w-full rounded-lg max-h-40 object-contain bg-black" />}
+                            {comp.video_url && <SignedVideo value={comp.video_url} className="w-full rounded-lg max-h-40 object-contain bg-black" />}
                             {comp.reflection && (
                               <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{comp.reflection}</p>
                             )}

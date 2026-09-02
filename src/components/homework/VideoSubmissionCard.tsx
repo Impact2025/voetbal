@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Video, Upload, Loader2, CheckCircle2, AlertCircle, RotateCcw, Play, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadHomeworkVideo } from '../../lib/storage';
+import SignedVideo from '../ui/SignedVideo';
 import { extractVideoFrames, analyzeMovementVideo } from '../../lib/ai';
 import { COACH_COLOR } from '../../utils/constants';
 import type { CustomHomework, Player, HomeworkSubmission } from '../../types';
@@ -329,7 +330,7 @@ const VideoSubmissionCard = ({
 
             {showVideo && submission.video_url && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="rounded-xl overflow-hidden bg-black">
-                <video src={submission.video_url} controls playsInline className="w-full max-h-48 object-contain" />
+                <SignedVideo value={submission.video_url} className="w-full max-h-48 object-contain" />
               </motion.div>
             )}
 

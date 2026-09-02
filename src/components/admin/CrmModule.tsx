@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, RefreshCw, Loader2, Search, X, Building2, Globe, Trash2,
   Phone, Mail, CalendarClock, StickyNote, CheckSquare, Square,
-  User, Star, AlertTriangle,
+  User, Star, AlertTriangle, Shield, Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NEON_COLOR } from '../../utils/constants';
@@ -12,8 +12,9 @@ import {
   fetchAccounts, createAccount, updateAccount, deleteAccount,
   fetchContacts, createContact, deleteContact,
   fetchActivities, createActivity, toggleActivityDone, deleteActivity,
+  fetchAccountTeams,
   syncPlatform,
-  type CrmAccount, type CrmContact, type CrmActivity, type CrmStage, type ActivityType,
+  type CrmAccount, type CrmContact, type CrmActivity, type CrmStage, type ActivityType, type AccountTeamOverview,
 } from '../../lib/crm';
 
 const eur = (n: number) =>
@@ -95,15 +96,29 @@ const AccountDrawer = ({
   const [form, setForm] = useState<CrmAccount>(account);
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [activities, setActivities] = useState<CrmActivity[]>([]);
-  const [tab, setTab] = useState<'details' | 'contacts' | 'activity'>('details');
+  const [tab, setTab] = useState<'details' | 'contacts' | 'activity' | 'teams'>('details');
   const [newContact, setNewContact] = useState({ name: '', email: '', role: '' });
   const [newAct, setNewAct] = useState<{ type: ActivityType; title: string; due_date: string }>({ type: 'note', title: '', due_date: '' });
+  const [teams, setTeams] = useState<AccountTeamOverview[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
 
   useEffect(() => { setForm(account); }, [account]);
   useEffect(() => {
     void fetchContacts(account.id).then(setContacts).catch(() => {});
     void fetchActivities(account.id).then(setActivities).catch(() => {});
   }, [account.id]);
+
+  const loadTeams = useCallback(() => {
+    if (!account.club_id) return;
+    setTeamsLoading(true); setTeamsError(null);
+    fetchAccountTeams(account.club_id)
+      .then(setTeams)
+      .catch((e) => setTeamsError(e instanceof Error ? e.message : 'Kon teams niet laden'))
+      .finally(() => setTeamsLoading(false));
+  }, [account.club_id]);
+
+  useEffect(() => { if (tab === 'teams') loadTeams(); }, [tab, loadTeams]);
 
   const saveField = async (patch: Partial<CrmAccount>) => {
     const next = { ...form, ...patch };
@@ -156,13 +171,16 @@ const AccountDrawer = ({
       </div>
 
       <div className="flex border-b border-gray-800">
-        {(['details', 'contacts', 'activity'] as const).map((t) => (
+        {(['details', 'contacts', 'activity', 'teams'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 py-3 text-sm font-medium ${tab === t ? 'text-white border-b-2 border-[--neon-color]' : 'text-gray-500'}`}
           >
-            {t === 'details' ? 'Details' : t === 'contacts' ? `Contacten (${contacts.length})` : `Activiteit (${activities.length})`}
+            {t === 'details' ? 'Details'
+              : t === 'contacts' ? `Contacten (${contacts.length})`
+              : t === 'activity' ? `Activiteit (${activities.length})`
+              : `Teams${teams.length ? ` (${teams.length})` : ''}`}
           </button>
         ))}
       </div>
@@ -289,6 +307,59 @@ const AccountDrawer = ({
               </div>
             ))}
             {activities.length === 0 && <p className="text-sm text-gray-600 text-center py-4">Nog geen activiteit.</p>}
+          </>
+        )}
+
+        {tab === 'teams' && (
+          <>
+            {!account.club_id ? (
+              <p className="text-sm text-gray-600 text-center py-8">
+                Dit account is nog niet gekoppeld aan een club. Draai eerst "Sync" of vul een Club ID in via Details, dan verschijnen hier live de elftallen.
+              </p>
+            ) : teamsLoading ? (
+              <div className="flex items-center justify-center py-12 text-gray-400">
+                <Loader2 className="animate-spin h-6 w-6" style={{ color: NEON_COLOR }} />
+              </div>
+            ) : teamsError ? (
+              <div className="text-sm text-red-400 text-center py-8">
+                {teamsError}
+                <button onClick={loadTeams} className="block mx-auto mt-2 text-xs text-gray-400 underline">Opnieuw proberen</button>
+              </div>
+            ) : teams.length === 0 ? (
+              <p className="text-sm text-gray-600 text-center py-8">Nog geen elftallen aangemaakt bij deze club.</p>
+            ) : (
+              <>
+                <button onClick={loadTeams} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white ml-auto">
+                  <RefreshCw className="h-3 w-3" /> Verversen
+                </button>
+                {teams.map((t) => (
+                  <div key={t.id} className={`rounded-lg border p-3 ${t.archived_at ? 'border-gray-800/60 opacity-50' : 'border-gray-800'}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-white text-sm font-bold">
+                        <Shield className="h-3.5 w-3.5" style={{ color: NEON_COLOR }} />
+                        {t.team_name}
+                        {t.archived_at && <span className="text-[10px] font-normal text-gray-500">(gearchiveerd)</span>}
+                      </div>
+                      <span className="text-xs text-gray-500">{t.team_class}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
+                      <Users className="h-3.5 w-3.5" /> {t.playerCount} speler{t.playerCount === 1 ? '' : 's'}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {t.coaches.length === 0 ? (
+                        <p className="text-xs text-amber-400/80 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Nog geen coach toegewezen</p>
+                      ) : t.coaches.map((c, i) => (
+                        <div key={i} className="text-xs text-gray-400 flex items-center gap-1.5">
+                          <User className="h-3 w-3" />
+                          {c.email}
+                          <span className="text-gray-600">· {c.role === 'head' ? 'hoofdcoach' : 'assistent'}{c.status === 'invited' ? ' · uitgenodigd' : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </>
         )}
       </div>

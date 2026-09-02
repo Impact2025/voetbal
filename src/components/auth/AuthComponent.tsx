@@ -63,6 +63,23 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
 
   useEffect(() => { if (isRecovering) setView('resetPassword'); }, [isRecovering]);
 
+  // Vult een demo-account in wanneer je vanaf /demo doorklikt (?demo=clubAdmin|coach|player).
+  useEffect(() => {
+    const demo = new URLSearchParams(window.location.search).get('demo');
+    if (!demo) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if (demo === 'clubAdmin') {
+      localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false);
+      setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!');
+    } else if (demo === 'coach') {
+      localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false);
+      setView('coachLogin'); setEmail('v.munster@weareimpact.nl'); setPassword('Demo1234');
+    } else if (demo === 'player') {
+      localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); setRememberMe(false);
+      setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233');
+    }
+  }, []);
+
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get('coachInvite');
     if (!token) return;
@@ -669,49 +686,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
             </p>
           )}
 
-          {(view === 'playerLogin' || view === 'coachLogin' || view === 'clubAdminLogin') && (
-            <div className={`mt-6 border-t pt-5 ${isLightMode ? 'border-gray-200' : 'border-gray-800'}`}>
-              <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isLightMode ? 'text-gray-400' : 'text-gray-600'}`}>Demo Account</p>
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => { localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false); setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!'); setError(''); }}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left group ${isLightMode ? 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300' : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600'}`}
-                >
-                  <Building2 size={15} style={{ color: NEON_COLOR }} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold ${isLightMode ? 'text-gray-800' : 'text-white'}`}>Club Admin — Impact FC</p>
-                    <p className="text-[10px] text-gray-500 truncate">chat@weareimpact.nl · Skillkaart2026!</p>
-                  </div>
-                  <span className={`text-[10px] transition-colors ${isLightMode ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-600 group-hover:text-gray-400'}`}>invullen →</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false); setView('coachLogin'); setEmail('v.munster@weareimpact.nl'); setPassword('Demo1234'); setError(''); }}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left group ${isLightMode ? 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300' : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600'}`}
-                >
-                  <ShieldCheck size={15} style={{ color: NEON_COLOR }} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold ${isLightMode ? 'text-gray-800' : 'text-white'}`}>Coach — V. Munster</p>
-                    <p className="text-[10px] text-gray-500 truncate">v.munster@weareimpact.nl · Demo1234</p>
-                  </div>
-                  <span className={`text-[10px] transition-colors ${isLightMode ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-600 group-hover:text-gray-400'}`}>invullen →</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); setRememberMe(false); setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233'); setError(''); }}
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left group ${isLightMode ? 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300' : 'bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600'}`}
-                >
-                  <User size={15} style={{ color: NEON_COLOR }} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-semibold ${isLightMode ? 'text-gray-800' : 'text-white'}`}>Speler — Luca van den Berg</p>
-                    <p className="text-[10px] text-gray-500">IMPACT-JO10-1 · PIN 112233</p>
-                  </div>
-                  <span className={`text-[10px] transition-colors ${isLightMode ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-600 group-hover:text-gray-400'}`}>invullen →</span>
-                </button>
-              </div>
-            </div>
-          )}
         </Card>
       </motion.div>
     </div>

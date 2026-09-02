@@ -15,6 +15,7 @@ const TYPE_STYLE: Record<string, { label: string; cls: string }> = {
   warming_up: { label: 'Warming-up', cls: 'bg-orange-100 text-orange-700' },
   techniek:   { label: 'Techniek',   cls: 'bg-blue-100 text-blue-700' },
   partijvorm: { label: 'Spelvorm',   cls: 'bg-purple-100 text-purple-700' },
+  test:       { label: 'Testdag',    cls: 'bg-red-100 text-red-700' },
 };
 
 const CoachWeekAgenda = ({ clubId, isClubPro, coachName, teamName, onGoToTrainingen }: CoachWeekAgendaProps) => {

@@ -135,6 +135,44 @@ export async function deleteActivity(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// ─── Teams (live overzicht van gekoppelde club) ───────────────────────────────
+
+export interface AccountTeamOverview {
+  id: string;
+  team_name: string;
+  team_class: string;
+  archived_at: string | null;
+  playerCount: number;
+  coaches: { email: string; role: 'head' | 'assistant'; status: 'invited' | 'active' }[];
+}
+
+export async function fetchAccountTeams(clubId: string): Promise<AccountTeamOverview[]> {
+  const { data: teams, error } = await supabase
+    .from('teams')
+    .select('id, team_name, team_class, archived_at')
+    .eq('club_id', clubId)
+    .order('team_name');
+  if (error) throw new Error(error.message);
+  const teamRows = (teams ?? []) as { id: string; team_name: string; team_class: string; archived_at: string | null }[];
+  if (!teamRows.length) return [];
+  const teamIds = teamRows.map((t) => t.id);
+
+  const [{ data: players, error: pErr }, { data: coaches, error: cErr }] = await Promise.all([
+    supabase.from('players').select('id, team_id').in('team_id', teamIds),
+    supabase.from('team_coaches').select('team_id, email, role, status').in('team_id', teamIds).neq('status', 'removed'),
+  ]);
+  if (pErr) throw new Error(pErr.message);
+  if (cErr) throw new Error(cErr.message);
+
+  return teamRows.map((t) => ({
+    ...t,
+    playerCount: (players ?? []).filter((p) => p.team_id === t.id).length,
+    coaches: (coaches ?? [])
+      .filter((c) => c.team_id === t.id)
+      .map((c) => ({ email: c.email, role: c.role, status: c.status })),
+  }));
+}
+
 // ─── Sync ─────────────────────────────────────────────────────────────────────
 
 export async function syncPlatform(): Promise<{ new_accounts: number; new_contacts: number }> {

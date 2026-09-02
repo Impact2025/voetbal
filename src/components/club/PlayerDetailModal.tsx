@@ -5,6 +5,7 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '../../lib/supabase';
+import SignedVideo from '../ui/SignedVideo';
 import { SKILL_GROUPS, SKILL_LABELS, skillKeys, testLabels, initialTestState } from '../../utils/constants';
 import type { Player } from '../../types';
 import type { TeamEnriched, AttendanceRow } from './ClubAdminDashboard';
@@ -261,7 +262,7 @@ const PlayerDetailModal = ({ isVisible, onClose, player, team, attendanceRecords
                         </summary>
                         <div className="mt-2 space-y-2">
                           {sub.video_url && (
-                            <video src={sub.video_url} controls className="w-full rounded-lg max-h-64" />
+                            <SignedVideo value={sub.video_url} className="w-full rounded-lg max-h-64" />
                           )}
                           {sub.ai_feedback && (
                             <p className="text-xs text-gray-600 whitespace-pre-line">{sub.ai_feedback}</p>

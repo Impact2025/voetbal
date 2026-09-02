@@ -75,6 +75,33 @@ export const SendCampaignSchema = z.object({
   segment_stage: z.string().nullable().optional(),
 });
 
+// ─── Team-chat ──────────────────────────────────────────────────────────────
+
+export const TeamChatActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('listChannels'), teamId: z.string().min(1).max(100) }),
+  z.object({ action: z.literal('ensureChannels'), teamId: z.string().min(1).max(100) }),
+  z.object({ action: z.literal('joinChannel'), channelId: z.string().uuid() }),
+  z.object({
+    action: z.literal('listMessages'),
+    channelId: z.string().uuid(),
+    before: z.string().optional(),
+    after: z.string().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+  }),
+  z.object({
+    action: z.literal('sendMessage'),
+    channelId: z.string().uuid(),
+    content: z.string().min(1).max(2000),
+    senderName: z.string().min(1).max(120).optional(),
+    mentions: z.array(z.string().uuid()).max(50).optional(),
+    replyTo: z.string().uuid().optional(),
+  }),
+  z.object({ action: z.literal('editMessage'), messageId: z.string().uuid(), content: z.string().min(1).max(2000) }),
+  z.object({ action: z.literal('updateLastRead'), channelId: z.string().uuid() }),
+  z.object({ action: z.literal('toggleMute'), channelId: z.string().uuid(), muted: z.boolean() }),
+  z.object({ action: z.literal('unreadCounts') }),
+]);
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function formatZodErrors(

@@ -1,24 +1,7 @@
 // AI loopt via de serverless proxy /api/ai — de OpenRouter-key blijft server-side.
-import { supabase } from './supabase';
+import { authHeaders } from './apiAuth';
 
 const AI_PROXY_URL = '/api/ai';
-
-// De proxy vereist een identiteit: een Supabase Bearer-token (coach/club/
-// ouder) of het speler-uuid uit de PIN-sessie (X-Player-Id).
-async function authHeaders(): Promise<Record<string, string>> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) return { Authorization: `Bearer ${session.access_token}` };
-  } catch { /* geen Supabase-sessie — mogelijk speler-login */ }
-  try {
-    const raw = localStorage.getItem('playerSession');
-    if (raw) {
-      const parsed = JSON.parse(raw) as { uid?: string };
-      if (parsed.uid) return { 'X-Player-Id': parsed.uid };
-    }
-  } catch { /* corrupte sessie negeren */ }
-  return {};
-}
 
 interface AICallOptions {
   max_tokens?: number;

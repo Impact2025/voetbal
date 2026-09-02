@@ -18,7 +18,7 @@ const ACCENT = '#16A34A';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ALL_AGE_GROUPS = ['O8', 'O9', 'O10', 'O11', 'O12'] as const;
-const AVAILABLE_AGE_GROUPS = ['O8'] as const;
+const AVAILABLE_AGE_GROUPS = ['O8', 'O9', 'O10', 'O11', 'O12'] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

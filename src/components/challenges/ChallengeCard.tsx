@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, CheckCircle2, Loader2, Wand2, Video, Upload, Ro
 import { CATEGORY_META } from '../../data/challenges';
 import { getChallengeAIFeedback, extractVideoFrames, analyzeChallengeVideo } from '../../lib/ai';
 import { uploadChallengeVideo } from '../../lib/storage';
+import SignedVideo from '../ui/SignedVideo';
 import { COACH_COLOR } from '../../utils/constants';
 import type { Challenge, ChallengeCompletion, Player } from '../../types';
 
@@ -335,7 +336,7 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                       </div>
                       {submittedVideoUrl && showVideo && (
                         <div className="mb-3 rounded-xl overflow-hidden bg-black">
-                          <video src={submittedVideoUrl} controls playsInline className="w-full max-h-40 object-contain" />
+                          <SignedVideo value={submittedVideoUrl} className="w-full max-h-40 object-contain" />
                         </div>
                       )}
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{videoAIFeedback}</p>
@@ -368,7 +369,7 @@ const ChallengeCard = ({ challenge, player, completion, onComplete }: ChallengeC
                   </div>
                   {showVideo && (
                     <div className="rounded-xl overflow-hidden bg-black">
-                      <video src={completion.video_url} controls playsInline className="w-full max-h-40 object-contain" />
+                      <SignedVideo value={completion.video_url} className="w-full max-h-40 object-contain" />
                     </div>
                   )}
                   {completion.video_ai_feedback && (
