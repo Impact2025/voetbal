@@ -10,13 +10,10 @@ env:
   NODE_VERSION: 22
 
 jobs:
-  # ─── player-hub (hoofd-app) ──────────────────────────────────────────────
+  # ─── player-hub (hoofd-app, repo-root) ───────────────────────────────────
   player-hub:
     name: player-hub (lint + typecheck + test)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: player-hub
 
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +22,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: player-hub/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
 
@@ -37,30 +34,6 @@ jobs:
 
       - name: Tests
         run: npm run test -- --run
-
-  # ─── player-pwa ──────────────────────────────────────────────────────────
-  player-pwa:
-    name: player-pwa (build check)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: player-pwa
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - run: npm ci
-
-      - name: TypeScript check
-        run: npx tsc --noEmit
-        continue-on-error: true
-
-      - name: Build
-        run: npm run build
 
   # ─── website ─────────────────────────────────────────────────────────────
   website:
