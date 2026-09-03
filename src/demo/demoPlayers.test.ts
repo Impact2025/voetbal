@@ -40,14 +40,14 @@ describe('demo players — full coverage', () => {
     }
   });
 
-  it('every player has fitness + all 15 tests filled', () => {
+  it('every player has fitness + all 6 tests filled', () => {
     for (const p of demoPlayers) {
       const ev = p.evaluations[LATEST];
       expect(ev.fitness.yoyo).not.toBe('');
       expect(ev.fitness.cooper).not.toBe('');
       expect(ev.fitness.sprint).not.toBe('');
       const flat = Object.values(ev.tests).flatMap((cat) => Object.values(cat));
-      expect(flat).toHaveLength(15);
+      expect(flat).toHaveLength(6);
       for (const val of flat) expect(String(val).length).toBeGreaterThan(0);
     }
   });

@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NewConvEmptyState } from './MessagingInbox';
 
+// MessagingInbox importeert ../../lib/supabase top-level, wat crasht zonder
+// VITE_SUPABASE_URL/ANON_KEY (niet gezet in CI) — dit test enkel het
+// gedragsloze NewConvEmptyState-subcomponent, dus mock de client weg.
+// (vi.mock wordt door vitest gehesen vóór bovenstaande import.)
+vi.mock('../../lib/supabase', () => ({ supabase: {} }));
+
 const noop = () => {};
 
 describe('NewConvEmptyState', () => {
