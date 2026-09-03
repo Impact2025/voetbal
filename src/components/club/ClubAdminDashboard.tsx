@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronDown, CalendarCheck,
   ClipboardList, BarChart2, AlertTriangle, Star, Loader2,
   LayoutDashboard, UserSquare, Bell, UserCog, BookOpen, MessageSquare, Heart, Download,
-  GitCompareArrows, Lock, X as XIcon,
+  GitCompareArrows, Lock, X as XIcon, LifeBuoy,
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import {
@@ -23,6 +23,7 @@ import TrainersTab from './TrainersTab';
 import ClubTrainingTab from './ClubTrainingTab';
 import TeamManagementTab from './TeamManagementTab';
 import MessagingInbox from '../messaging/MessagingInbox';
+import SupportInbox from '../support/SupportInbox';
 import { usePWA } from '../../lib/usePWA';
 import InstallModal from '../modals/InstallModal';
 import PlayerDetailModal from './PlayerDetailModal';
@@ -65,7 +66,7 @@ interface ClubAdminDashboardProps {
   onLogout: () => void;
 }
 
-type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers' | 'teams' | 'trainingen' | 'berichten';
+type SectionId = 'overzicht' | 'spelers' | 'signalen' | 'trainers' | 'teams' | 'trainingen' | 'berichten' | 'support';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -454,6 +455,13 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
                   {unreadMessages}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setSection('support')}
+              title="Support"
+              className="relative flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600 text-xs font-bold"
+            >
+              <LifeBuoy size={14} /> <span className="hidden sm:inline">Support</span>
             </button>
             <button
               onClick={() => setSection('signalen')}
@@ -978,6 +986,16 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
               clubId={userData.clubId}
               onUnreadChange={setUnreadMessages}
             />
+          </motion.div>
+
+        ) : section === 'support' ? (
+          /* ── Support ── */
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="mb-5">
+              <h2 className="text-lg font-black text-gray-900">Support</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Tickets van trainers en ouders die bij de club terechtkomen.</p>
+            </div>
+            <SupportInbox />
           </motion.div>
 
         ) : (

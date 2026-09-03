@@ -13,6 +13,7 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import LandingPage from './components/landing/LandingPage';
 import OnlineBanner from './components/OnlineBanner';
 import SWUpdateToast from './components/SWUpdateToast';
+import SupportWidget from './components/support/SupportWidget';
 import DemoPage from './components/DemoPage';
 
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
@@ -392,6 +393,7 @@ export default function Skillkaart() {
           <Dashboard user={session.user} userData={userData} onPlayerLogout={handlePlayerLogout} />
         )}
       </ErrorBoundary>
+      {session && userData && !isRecovering && <SupportWidget />}
       <OnlineBanner />
       <SWUpdateToast />
     </div>

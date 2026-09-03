@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } fro
 import toast, { Toaster } from 'react-hot-toast';
 import type { Player, Team, CustomHomework, UserData, SessionUser, AttendanceRecord, HomeworkSubmission, ChallengeCompletion, WeekChallengeCompletion, Streak, SeasonWeekPlan } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap, MessageSquare, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, User, LogOut, ShieldCheck, UserSquare, ClipboardList, CheckCircle2, ListPlus, Wand2, Loader2, FileText, Copy, Settings2, TrendingUp, LayoutDashboard, Target, CalendarCheck, Download, Trophy, Link2, Flame, BookOpen, Zap, MessageSquare, ChevronLeft, LifeBuoy } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { callAI } from '../../lib/ai';
 import { generateIndividualPlan } from '../../lib/trainingAI';
@@ -47,6 +47,7 @@ import OnboardingTour from '../OnboardingTour';
 import ProGate from '../ui/ProGate';
 const SeasonTrainingView = lazy(() => import('../training/SeasonTrainingView'));
 const MessagingInbox = lazy(() => import('../messaging/MessagingInbox'));
+const SupportInbox = lazy(() => import('../support/SupportInbox'));
 const TeamChatLazy = lazy(() => import('../chat/TeamChat'));
 const PlayerNotificationsInbox = lazy(() => import('../notifications/PlayerNotificationsInbox'));
 import PushNotificationSender from '../notifications/PushNotificationSender';
@@ -855,6 +856,9 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </span>
                   )}
                 </button>
+                <button onClick={() => setMobileSection('support')} title="Support" className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
+                  <LifeBuoy size={16} />
+                </button>
                 <button onClick={() => setIsCoachProfileVisible(true)} title="Instellingen" className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors text-gray-500">
                   <Settings2 size={16} />
                 </button>
@@ -1589,6 +1593,19 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     </Suspense>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── SUPPORT ── */}
+            {mobileSection === 'support' && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-black text-gray-900">Support</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Vragen van spelers en ouders die bij jou terechtkomen.</p>
+                </div>
+                <Suspense fallback={<div className="h-96 bg-gray-100 rounded-2xl animate-pulse" />}>
+                  <SupportInbox />
+                </Suspense>
               </div>
             )}
           </main>

@@ -102,6 +102,47 @@ export const TeamChatActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('unreadCounts') }),
 ]);
 
+// ─── Support / tickets / AI-agent ──────────────────────────────────────────
+
+export const SupportActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('listCategories') }),
+  z.object({
+    action: z.literal('chat'),
+    sessionId: z.string().uuid().optional(),
+    message: z.string().min(1).max(2000),
+  }),
+  z.object({
+    action: z.literal('escalate'),
+    sessionId: z.string().uuid(),
+    subject: z.string().min(1).max(200),
+    categoryId: z.string().max(50).optional(),
+  }),
+  z.object({
+    action: z.literal('createTicket'),
+    categoryId: z.string().min(1).max(50),
+    subject: z.string().min(1).max(200),
+    message: z.string().min(1).max(4000),
+  }),
+  z.object({ action: z.literal('listMyTickets') }),
+  z.object({ action: z.literal('listInboxTickets') }),
+  z.object({ action: z.literal('getTicket'), ticketId: z.string().uuid() }),
+  z.object({
+    action: z.literal('sendTicketMessage'),
+    ticketId: z.string().uuid(),
+    body: z.string().min(1).max(4000),
+  }),
+  z.object({
+    action: z.literal('updateTicketStatus'),
+    ticketId: z.string().uuid(),
+    status: z.enum(['open', 'in_behandeling', 'opgelost', 'gesloten']),
+  }),
+  z.object({
+    action: z.literal('faqFeedback'),
+    faqId: z.string().min(1).max(50),
+    helpful: z.boolean(),
+  }),
+]);
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function formatZodErrors(

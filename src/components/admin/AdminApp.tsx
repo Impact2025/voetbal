@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import {
   LayoutDashboard, Users, Mail, FileText, Ticket, Building2,
   LogOut, Loader2, RefreshCw, TrendingUp, Video, Activity,
-  AlertTriangle, UserCog, Sparkles, BookOpen,
+  AlertTriangle, UserCog, Sparkles, BookOpen, LifeBuoy,
 } from 'lucide-react';
 import { NEON_COLOR } from '../../utils/constants';
 import Card from '../ui/Card';
@@ -16,10 +16,11 @@ const MailModule = lazy(() => import('./MailModule'));
 const BlogModule = lazy(() => import('./BlogModule'));
 const CouponsModule = lazy(() => import('./CouponsModule'));
 const TrainingModule = lazy(() => import('./TrainingModule'));
+const SupportInbox = lazy(() => import('../support/SupportInbox'));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SectionId = 'cockpit' | 'crm' | 'mail' | 'blog' | 'coupons' | 'trainingen';
+type SectionId = 'cockpit' | 'crm' | 'mail' | 'blog' | 'coupons' | 'trainingen' | 'support';
 
 interface AdminAppProps {
   userData: UserData;
@@ -40,6 +41,7 @@ const NAV: NavItem[] = [
   { id: 'blog',    label: 'Blog',    icon: FileText,        ready: true },
   { id: 'coupons',    label: 'Coupons',     icon: Ticket,      ready: true },
   { id: 'trainingen', label: 'Voetballessen', icon: BookOpen,  ready: true },
+  { id: 'support',    label: 'Support',        icon: LifeBuoy, ready: true },
 ];
 
 // ─── KPI-kaart ────────────────────────────────────────────────────────────────
@@ -248,6 +250,14 @@ export default function AdminApp({ userData, onLogout }: AdminAppProps) {
           ) : section === 'trainingen' ? (
             <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="animate-spin h-8 w-8" style={{ color: NEON_COLOR }} /></div>}>
               <TrainingModule />
+            </Suspense>
+          ) : section === 'support' ? (
+            <Suspense fallback={<div className="flex items-center justify-center py-24"><Loader2 className="animate-spin h-8 w-8" style={{ color: NEON_COLOR }} /></div>}>
+              <div className="mb-5">
+                <h1 className="text-2xl font-black text-white">Support</h1>
+                <p className="text-sm text-gray-500">Platform-brede tickets — alles wat clubs niet zelf konden oplossen.</p>
+              </div>
+              <SupportInbox />
             </Suspense>
           ) : (
             <ComingSoon label={NAV.find((n) => n.id === section)?.label ?? ''} />
