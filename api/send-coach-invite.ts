@@ -92,8 +92,11 @@ function renderHtml(
             <h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;line-height:1.3;">
               ${coachName ? `Hoi ${coachName},` : 'Je bent uitgenodigd'}
             </h2>
-            <p style="margin:0 0 24px;font-size:14px;color:#4b5563;line-height:1.7;">
+            <p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.7;">
               ${senderName ? `<strong>${senderName}</strong> nodigt je uit` : 'Je wordt uitgenodigd'} om als <strong>${roleLabel}</strong> aan de slag te gaan bij <strong>${teamName}</strong> (${clubName}).${isMagic ? ' Klik hieronder om direct in te loggen — <strong>geen wachtwoord nodig</strong>.' : ''}
+            </p>
+            <p style="margin:0 0 24px;font-size:13px;color:#6b7280;line-height:1.6;background:#f9fafb;border-radius:10px;padding:12px 16px;">
+              <strong style="color:#374151;">Wat is Skillkaart?</strong> Het platform waarmee je als coach trainingen plant, de ontwikkeling van je spelers bijhoudt en contact houdt met ouders — alles op één plek.
             </p>
 
             ${isMagic ? `
@@ -106,7 +109,7 @@ function renderHtml(
                   </a>
                 </td>
               </tr>
-              <tr><td align="center" style="padding-top:10px;font-size:11px;color:#9ca3af;">Deze link is éénmalig en 24 uur geldig</td></tr>
+              <tr><td align="center" style="padding-top:10px;font-size:11px;color:#9ca3af;">Deze link werkt één keer om in te loggen</td></tr>
             </table>
 
             <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;">Werkt de knop niet?</p>
@@ -151,8 +154,8 @@ function renderHtml(
         <tr>
           <td style="padding:16px 28px 24px;border-top:1px solid #f3f4f6;">
             <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;line-height:1.6;">
-              Je ontvangt deze mail omdat een clubbeheerder je heeft uitgenodigd als coach.<br>
-              Vragen? Neem contact op met je clubbeheerder.
+              Je ontvangt deze mail omdat ${senderName ? `<strong>${senderName}</strong>` : 'een clubbeheerder'} je heeft uitgenodigd als coach bij ${clubName}.<br>
+              Vragen? ${senderName ? `Neem contact op met ${senderName}` : 'Neem contact op met je clubbeheerder'} of mail naar <a href="mailto:hello@skillkaart.nl" style="color:#9ca3af;">hello@skillkaart.nl</a>.
             </p>
           </td>
         </tr>

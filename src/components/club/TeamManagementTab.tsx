@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, Loader2, Plus, ChevronDown, Pencil, Archive, ArchiveRestore,
-  UserPlus, X, Mail, Trash2, Shield as ShieldIcon, BarChart2, Upload,
+  UserPlus, X, Mail, Send, Trash2, Shield as ShieldIcon, BarChart2, Upload,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { fetchClubSubscriptionTier, setClubProStatus } from '../../lib/trainingLibrary';
@@ -22,6 +22,23 @@ const ACCENT = '#16A34A';
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+// Stuurt (of herstuurt) de coach-uitnodigingsmail voor een bestaande
+// team_coaches-rij. Hergebruikt het invite_token dat al op de rij staat,
+// zodat er nooit een dubbele rij ontstaat — alleen de mail wordt (opnieuw) verstuurd.
+async function sendCoachInviteEmail(params: {
+  to: string; teamName: string; clubName: string; inviteToken: string; role: 'head' | 'assistant'; senderEmail: string;
+}): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const res = await fetch('/api/send-coach-invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(params),
+  });
+  const data = await res.json() as { error?: string };
+  if (!res.ok) throw new Error(data.error || 'Versturen van uitnodiging mislukt.');
+}
 
 interface TeamManagementTabProps {
   clubId: string;
@@ -172,22 +189,14 @@ const AddCoachModal = ({ team, clubId, clubName, senderEmail, existingCoachIds, 
     let invite: TeamCoach | null = null;
     try {
       invite = await inviteCoach({ teamId: team.id, clubId, email: inviteEmail.trim(), role });
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await fetch('/api/send-coach-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({
-          to: inviteEmail.trim(),
-          teamName: team.team_name,
-          clubName,
-          inviteToken: invite.invite_token,
-          role,
-          senderEmail,
-        }),
+      await sendCoachInviteEmail({
+        to: inviteEmail.trim(),
+        teamName: team.team_name,
+        clubName,
+        inviteToken: invite.invite_token!,
+        role,
+        senderEmail,
       });
-      const data = await res.json() as { error?: string };
-      if (!res.ok) throw new Error(data.error || 'Versturen van uitnodiging mislukt.');
       toast.success('Uitnodiging verstuurd! Coach kan direct via de mail inloggen.');
       onAdded();
       onClose();
@@ -287,6 +296,8 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [addCoachTeam, setAddCoachTeam] = useState<Team | null>(null);
+  const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
 
   const reload = useCallback(async () => {
     const tier = await fetchClubSubscriptionTier(clubId);
@@ -343,6 +354,52 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
     refreshAll();
   };
 
+  const handleSendInvite = async (tc: TeamCoach, teamName: string) => {
+    if (!tc.invite_token) { toast.error('Geen uitnodigingstoken gevonden voor deze rij.'); return; }
+    setSendingIds(prev => new Set(prev).add(tc.id));
+    try {
+      await sendCoachInviteEmail({
+        to: tc.email, teamName, clubName, inviteToken: tc.invite_token, role: tc.role, senderEmail,
+      });
+      toast.success(`Uitnodiging verstuurd naar ${tc.email}.`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSendingIds(prev => { const next = new Set(prev); next.delete(tc.id); return next; });
+    }
+  };
+
+  // Alle nog niet-actieve coaches in één keer mailen — nodig na een bulk-import
+  // van coaches (bv. via een seed-script) waarbij de rijen al bestaan maar er
+  // nog geen mail is verstuurd. Stopt netjes bij een rate-limit (max 20/uur
+  // per club-admin op /api/send-coach-invite) zodat de rest later kan.
+  const pendingInvites = teams.flatMap(team =>
+    (coachesByTeam[team.id] ?? []).filter(tc => tc.status === 'invited').map(tc => ({ tc, teamName: team.team_name })),
+  );
+
+  const handleSendAllPending = async () => {
+    setBulkSending(true);
+    let sent = 0;
+    for (const { tc, teamName } of pendingInvites) {
+      if (!tc.invite_token) continue;
+      setSendingIds(prev => new Set(prev).add(tc.id));
+      try {
+        await sendCoachInviteEmail({
+          to: tc.email, teamName, clubName, inviteToken: tc.invite_token, role: tc.role, senderEmail,
+        });
+        sent++;
+      } catch (err) {
+        setBulkSending(false);
+        toast.error(`Gestopt na ${sent} mails: ${(err as Error).message}`);
+        setSendingIds(new Set());
+        return;
+      }
+      setSendingIds(prev => { const next = new Set(prev); next.delete(tc.id); return next; });
+    }
+    setBulkSending(false);
+    toast.success(`${sent} uitnodiging${sent === 1 ? '' : 'en'} verstuurd.`);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin text-gray-400" /></div>;
   }
@@ -390,7 +447,18 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
         </Card>
       ) : (
         <>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 flex-wrap">
+            {pendingInvites.length > 0 && (
+              <button
+                onClick={handleSendAllPending}
+                disabled={bulkSending}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                style={{ backgroundColor: ACCENT }}
+              >
+                {bulkSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                {bulkSending ? 'Versturen...' : `${pendingInvites.length} openstaande uitnodiging${pendingInvites.length === 1 ? '' : 'en'} versturen`}
+              </button>
+            )}
             <button onClick={() => setShowBulkImport(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
               <Upload size={14} /> Spelers importeren (CSV)
             </button>
@@ -460,7 +528,19 @@ const TeamManagementTab = ({ clubId, clubName, senderEmail, isSuperAdmin = false
                                   {tc.role === 'head' ? 'Hoofdcoach' : 'Assistent'}
                                 </span>
                                 {tc.status === 'invited' && (
-                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600">Uitgenodigd</span>
+                                  <>
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600">Uitgenodigd</span>
+                                    <button
+                                      onClick={() => handleSendInvite(tc, team.team_name)}
+                                      disabled={sendingIds.has(tc.id)}
+                                      title="(Opnieuw) uitnodigingsmail versturen"
+                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold hover:opacity-80 disabled:opacity-50 transition-opacity"
+                                      style={{ backgroundColor: `${ACCENT}15`, color: ACCENT }}
+                                    >
+                                      {sendingIds.has(tc.id) ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                                      Mail
+                                    </button>
+                                  </>
                                 )}
                                 <button onClick={() => handleRemoveCoach(tc)} title="Verwijderen" className="p-1 rounded-md hover:bg-red-100 text-gray-300 hover:text-red-600 transition-colors">
                                   <Trash2 size={13} />

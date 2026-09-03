@@ -95,8 +95,11 @@ function renderHtml(
             <h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;line-height:1.3;">
               Volg de voortgang van ${playerName} 👟
             </h2>
-            <p style="margin:0 0 24px;font-size:14px;color:#4b5563;line-height:1.7;">
+            <p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.7;">
               ${senderName ? `<strong>${senderName}</strong> heeft` : 'De coach heeft'} toegang klaargezet zodat je de groei, huiswerk en trainingsvoortgang van <strong>${playerName}</strong> kunt volgen.${isMagic ? ' Klik hieronder om direct in te loggen — <strong>geen wachtwoord nodig</strong>.' : ''}
+            </p>
+            <p style="margin:0 0 24px;font-size:13px;color:#6b7280;line-height:1.6;background:#f9fafb;border-radius:10px;padding:12px 16px;">
+              <strong style="color:#374151;">Wat is Skillkaart?</strong> Het platform van de club waarop de trainer trainingen, huiswerkoefeningen en de ontwikkeling van je kind bijhoudt — zo blijf je als ouder op de hoogte.
             </p>
 
             ${isMagic ? `
@@ -175,8 +178,8 @@ function renderHtml(
         <tr>
           <td style="padding:16px 28px 24px;border-top:1px solid #f3f4f6;">
             <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;line-height:1.6;">
-              Je ontvangt deze mail omdat een coach of clubbeheerder een uitnodiging voor je heeft aangemaakt.<br>
-              Vragen? Neem contact op met de coach.
+              Je ontvangt deze mail omdat ${senderName ? `<strong>${senderName}</strong>` : 'de coach of clubbeheerder'} een uitnodiging voor ${playerName} heeft aangemaakt.<br>
+              Vragen? ${senderName ? `Neem contact op met ${senderName}` : 'Neem contact op met de coach'} of mail naar <a href="mailto:hello@skillkaart.nl" style="color:#9ca3af;">hello@skillkaart.nl</a>.
             </p>
           </td>
         </tr>
