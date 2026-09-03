@@ -24,6 +24,12 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      # Node 22's bundled npm (10.x) resolves vitest 4's nested vite/esbuild
+      # optional peer deps differently than the npm (11.13.0) that generated
+      # package-lock.json, so `npm ci` rejects the lock as out of sync even
+      # though it isn't. Pin npm to match until the runner ships npm 11+.
+      - run: npm install -g npm@11.13.0
+
       - run: npm ci
 
       - name: TypeScript check
