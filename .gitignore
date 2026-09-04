@@ -28,7 +28,18 @@ dist-ssr
 .vercel
 .env*.local
 
+# Supabase CLI local cache — generated, never commit
+supabase/.temp/
+
 # Large binary assets — not for git
 /trainingen/
 homework-videos/raw/
 cleanup-dupes.mjs
+
+# Docs folder holds only Markdown — keep PDFs local (too large / non-source)
+/docs/*.pdf
+!/docs/*.md
+/docs/*/\(1\).pdf
+
+# Skills live under scripts/.skills/ — DO commit
+!scripts/.skills/**
