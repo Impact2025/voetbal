@@ -27,14 +27,16 @@ import { pathToFileURL } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
 /* ── Config ────────────────────────────────────────────────────────── */
-// Elk item: regex match op bestandsnaam → homework_id + default team_id +
-//  fallback player (Cass Ruigrok voor O12-1). Override per video via CSV
-//  (--csv bestand) of env vars.
+// Elk item: regex match op bestandsnaam → homework_id + team_id + speler.
+// O-suffix-aware: "L Move (O11).mp4" matched via oSuffix='11' voor VVCO11-1.
+// Speler UUID's zijn hardcoded (Cass = O12, Cas Rodi = O11) — anders auto-pick.
 const VIDEO_HOMEWORK_MAP = [
-  { match: /L Move/i,           homeworkId: 'L Move',          teamId: 'VVCO12-1', playerId: '2cceeb98-a407-4488-8245-b99035cee389' }, // Cass Ruigrok
+  // L Move has different spelers per O-group, so order matters (O-suffix checked first)
+  { match: /L\sMove/i, homeworkId: 'L Move', teamId: 'VVCO12-1', playerId: '2cceeb98-a407-4488-8245-b99035cee389', oSuffix: '12' }, // Cass Ruigrok → O12
+  { match: /L\sMove/i, homeworkId: 'L Move', teamId: 'VVCO11-1', playerId: '599dc895-b4c5-4868-85be-c93e7238233d', oSuffix: '11' }, // Cas Rodi → O11
   { match: /Tippen/i,           homeworkId: 'Tippen',          teamId: 'VVCO8-1',  playerId: '908d89e8-8db5-470c-984c-dab74a8b2810' }, // Dani Gabel
-  { match: /Sole-Heel roll/i,   homeworkId: 'Sole-Heel roll',  teamId: 'VVCO9-1',  playerId: null },
-  { match: /Sole Drag/i,        homeworkId: 'Sole Drag',       teamId: 'VVCO10-1', playerId: null },
+  { match: /Sole-Heel roll/i,   homeworkId: 'Sole-Heel roll',  teamId: 'VVCO9-1',  playerId: null }, // auto-pick first VVCO9-1 speler
+  { match: /Sole Drag/i,        homeworkId: 'Sole Drag',       teamId: 'VVCO10-1', playerId: null }, // auto-pick first VVCO10-1 speler
 ];
 
 // Default downloads map
@@ -97,8 +99,15 @@ async function createSubmission(supabase, playerId, homeworkId, teamId, videoPat
   return data.id;
 }
 
-// Resolve best matching config entry for a filename
+// Resolve best matching config entry for a filename.
+// O-suffix-aware: "L Move (O11).mp4" matches O11-entry before O12-entry.
 function resolveConfig(fileName) {
+  // Prefer an exact O-suffix match, eg "(O11)" / "(O12)" in filename.
+  // Uses String.includes() — far less escaping-error-prone than RegExp templating.
+  for (const c of VIDEO_HOMEWORK_MAP) {
+    if (c.oSuffix && fileName.toLowerCase().includes('(o' + c.oSuffix + ')') && c.match.test(fileName)) return c;
+  }
+  // Fall back: first map entry whose match regex matches (no oSuffix constraint)
   for (const c of VIDEO_HOMEWORK_MAP) {
     if (c.match.test(fileName)) return c;
   }
@@ -158,8 +167,12 @@ async function main() {
         }
         homeworkId = homeworkId || cfg.homeworkId;
         teamId = teamId || cfg.teamId;
-        // Resolve een player voor het team als er nog geen playerId is
+        // Resolve player: cfg.playerId (mapped) -> auto-pick first speler -> error
         if (!playerId) {
+          playerId = cfg.playerId || null;  // use mapped player first (e.g. Cass/Cas)
+        }
+        if (!playerId) {
+          // ... fallback: auto-pick first speler in team
           const { data: p, error: pe } = await supabase
             .from('players')
             .select('id')
