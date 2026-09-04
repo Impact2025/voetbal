@@ -31,5 +31,4 @@ dist-ssr
 # Large binary assets — not for git
 /trainingen/
 homework-videos/raw/
-docs/
 cleanup-dupes.mjs

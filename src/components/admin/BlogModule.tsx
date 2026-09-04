@@ -5,12 +5,15 @@ import {
   ExternalLink, AlertTriangle, CheckCircle2, XCircle, Globe,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { NEON_COLOR } from '../../utils/constants';
 import { computeSeo, slugify, type SeoResult } from '../../lib/seo';
+
 import {
   fetchPosts, createPost, updatePost, deletePost, setPublished, generatePost,
   type BlogPost,
 } from '../../lib/blog';
+
+// Leesbare (donkerdere) variant van NEON_COLOR voor tekst/iconen op een lichte ondergrond.
+const ACCENT_INK = '#009966';
 
 type Draft = {
   id?: string;
@@ -32,23 +35,23 @@ const fromPost = (p: BlogPost): Draft => ({
   keywords: p.keywords, status: p.status, published_at: p.published_at,
 });
 
-const fieldCls = 'w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[--neon-color] outline-none';
+const fieldCls = 'w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:border-[--neon-color] outline-none';
 
 // ─── SEO-paneel ───────────────────────────────────────────────────────────────
 
 const SeoPanel = ({ result }: { result: SeoResult }) => {
-  const color = result.score >= 80 ? NEON_COLOR : result.score >= 50 ? '#fbbf24' : '#f87171';
+  const color = result.score >= 80 ? ACCENT_INK : result.score >= 50 ? '#d97706' : '#dc2626';
   return (
-    <div className="rounded-2xl border border-gray-800 bg-black/30 p-4">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-bold text-white">SEO-score</span>
+        <span className="text-sm font-bold text-gray-900">SEO-score</span>
         <span className="text-2xl font-black" style={{ color }}>{result.score}</span>
       </div>
       <div className="space-y-1.5">
         {result.checks.map((c) => (
           <div key={c.label} className="flex items-start gap-2 text-xs">
-            {c.ok ? <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: NEON_COLOR }} /> : <XCircle className="h-4 w-4 flex-shrink-0 text-gray-600" />}
-            <span className={c.ok ? 'text-gray-300' : 'text-gray-500'}>{c.ok ? c.label : c.hint}</span>
+            {c.ok ? <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: ACCENT_INK }} /> : <XCircle className="h-4 w-4 flex-shrink-0 text-gray-400" />}
+            <span className={c.ok ? 'text-gray-700' : 'text-gray-500'}>{c.ok ? c.label : c.hint}</span>
           </div>
         ))}
       </div>
@@ -110,15 +113,15 @@ const Editor = ({ initial, onBack, onSaved }: { initial: Draft; onBack: () => vo
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"><ArrowLeft className="h-4 w-4" /> Terug</button>
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"><ArrowLeft className="h-4 w-4" /> Terug</button>
         <div className="flex items-center gap-2">
           {d.status === 'published' && d.slug && (
-            <a href={`/blog/${d.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white">
+            <a href={`/blog/${d.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900">
               <ExternalLink className="h-4 w-4" /> Bekijk live
             </a>
           )}
-          {d.id && <button onClick={remove} className="text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-red-400"><Trash2 className="h-4 w-4" /></button>}
-          <button onClick={togglePublish} className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white">
+          {d.id && <button onClick={remove} className="text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-red-600"><Trash2 className="h-4 w-4" /></button>}
+          <button onClick={togglePublish} className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900">
             {d.status === 'published' ? <><EyeOff className="h-4 w-4" /> Depubliceren</> : <><Eye className="h-4 w-4" /> Publiceren</>}
           </button>
           <button onClick={() => void save()} disabled={saving} className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-[--neon-color] text-black font-bold disabled:opacity-50">
@@ -139,10 +142,10 @@ const Editor = ({ initial, onBack, onSaved }: { initial: Draft; onBack: () => vo
 
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500">Body (HTML)</span>
-            <button onClick={() => setShowPreview((s) => !s)} className="text-xs text-gray-400 hover:text-white">{showPreview ? 'Bewerken' : 'Preview'}</button>
+            <button onClick={() => setShowPreview((s) => !s)} className="text-xs text-gray-500 hover:text-gray-900">{showPreview ? 'Bewerken' : 'Preview'}</button>
           </div>
           {showPreview ? (
-            <div className="prose-invert bg-black/40 border border-gray-700 rounded-lg p-4 text-gray-200 text-sm max-h-[480px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: d.body }} />
+            <div className="prose bg-white border border-gray-300 rounded-lg p-4 text-gray-800 text-sm max-h-[480px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: d.body }} />
           ) : (
             <textarea className={`${fieldCls} h-[480px] resize-none font-mono text-xs`} placeholder="<p>Begin hier… gebruik <h2>, <ul>, en <a href=&quot;/blog/...&quot;> voor interne links.</p>" value={d.body} onChange={(e) => setD({ ...d, body: e.target.value })} />
           )}
@@ -150,8 +153,8 @@ const Editor = ({ initial, onBack, onSaved }: { initial: Draft; onBack: () => vo
 
         <div className="space-y-3">
           <SeoPanel result={seo} />
-          <div className="rounded-2xl border border-gray-800 bg-black/30 p-4 space-y-3">
-            <span className="text-sm font-bold text-white">Meta & keywords</span>
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+            <span className="text-sm font-bold text-gray-900">Meta & keywords</span>
             <input className={fieldCls} placeholder="Meta-title (max 60)" value={d.meta_title} onChange={(e) => setD({ ...d, meta_title: e.target.value })} />
             <textarea className={`${fieldCls} h-20 resize-none`} placeholder="Meta-description (80–155)" value={d.meta_description} onChange={(e) => setD({ ...d, meta_description: e.target.value })} />
             <input className={fieldCls} placeholder="Keywords (komma-gescheiden)" value={d.keywords.join(', ')} onChange={(e) => setD({ ...d, keywords: e.target.value.split(',').map((k) => k.trim()).filter(Boolean) })} />
@@ -188,8 +191,8 @@ const GeneratePanel = ({ onGenerated, onClose }: { onGenerated: (d: Draft) => vo
   };
 
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-black/40 to-[#00FF9D0a] p-4 space-y-3 mb-4">
-      <div className="flex items-center gap-2 text-white font-bold"><Sparkles className="h-4 w-4" style={{ color: NEON_COLOR }} /> AI-artikel genereren</div>
+    <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#00FF9D14] shadow-sm p-4 space-y-3 mb-4">
+      <div className="flex items-center gap-2 text-gray-900 font-bold"><Sparkles className="h-4 w-4" style={{ color: ACCENT_INK }} /> AI-artikel genereren</div>
       <input className={fieldCls} placeholder="Onderwerp, bv. 'Hoe motiveer je een JO9-team'" value={topic} onChange={(e) => setTopic(e.target.value)} />
       <div className="grid sm:grid-cols-2 gap-3">
         <input className={fieldCls} placeholder="Keywords (optioneel)" value={keywords} onChange={(e) => setKeywords(e.target.value)} />
@@ -199,7 +202,7 @@ const GeneratePanel = ({ onGenerated, onClose }: { onGenerated: (d: Draft) => vo
         <button onClick={go} disabled={busy} className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-[--neon-color] text-black font-bold disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Genereer
         </button>
-        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg bg-gray-800 text-white">Sluiten</button>
+        <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900">Sluiten</button>
       </div>
       <p className="text-[11px] text-gray-500">AI schrijft incl. interne links naar bestaande artikelen, externe bronnen en meta-tags. Daarna review je het concept.</p>
     </div>
@@ -228,10 +231,10 @@ export default function BlogModule() {
     return <Editor initial={editing} onBack={() => setEditing(null)} onSaved={load} />;
   }
 
-  if (loading) return <div className="flex items-center justify-center py-24 text-gray-400"><Loader2 className="animate-spin h-8 w-8 mr-3" style={{ color: NEON_COLOR }} /> Blog laden…</div>;
+  if (loading) return <div className="flex items-center justify-center py-24 text-gray-500"><Loader2 className="animate-spin h-8 w-8 mr-3" style={{ color: ACCENT_INK }} /> Blog laden…</div>;
   if (error) return (
-    <div className="flex items-center gap-3 text-red-400 p-6 border border-red-500/40 rounded-2xl">
-      <AlertTriangle className="h-5 w-5" /> <div><div className="font-bold">Kon blog niet laden</div><div className="text-sm text-gray-400">{error}</div></div>
+    <div className="flex items-center gap-3 text-red-600 p-6 border border-red-200 bg-red-50 rounded-2xl">
+      <AlertTriangle className="h-5 w-5" /> <div><div className="font-bold text-gray-900">Kon blog niet laden</div><div className="text-sm text-gray-500">{error}</div></div>
     </div>
   );
 
@@ -239,12 +242,12 @@ export default function BlogModule() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
-          <FileText className="h-6 w-6" style={{ color: NEON_COLOR }} />
-          <h1 className="text-2xl font-black text-white">Blog</h1>
+          <FileText className="h-6 w-6" style={{ color: ACCENT_INK }} />
+          <h1 className="text-2xl font-black text-gray-900">Blog</h1>
         </div>
         <div className="flex items-center gap-2">
-          <a href="/blog" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white"><Globe className="h-4 w-4" /> Publieke blog</a>
-          <button onClick={() => setGenOpen((o) => !o)} className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white"><Sparkles className="h-4 w-4" style={{ color: NEON_COLOR }} /> AI</button>
+          <a href="/blog" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900"><Globe className="h-4 w-4" /> Publieke blog</a>
+          <button onClick={() => setGenOpen((o) => !o)} className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900"><Sparkles className="h-4 w-4" style={{ color: ACCENT_INK }} /> AI</button>
           <button onClick={() => setEditing(blank())} className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-[--neon-color] text-black font-bold"><Plus className="h-4 w-4" /> Nieuw</button>
         </div>
       </div>
@@ -253,18 +256,18 @@ export default function BlogModule() {
 
       <div className="space-y-2">
         {posts.map((p) => (
-          <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-800 bg-black/30 p-4">
+          <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white shadow-sm p-4">
             <button className="min-w-0 text-left flex-1" onClick={() => setEditing(fromPost(p))}>
-              <div className="font-bold text-white truncate">{p.title || '(zonder titel)'}</div>
+              <div className="font-bold text-gray-900 truncate">{p.title || '(zonder titel)'}</div>
               <div className="text-xs text-gray-500 truncate mt-0.5">/{p.slug}{p.category ? ` · ${p.category}` : ''}</div>
             </button>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span className="text-xs font-bold" style={{ color: p.seo_score >= 80 ? NEON_COLOR : p.seo_score >= 50 ? '#fbbf24' : '#f87171' }}>SEO {p.seo_score}</span>
-              <span className={`text-[11px] px-2 py-1 rounded-full ${p.status === 'published' ? 'bg-[#00FF9D1a] text-[--neon-color]' : 'bg-gray-700 text-gray-300'}`}>{p.status === 'published' ? 'live' : 'concept'}</span>
+              <span className="text-xs font-bold" style={{ color: p.seo_score >= 80 ? ACCENT_INK : p.seo_score >= 50 ? '#d97706' : '#dc2626' }}>SEO {p.seo_score}</span>
+              <span className={`text-[11px] px-2 py-1 rounded-full ${p.status === 'published' ? 'bg-[#00FF9D1a] text-[#009966]' : 'bg-gray-100 text-gray-600'}`}>{p.status === 'published' ? 'live' : 'concept'}</span>
             </div>
           </div>
         ))}
-        {posts.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Nog geen artikelen. Klik op <strong>AI</strong> of <strong>Nieuw</strong>.</p>}
+        {posts.length === 0 && <p className="text-sm text-gray-500 text-center py-8">Nog geen artikelen. Klik op <strong>AI</strong> of <strong>Nieuw</strong>.</p>}
       </div>
     </motion.div>
   );

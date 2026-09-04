@@ -6,7 +6,6 @@ import {
   User, Star, AlertTriangle, Shield, Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { NEON_COLOR } from '../../utils/constants';
 import {
   STAGES, ACTIVITY_LABEL,
   fetchAccounts, createAccount, updateAccount, deleteAccount,
@@ -16,6 +15,9 @@ import {
   syncPlatform,
   type CrmAccount, type CrmContact, type CrmActivity, type CrmStage, type ActivityType, type AccountTeamOverview,
 } from '../../lib/crm';
+
+// Leesbare (donkerdere) variant van NEON_COLOR voor tekst/iconen op een lichte ondergrond.
+const ACCENT_INK = '#009966';
 
 const eur = (n: number) =>
   new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n || 0);
@@ -27,16 +29,16 @@ const AccountCard = ({ account, onOpen }: { account: CrmAccount; onOpen: () => v
     draggable
     onDragStart={(e) => e.dataTransfer.setData('text/plain', account.id)}
     onClick={onOpen}
-    className="cursor-pointer rounded-xl border border-gray-800 bg-black/40 p-3 hover:border-gray-600 transition-colors"
+    className="cursor-pointer rounded-xl border border-gray-200 bg-white p-3 shadow-sm hover:border-gray-300 transition-colors"
   >
     <div className="flex items-start justify-between gap-2">
-      <span className="font-bold text-white text-sm leading-tight">{account.name}</span>
-      {account.value > 0 && <span className="text-xs font-bold" style={{ color: NEON_COLOR }}>{eur(account.value)}</span>}
+      <span className="font-bold text-gray-900 text-sm leading-tight">{account.name}</span>
+      {account.value > 0 && <span className="text-xs font-bold" style={{ color: ACCENT_INK }}>{eur(account.value)}</span>}
     </div>
     {account.tags.length > 0 && (
       <div className="flex flex-wrap gap-1 mt-2">
         {account.tags.map((t) => (
-          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">{t}</span>
+          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{t}</span>
         ))}
       </div>
     )}
@@ -66,12 +68,12 @@ const Column = ({
         const id = e.dataTransfer.getData('text/plain');
         if (id) onDropAccount(id, stage.id);
       }}
-      className={`flex-shrink-0 w-64 rounded-2xl p-3 transition-colors ${over ? 'bg-gray-800/60' : 'bg-black/20'}`}
+      className={`flex-shrink-0 w-64 rounded-2xl p-3 transition-colors ${over ? 'bg-gray-200' : 'bg-gray-100/60'}`}
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: stage.color }} />
-          <span className="text-sm font-bold text-white">{stage.label}</span>
+          <span className="text-sm font-bold text-gray-900">{stage.label}</span>
           <span className="text-xs text-gray-500">{accounts.length}</span>
         </div>
         {total > 0 && <span className="text-[11px] text-gray-500">{eur(total)}</span>}
@@ -154,28 +156,28 @@ const AccountDrawer = ({
     catch (e) { toast.error(e instanceof Error ? e.message : 'Mislukt'); }
   };
 
-  const fieldCls = 'w-full bg-black/40 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[--neon-color] outline-none';
+  const fieldCls = 'w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:border-[--neon-color] outline-none';
 
   return (
     <motion.div
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
       transition={{ type: 'tween', duration: 0.25 }}
-      className="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-[#0b0e12] border-l border-gray-800 z-50 overflow-y-auto"
+      className="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-white border-l border-gray-200 shadow-2xl z-50 overflow-y-auto"
     >
-      <div className="sticky top-0 bg-[#0b0e12] border-b border-gray-800 p-4 flex items-center justify-between">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <Building2 className="h-5 w-5 flex-shrink-0" style={{ color: NEON_COLOR }} />
-          <span className="font-bold text-white truncate">{form.name}</span>
+          <Building2 className="h-5 w-5 flex-shrink-0" style={{ color: ACCENT_INK }} />
+          <span className="font-bold text-gray-900 truncate">{form.name}</span>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-900"><X className="h-5 w-5" /></button>
       </div>
 
-      <div className="flex border-b border-gray-800">
+      <div className="flex border-b border-gray-200">
         {(['details', 'contacts', 'activity', 'teams'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-3 text-sm font-medium ${tab === t ? 'text-white border-b-2 border-[--neon-color]' : 'text-gray-500'}`}
+            className={`flex-1 py-3 text-sm font-medium ${tab === t ? 'text-gray-900 border-b-2 border-[--neon-color]' : 'text-gray-500'}`}
           >
             {t === 'details' ? 'Details'
               : t === 'contacts' ? `Contacten (${contacts.length})`
@@ -234,7 +236,7 @@ const AccountDrawer = ({
               <span className="text-xs text-gray-500">Notities</span>
               <textarea className={`${fieldCls} h-28 resize-none`} value={form.notes ?? ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} onBlur={() => saveField({ notes: form.notes })} />
             </label>
-            <button onClick={removeAccount} className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 mt-2">
+            <button onClick={removeAccount} className="flex items-center gap-2 text-sm text-red-600 hover:text-red-500 mt-2">
               <Trash2 className="h-4 w-4" /> Account verwijderen
             </button>
           </>
@@ -243,21 +245,21 @@ const AccountDrawer = ({
         {tab === 'contacts' && (
           <>
             {contacts.map((c) => (
-              <div key={c.id} className="flex items-start justify-between gap-2 rounded-lg border border-gray-800 p-3">
+              <div key={c.id} className="flex items-start justify-between gap-2 rounded-lg border border-gray-200 p-3">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 text-white text-sm font-medium">
-                    {c.is_primary && <Star className="h-3.5 w-3.5" style={{ color: NEON_COLOR }} />}
+                  <div className="flex items-center gap-1.5 text-gray-900 text-sm font-medium">
+                    {c.is_primary && <Star className="h-3.5 w-3.5" style={{ color: ACCENT_INK }} />}
                     {c.name} {c.role && <span className="text-gray-500 text-xs">· {c.role}</span>}
                   </div>
-                  {c.email && <div className="flex items-center gap-1 text-xs text-gray-400 mt-1"><Mail className="h-3 w-3" />{c.email}</div>}
-                  {c.phone && <div className="flex items-center gap-1 text-xs text-gray-400 mt-1"><Phone className="h-3 w-3" />{c.phone}</div>}
+                  {c.email && <div className="flex items-center gap-1 text-xs text-gray-500 mt-1"><Mail className="h-3 w-3" />{c.email}</div>}
+                  {c.phone && <div className="flex items-center gap-1 text-xs text-gray-500 mt-1"><Phone className="h-3 w-3" />{c.phone}</div>}
                 </div>
-                <button onClick={async () => { await deleteContact(c.id); setContacts((p) => p.filter((x) => x.id !== c.id)); }} className="text-gray-500 hover:text-red-400">
+                <button onClick={async () => { await deleteContact(c.id); setContacts((p) => p.filter((x) => x.id !== c.id)); }} className="text-gray-500 hover:text-red-600">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
-            <div className="rounded-lg border border-gray-800 p-3 space-y-2">
+            <div className="rounded-lg border border-gray-200 p-3 space-y-2">
               <input className={fieldCls} placeholder="Naam" value={newContact.name} onChange={(e) => setNewContact({ ...newContact, name: e.target.value })} />
               <input className={fieldCls} placeholder="E-mail" value={newContact.email} onChange={(e) => setNewContact({ ...newContact, email: e.target.value })} />
               <input className={fieldCls} placeholder="Functie" value={newContact.role} onChange={(e) => setNewContact({ ...newContact, role: e.target.value })} />
@@ -270,7 +272,7 @@ const AccountDrawer = ({
 
         {tab === 'activity' && (
           <>
-            <div className="rounded-lg border border-gray-800 p-3 space-y-2">
+            <div className="rounded-lg border border-gray-200 p-3 space-y-2">
               <div className="flex gap-2">
                 <select className={fieldCls} value={newAct.type} onChange={(e) => setNewAct({ ...newAct, type: e.target.value as ActivityType })}>
                   {Object.entries(ACTIVITY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -285,71 +287,71 @@ const AccountDrawer = ({
               </button>
             </div>
             {activities.map((a) => (
-              <div key={a.id} className="flex items-start gap-2 rounded-lg border border-gray-800 p-3">
+              <div key={a.id} className="flex items-start gap-2 rounded-lg border border-gray-200 p-3">
                 {a.type === 'task' ? (
                   <button onClick={async () => { await toggleActivityDone(a.id, !a.done); setActivities((p) => p.map((x) => x.id === a.id ? { ...x, done: !x.done } : x)); }}>
-                    {a.done ? <CheckSquare className="h-4 w-4" style={{ color: NEON_COLOR }} /> : <Square className="h-4 w-4 text-gray-500" />}
+                    {a.done ? <CheckSquare className="h-4 w-4" style={{ color: ACCENT_INK }} /> : <Square className="h-4 w-4 text-gray-500" />}
                   </button>
                 ) : a.type === 'call' ? <Phone className="h-4 w-4 text-gray-500 mt-0.5" />
                   : a.type === 'meeting' ? <CalendarClock className="h-4 w-4 text-gray-500 mt-0.5" />
                   : a.type === 'email' ? <Mail className="h-4 w-4 text-gray-500 mt-0.5" />
                   : <StickyNote className="h-4 w-4 text-gray-500 mt-0.5" />}
                 <div className="flex-1 min-w-0">
-                  <div className={`text-sm ${a.done ? 'line-through text-gray-500' : 'text-white'}`}>{a.title}</div>
+                  <div className={`text-sm ${a.done ? 'line-through text-gray-400' : 'text-gray-900'}`}>{a.title}</div>
                   <div className="text-[11px] text-gray-500 mt-0.5">
                     {ACTIVITY_LABEL[a.type]} · {new Date(a.created_at).toLocaleDateString('nl-NL')}
                     {a.due_date && ` · deadline ${new Date(a.due_date).toLocaleDateString('nl-NL')}`}
                   </div>
                 </div>
-                <button onClick={async () => { await deleteActivity(a.id); setActivities((p) => p.filter((x) => x.id !== a.id)); }} className="text-gray-500 hover:text-red-400">
+                <button onClick={async () => { await deleteActivity(a.id); setActivities((p) => p.filter((x) => x.id !== a.id)); }} className="text-gray-500 hover:text-red-600">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             ))}
-            {activities.length === 0 && <p className="text-sm text-gray-600 text-center py-4">Nog geen activiteit.</p>}
+            {activities.length === 0 && <p className="text-sm text-gray-500 text-center py-4">Nog geen activiteit.</p>}
           </>
         )}
 
         {tab === 'teams' && (
           <>
             {!account.club_id ? (
-              <p className="text-sm text-gray-600 text-center py-8">
+              <p className="text-sm text-gray-500 text-center py-8">
                 Dit account is nog niet gekoppeld aan een club. Draai eerst "Sync" of vul een Club ID in via Details, dan verschijnen hier live de elftallen.
               </p>
             ) : teamsLoading ? (
-              <div className="flex items-center justify-center py-12 text-gray-400">
-                <Loader2 className="animate-spin h-6 w-6" style={{ color: NEON_COLOR }} />
+              <div className="flex items-center justify-center py-12 text-gray-500">
+                <Loader2 className="animate-spin h-6 w-6" style={{ color: ACCENT_INK }} />
               </div>
             ) : teamsError ? (
-              <div className="text-sm text-red-400 text-center py-8">
+              <div className="text-sm text-red-600 text-center py-8">
                 {teamsError}
-                <button onClick={loadTeams} className="block mx-auto mt-2 text-xs text-gray-400 underline">Opnieuw proberen</button>
+                <button onClick={loadTeams} className="block mx-auto mt-2 text-xs text-gray-500 underline">Opnieuw proberen</button>
               </div>
             ) : teams.length === 0 ? (
-              <p className="text-sm text-gray-600 text-center py-8">Nog geen elftallen aangemaakt bij deze club.</p>
+              <p className="text-sm text-gray-500 text-center py-8">Nog geen elftallen aangemaakt bij deze club.</p>
             ) : (
               <>
-                <button onClick={loadTeams} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white ml-auto">
+                <button onClick={loadTeams} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 ml-auto">
                   <RefreshCw className="h-3 w-3" /> Verversen
                 </button>
                 {teams.map((t) => (
-                  <div key={t.id} className={`rounded-lg border p-3 ${t.archived_at ? 'border-gray-800/60 opacity-50' : 'border-gray-800'}`}>
+                  <div key={t.id} className={`rounded-lg border p-3 ${t.archived_at ? 'border-gray-200/60 opacity-50' : 'border-gray-200'}`}>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-white text-sm font-bold">
-                        <Shield className="h-3.5 w-3.5" style={{ color: NEON_COLOR }} />
+                      <div className="flex items-center gap-1.5 text-gray-900 text-sm font-bold">
+                        <Shield className="h-3.5 w-3.5" style={{ color: ACCENT_INK }} />
                         {t.team_name}
                         {t.archived_at && <span className="text-[10px] font-normal text-gray-500">(gearchiveerd)</span>}
                       </div>
                       <span className="text-xs text-gray-500">{t.team_class}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-2">
                       <Users className="h-3.5 w-3.5" /> {t.playerCount} speler{t.playerCount === 1 ? '' : 's'}
                     </div>
                     <div className="mt-2 space-y-1">
                       {t.coaches.length === 0 ? (
-                        <p className="text-xs text-amber-400/80 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Nog geen coach toegewezen</p>
+                        <p className="text-xs text-amber-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Nog geen coach toegewezen</p>
                       ) : t.coaches.map((c, i) => (
-                        <div key={i} className="text-xs text-gray-400 flex items-center gap-1.5">
+                        <div key={i} className="text-xs text-gray-500 flex items-center gap-1.5">
                           <User className="h-3 w-3" />
                           {c.email}
                           <span className="text-gray-600">· {c.role === 'head' ? 'hoofdcoach' : 'assistent'}{c.status === 'invited' ? ' · uitgenodigd' : ''}</span>
@@ -424,13 +426,13 @@ export default function CrmModule() {
   const totalPipeline = useMemo(() => accounts.filter((a) => a.stage !== 'churned').reduce((s, a) => s + (a.value || 0), 0), [accounts]);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-24 text-gray-400"><Loader2 className="animate-spin h-8 w-8 mr-3" style={{ color: NEON_COLOR }} /> CRM laden…</div>;
+    return <div className="flex items-center justify-center py-24 text-gray-500"><Loader2 className="animate-spin h-8 w-8 mr-3" style={{ color: ACCENT_INK }} /> CRM laden…</div>;
   }
 
   if (error) {
     return (
-      <div className="flex items-center gap-3 text-red-400 p-6 border border-red-500/40 rounded-2xl">
-        <AlertTriangle className="h-5 w-5" /> <div><div className="font-bold">Kon CRM niet laden</div><div className="text-sm text-gray-400">{error}</div></div>
+      <div className="flex items-center gap-3 text-red-600 p-6 border border-red-200 bg-red-50 rounded-2xl">
+        <AlertTriangle className="h-5 w-5" /> <div><div className="font-bold text-gray-900">Kon CRM niet laden</div><div className="text-sm text-gray-500">{error}</div></div>
       </div>
     );
   }
@@ -439,15 +441,15 @@ export default function CrmModule() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-2xl font-black text-white">CRM</h1>
-          <p className="text-sm text-gray-500">Open pipeline: <span style={{ color: NEON_COLOR }}>{eur(totalPipeline)}</span> · {accounts.length} accounts</p>
+          <h1 className="text-2xl font-black text-gray-900">CRM</h1>
+          <p className="text-sm text-gray-500">Open pipeline: <span style={{ color: ACCENT_INK }}>{eur(totalPipeline)}</span> · {accounts.length} accounts</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Zoeken…" className="pl-8 pr-3 py-2 rounded-lg bg-black/40 border border-gray-700 text-sm text-white outline-none focus:border-[--neon-color]" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Zoeken…" className="pl-8 pr-3 py-2 rounded-lg bg-white border border-gray-300 text-sm text-gray-900 outline-none focus:border-[--neon-color] shadow-sm" />
           </div>
-          <button onClick={handleSync} disabled={syncing} className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white disabled:opacity-50">
+          <button onClick={handleSync} disabled={syncing} className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900 disabled:opacity-50">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sync platform
           </button>
           <button onClick={handleNew} className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-[--neon-color] text-black font-bold">

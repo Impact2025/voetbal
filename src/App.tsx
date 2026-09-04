@@ -310,7 +310,7 @@ export default function Skillkaart() {
 
   if (isAdminRoute) {
     return (
-      <div className="bg-white text-gray-900 font-sans min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
+      <div className="font-sans min-h-screen" style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
         <ErrorBoundary>
           {loading ? (
             <div className="min-h-screen flex items-center justify-center">
