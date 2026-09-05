@@ -419,7 +419,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Wachtwoord opslaan'}
         </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan even duren...</p>}
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Dit duurt langer dan normaal...</p>}
       </form>
     );
 
@@ -456,7 +456,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
           {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
         </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Dit duurt langer dan normaal...</p>}
         <p className="text-center text-sm text-gray-500">
           Ben je coach? <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
         </p>
@@ -536,7 +536,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
             ? <Loader2 className="animate-spin" />
             : view === 'coachLogin' ? 'Stuur inloglink' : 'Registreren'}
         </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
+        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Dit duurt langer dan normaal...</p>}
       </form>
     );
   };

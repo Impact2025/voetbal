@@ -66,12 +66,14 @@ const ClubLogin = () => {
         window.location.href = '/';
       }
     } catch (err) {
-      const msg = (err as Error).message;
+      const e = err as Error & { isAcquireTimeout?: boolean };
+      const msg = e.message;
       const messages: Record<string, string> = {
         'Invalid login credentials': 'Ongeldige inloggegevens. Controleer uw e-mail en wachtwoord.',
         'Email not confirmed': 'Je e-mailadres is nog niet bevestigd. Controleer je inbox (en spammap) voor de bevestigingslink.',
+        '__timeout__': 'Inloggen duurt te lang. Sluit eventuele andere Skillkaart-tabs en probeer het opnieuw.',
       };
-      setError(messages[msg] ?? msg);
+      setError(e.isAcquireTimeout ? 'Een andere Skillkaart-tab blokkeert het inloggen. Sluit alle Skillkaart-tabs en probeer het opnieuw.' : (messages[msg] ?? msg));
     } finally {
       clearTimeout(t); setLoading(false); setSlowHint(false);
     }
@@ -179,7 +181,7 @@ const ClubLogin = () => {
               <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
                 {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
               </button>
-              {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan even duren...</p>}
+              {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Dit duurt langer dan normaal...</p>}
             </form>
           )}
 
