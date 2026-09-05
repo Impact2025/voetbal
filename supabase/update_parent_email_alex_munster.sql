@@ -117,7 +117,6 @@ SELECT id, email, role, team_id
 SELECT
   pl.player_id,
   pl.parent_id,
-  p.name           AS parent_name,
   p.email          AS parent_email,
   p.role           AS parent_role,
   pl.team_id,
