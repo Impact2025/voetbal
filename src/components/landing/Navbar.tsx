@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Veelgestelde vragen', href: '/faq' },
 ]
 
-export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void; onParentLogin?: () => void }) {
+export default function Navbar({ onLogin }: { onLogin: () => void }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -49,14 +49,6 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
 
           {/* CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            {onParentLogin && (
-              <button
-                onClick={onParentLogin}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all"
-              >
-                ❤️ Ouder-portaal
-              </button>
-            )}
             <button
               onClick={() => window.location.href = '/club'}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700 hover:border-neon-ink/50 hover:text-neon-ink transition-all"
@@ -103,14 +95,6 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
                 {item.label}
               </a>
             ))}
-            {onParentLogin && (
-              <button
-                onClick={() => { setMenuOpen(false); onParentLogin(); }}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-slate-200 text-slate-500 mt-1"
-              >
-                ❤️ Ouder-portaal
-              </button>
-            )}
             <button
               onClick={() => { setMenuOpen(false); window.location.href = '/club'; }}
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700 mt-1"

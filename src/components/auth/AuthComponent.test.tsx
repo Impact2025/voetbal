@@ -75,31 +75,12 @@ describe('AuthComponent', () => {
     });
   });
 
-  it('translates "Email not confirmed" to Dutch and offers a resend button', async () => {
-    const { supabase } = await import('../../lib/supabase');
-    (supabase.auth.signInWithPassword as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ error: { message: 'Email not confirmed' } });
-
+  it('coach login has no password field — only email + magic link', () => {
     window.history.pushState({}, '', '/?demo=coach');
     render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
-    fireEvent.change(screen.getByPlaceholderText('coach@email.com'), { target: { value: 'hans@fellow-travellers.com' } });
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'wachtwoord123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Inloggen' }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Je e-mailadres is nog niet bevestigd/)).toBeInTheDocument();
-    });
-    const resendBtn = screen.getByRole('button', { name: 'Bevestigingsmail opnieuw versturen' });
-    expect(resendBtn).toBeInTheDocument();
-
-    fireEvent.click(resendBtn);
-    await waitFor(() => {
-      expect(supabase.auth.resend).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'signup',
-        email: 'hans@fellow-travellers.com',
-      }));
-      expect(screen.getByText(/Bevestigingsmail opnieuw verstuurd/)).toBeInTheDocument();
-    });
+    expect(screen.getByPlaceholderText('coach@email.com')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('••••••••')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Stuur inloglink/ })).toBeInTheDocument();
   });
 
   it('offers a passwordless magic-link login for coaches without a password', async () => {

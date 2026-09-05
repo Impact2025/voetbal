@@ -268,6 +268,8 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   // wachtwoord). Hergebruikt de bestaande /api/send-login-link serverless route.
   const handleSendMagicLink = async () => {
     if (!email.trim()) { setError('Vul eerst je e-mailadres in.'); return; }
+    if (rememberCoach) localStorage.setItem('rememberedCoachEmail', email);
+    else localStorage.removeItem('rememberedCoachEmail');
     setResending(true); setError(''); setSuccess('');
     try {
       const res = await fetch('/api/send-login-link', {
@@ -476,9 +478,16 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       />
     );
 
-    // Coach login / register
+    // Coach login (wachtwoordloos, alleen magic-link) / register (met wachtwoord)
     return (
-      <form onSubmit={e => { e.preventDefault(); void handleCoachAuth(view === 'coachRegister'); }} className="space-y-4">
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          if (view === 'coachLogin') void handleSendMagicLink();
+          else void handleCoachAuth(true);
+        }}
+        className="space-y-4"
+      >
         <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>
           {view === 'coachLogin' ? 'COACH LOGIN' : 'COACH REGISTRATIE'}
         </h2>
@@ -491,7 +500,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
           </div>
         )}
         <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="coach@email.com" disabled={!!invite} />
-        <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+        {view === 'coachRegister' && (
+          <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+        )}
         {view === 'coachRegister' && !invite && (
           <>
             <Input light={isLightMode} label="Kies een unieke Team ID" value={newTeamId} onChange={e => setNewTeamId(e.target.value)} placeholder="bv. VVC11-1" />
@@ -499,14 +510,9 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
           </>
         )}
         {view === 'coachLogin' && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input id="remember-coach" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className={`h-4 w-4 rounded ${isLightMode ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`} />
-              <label htmlFor="remember-coach" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
-            </div>
-            <button type="button" onClick={() => { setForgotPasswordOrigin('coachLogin'); setView('forgotPassword'); setError(''); }} className={`text-sm transition-colors ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
-              Vergeten?
-            </button>
+          <div className="flex items-center">
+            <input id="remember-coach" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className={`h-4 w-4 rounded ${isLightMode ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`} />
+            <label htmlFor="remember-coach" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
           </div>
         )}
         {emailNotConfirmed && (
@@ -519,25 +525,17 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
             {resending ? <Loader2 className="animate-spin" size={16} /> : 'Bevestigingsmail opnieuw versturen'}
           </button>
         )}
-        {view === 'coachLogin' && success && (
+        {success && (
           <div className={`flex items-center gap-2 p-3 rounded-lg border ${isLightMode ? 'bg-green-50 border-green-200' : 'bg-green-900/30 border-green-700'}`}>
             <CheckCircle2 size={18} className={`shrink-0 ${isLightMode ? 'text-green-600' : 'text-green-400'}`} />
             <p className={`text-sm ${isLightMode ? 'text-green-700' : 'text-green-300'}`}>{success}</p>
           </div>
         )}
-        <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
-          {loading ? <Loader2 className="animate-spin" /> : view === 'coachLogin' ? 'Inloggen' : 'Registreren'}
+        <button type="submit" disabled={loading || resending} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
+          {loading || resending
+            ? <Loader2 className="animate-spin" />
+            : view === 'coachLogin' ? 'Stuur inloglink' : 'Registreren'}
         </button>
-        {view === 'coachLogin' && (
-          <button
-            type="button"
-            disabled={resending}
-            onClick={() => void handleSendMagicLink()}
-            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-60 flex justify-center items-center gap-2 border ${isLightMode ? 'border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-gray-600 text-gray-300 hover:bg-gray-800/60'}`}
-          >
-            {resending ? <Loader2 className="animate-spin" size={16} /> : 'Stuur inloglink (geen wachtwoord)'}
-          </button>
-        )}
         {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
       </form>
     );

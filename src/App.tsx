@@ -391,7 +391,7 @@ export default function Skillkaart() {
               }}
             />
           ) : (
-            <LandingPage onLogin={() => setShowAuth(true)} onParentLogin={() => setShowParentAuth(true)} />
+            <LandingPage onLogin={() => setShowAuth(true)} />
           )
         ) : userData.role === 'club_admin' ? (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
