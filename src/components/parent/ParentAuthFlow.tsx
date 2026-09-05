@@ -8,16 +8,20 @@ interface ParentAuthFlowProps {
   onBack: () => void;
   /** Opent het ouder-dashboard in demo-modus (voorbeelddata, geen account). */
   onDemo?: () => void;
+  /** Gezet wanneer een eerdere inloglink verlopen/ongeldig bleek (zie App.tsx `parentAuth=1`).
+   *  Opent meteen het inlogscherm met deze melding, zodat de ouder direct een nieuwe
+   *  (Resend-branded) link kan aanvragen i.p.v. in de coach-wachtwoordflow te belanden. */
+  initialError?: string;
 }
 
 type View = 'choice' | 'login' | 'magic_sent' | 'register';
 
-const ParentAuthFlow = ({ onBack, onDemo }: ParentAuthFlowProps) => {
-  const [view, setView]         = useState<View>('choice');
+const ParentAuthFlow = ({ onBack, onDemo, initialError }: ParentAuthFlowProps) => {
+  const [view, setView]         = useState<View>(initialError ? 'login' : 'choice');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [linkCode, setLinkCode] = useState('');
-  const [error, setError]       = useState('');
+  const [error, setError]       = useState(initialError ?? '');
   const [loading, setLoading]   = useState(false);
   /** Gezet wanneer een 2e/3e koppelcode via een bestaand account geclaimd moet worden. */
   const [claimCode, setClaimCode] = useState('');

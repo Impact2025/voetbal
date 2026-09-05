@@ -41,9 +41,15 @@ const hashError = (() => {
   if (typeof window === 'undefined' || !window.location.hash.includes('error=')) return null;
   const params = new URLSearchParams(window.location.hash.slice(1));
   const code = params.get('error_code') ?? '';
-  if (code === 'otp_expired') return 'Deze reset-link is verlopen. Vraag hieronder een nieuwe aan.';
+  if (code === 'otp_expired') return 'Deze link is verlopen. Vraag hieronder een nieuwe aan.';
   return params.get('error_description') ?? 'Link is ongeldig of verlopen. Vraag hieronder een nieuwe aan.';
 })();
+
+// Onderscheidt een mislukte ouder-magic-link (send-login-link.ts markeert redirectTo met
+// ?parentAuth=1) van een mislukte coach-link — anders belandt een ouder in AuthComponent's
+// "wachtwoord vergeten"-flow, die Supabase's eigen onbrande e-mail verstuurt i.p.v. de
+// Resend-branded ouder-inloglink.
+const isParentAuthError = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('parentAuth') === '1';
 
 // getSession() can hang when Supabase tries to refresh an expired token.
 // Always call it for recovery URLs (implicit: #type=recovery, PKCE: ?code=…).
@@ -77,8 +83,8 @@ export default function Skillkaart() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [consentGiven, setConsentGiven] = useState(hasConsented);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showAuth, setShowAuth] = useState(!!hashError || hasCoachInvite);
-  const [showParentAuth, setShowParentAuth] = useState(false);
+  const [showAuth, setShowAuth] = useState((!!hashError && !isParentAuthError) || hasCoachInvite);
+  const [showParentAuth, setShowParentAuth] = useState(!!hashError && isParentAuthError);
   const [showParentDemo, setShowParentDemo] = useState(false);
   const lastKnownUserId = useRef(null);
 
@@ -376,7 +382,11 @@ export default function Skillkaart() {
             </Suspense>
           ) : showParentAuth ? (
             <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[--neon-color]" /></div>}>
-              <ParentAuthFlow onBack={() => setShowParentAuth(false)} onDemo={() => setShowParentDemo(true)} />
+              <ParentAuthFlow
+                onBack={() => setShowParentAuth(false)}
+                onDemo={() => setShowParentDemo(true)}
+                initialError={isParentAuthError ? (hashError ?? undefined) : undefined}
+              />
             </Suspense>
           ) : showAuth || isRecovering ? (
             <AuthComponent

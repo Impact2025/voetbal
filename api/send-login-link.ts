@@ -97,7 +97,10 @@ export default async function handler(req: Req, res: Res) {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const redirectTo = linkCode ? `${APP_URL}?parentCode=${encodeURIComponent(linkCode)}` : APP_URL;
+    // parentAuth=1 markeert deze link als afkomstig van het ouder-portaal, zodat App.tsx
+    // een verlopen/ongeldige link terugstuurt naar ParentAuthFlow (Resend-branded resend)
+    // i.p.v. naar AuthComponent's coach-"wachtwoord vergeten" (Supabase's eigen, onbrande mail).
+    const redirectTo = `${APP_URL}/?parentAuth=1${linkCode ? `&parentCode=${encodeURIComponent(linkCode)}` : ''}`;
     const { data, error } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
