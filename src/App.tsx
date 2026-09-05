@@ -67,7 +67,11 @@ const getSessionSafe = () => {
   );
   if (!isRecoveryUrl && !hasRecoveryCode && !hasInviteHash && !hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
   // Give PKCE/invite flows more time than a normal session refresh.
-  const timeout = (hasRecoveryCode || hasInviteHash) ? 10000 : 3000;
+  // Must stay >= the boundedLock cap in supabase.ts (5000ms) — otherwise this
+  // race gives up on a legitimate, still-in-flight getSession() call before
+  // the lock-bounded operation ever gets to resolve, making a just-logged-in
+  // user appear signed out.
+  const timeout = (hasRecoveryCode || hasInviteHash) ? 10000 : 6000;
   return Promise.race([
     supabase.auth.getSession(),
     new Promise<{ data: { session: null }; error: null }>(resolve =>
@@ -113,7 +117,7 @@ export default function Skillkaart() {
 
     const hardFallback = setTimeout(() => {
       if (!cancelled) { setSession(null); setUserData(null); setLoading(false); }
-    }, (hasRecoveryCode || hasInviteHash) ? 12000 : 4000);
+    }, (hasRecoveryCode || hasInviteHash) ? 12000 : 7000);
 
     const init = async () => {
       if (window.location.hash.includes('type=recovery')) {
