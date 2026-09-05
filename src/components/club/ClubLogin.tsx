@@ -42,11 +42,12 @@ const ClubLogin = () => {
   const attemptLogin = async () => {
     if (rememberMe) localStorage.setItem('rememberedClubEmail', email);
     else localStorage.removeItem('rememberedClubEmail');
-    const { error } = await withTimeout(
+    const { data, error } = await withTimeout(
       supabase.auth.signInWithPassword({ email, password }),
       45000, '__timeout__'
     );
     if (error) throw error;
+    return data.session;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -54,10 +55,13 @@ const ClubLogin = () => {
     setLoading(true); setSlowHint(false); setError(''); setSuccess('');
     const t = setTimeout(() => setSlowHint(true), 8000);
     try {
-      await attemptLogin();
+      // signInWithPassword geeft de sessie al terug in de response — geen losse
+      // getSession() call meer nodig. Die kan intern blijven hangen achter de
+      // GoTrueClient-lock als onAuthStateChange in App.tsx tegelijk een profiles-
+      // query aan het uitvoeren is (zie getSessionSafe-comment in App.tsx).
+      const session = await attemptLogin();
       // Supabase onAuthStateChange in App.tsx pikt de sessie op; redirect weg
       // van /club zodat App.tsx de club_admin rol ziet en het dashboard toont.
-      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         window.location.href = '/';
       }
