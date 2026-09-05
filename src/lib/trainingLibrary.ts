@@ -178,15 +178,37 @@ export async function fetchCurrentWeekChallenge(
   return weekPlan?.challenge ? weekPlan : null;
 }
 
+/**
+ * Huiswerk/challenge lopen als "blok" over meerdere weken (bron: Voetbal app.xls) —
+ * alleen de eerste week van een blok heeft een waarde, latere weken staan NULL in de
+ * seed-data. Vul die terugkijkend aan met de laatste niet-lege waarde in dezelfde
+ * age_group, zodat een lopend blok op elke week binnen dat blok zichtbaar blijft.
+ */
+function fillBlockFields(plan: SeasonWeekPlan[], week: SeasonWeekPlan): SeasonWeekPlan {
+  const sorted = [...plan].sort((a, b) => a.sequence_number - b.sequence_number);
+  const idx = sorted.findIndex(w => w.id === week.id);
+
+  let homework = week.homework;
+  let challenge = week.challenge;
+
+  for (let i = idx - 1; i >= 0 && (!homework || !challenge); i--) {
+    if (!homework && sorted[i].homework) homework = sorted[i].homework;
+    if (!challenge && sorted[i].challenge) challenge = sorted[i].challenge;
+  }
+
+  return { ...week, homework, challenge };
+}
+
 // Determine which week of the season we're currently in
 export function getCurrentSeasonWeek(
   plan: SeasonWeekPlan[],
   overrides: ClubWeekOverride[]
 ): SeasonWeekPlan | null {
-  const now = new Date('2026-08-24'); // DEMO: week 35
+  const now = new Date();
   const currentWeek = getISOWeek(now);
   const disabledWeeks = new Set(overrides.filter(o => !o.is_enabled).map(o => o.week_number));
-  return plan.find(w => w.week_number === currentWeek && !w.is_vacation && !disabledWeeks.has(w.week_number)) ?? null;
+  const week = plan.find(w => w.week_number === currentWeek && !w.is_vacation && !disabledWeeks.has(w.week_number));
+  return week ? fillBlockFields(plan, week) : null;
 }
 
 export function getSeasonStatus(
@@ -194,7 +216,7 @@ export function getSeasonStatus(
   config: ClubTrainingConfig
 ): 'not_started' | 'active' | 'break' | 'finished' {
   if (!plan.length) return 'not_started';
-  const now = new Date('2026-08-24'); // DEMO: week 35
+  const now = new Date();
   const currentWeek = getISOWeek(now);
   const currentYear = getISOWeekYear(now);
 

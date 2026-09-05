@@ -45,6 +45,26 @@ describe('AuthComponent', () => {
     expect(screen.getByText('COACH LOGIN')).toBeInTheDocument();
   });
 
+  it('opens coach login view directly on the /coach route', () => {
+    window.history.pushState({}, '', '/coach');
+    render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
+    expect(screen.getByText('COACH LOGIN')).toBeInTheDocument();
+  });
+
+  it('lets a player switch to coach login via the toggle link', () => {
+    render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Log hier in' }));
+    expect(screen.getByText('COACH LOGIN')).toBeInTheDocument();
+  });
+
+  it('shows a parent-login link when onParentLogin is provided', () => {
+    const onParentLogin = vi.fn();
+    render(<AuthComponent onPlayerLogin={onPlayerLogin} onParentLogin={onParentLogin} />);
+    const parentLine = screen.getByText(/Ben je ouder\?/).closest('p')!;
+    fireEvent.click(parentLine.querySelector('button')!);
+    expect(onParentLogin).toHaveBeenCalled();
+  });
+
   it('shows "team not found" error when no players match the team', async () => {
     render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
     fireEvent.change(screen.getByPlaceholderText('Vraag je coach'), { target: { value: 'TEAM1' } });

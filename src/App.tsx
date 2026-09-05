@@ -384,6 +384,7 @@ export default function Skillkaart() {
               isRecovering={isRecovering}
               initialError={hashError ?? undefined}
               onBack={isRecovering ? undefined : () => setShowAuth(false)}
+              onParentLogin={() => { setShowAuth(false); setShowParentAuth(true); }}
               onPasswordUpdated={() => {
                 setIsRecovering(false);
                 void supabase.auth.signOut();

@@ -391,7 +391,7 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
             </span>
           </div>
           <h2 className="text-xl font-black text-gray-900">Seizoensprogramma</h2>
-          <p className="text-sm text-gray-500 mt-0.5">KNVB-curriculum — week {getISOWeek(new Date('2026-08-24'))}</p>
+          <p className="text-sm text-gray-500 mt-0.5">KNVB-curriculum — week {getISOWeek(new Date())}</p>
         </div>
 
         {activeGroups.length > 1 && (
@@ -442,7 +442,7 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
             <div>
               <p className="font-bold text-gray-900">Vakantie</p>
               <p className="text-sm text-gray-500">
-                {seasonPlan.find(w => w.week_number === getISOWeek(new Date('2026-08-24')))?.vacation_label ?? 'Vrije week'}
+                {seasonPlan.find(w => w.week_number === getISOWeek(new Date()))?.vacation_label ?? 'Vrije week'}
               </p>
             </div>
           </div>
@@ -463,7 +463,7 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
           <div className="flex items-center gap-3">
             <Info size={18} className="text-gray-400" />
             <p className="text-sm text-gray-500">
-              Week {getISOWeek(new Date('2026-08-24'))} staat niet in het seizoensplan.
+              Week {getISOWeek(new Date())} staat niet in het seizoensplan.
             </p>
           </div>
         </Card>
@@ -487,7 +487,7 @@ const SeasonTrainingView = ({ clubId }: SeasonTrainingViewProps) => {
           </p>
           <div className="flex flex-wrap gap-1.5">
             {seasonPlan.map(w => {
-              const isCurrentWeek = w.week_number === getISOWeek(new Date('2026-08-24'));
+              const isCurrentWeek = w.week_number === getISOWeek(new Date());
               const ovr = overrides.find(o => o.week_number === w.week_number);
               const isDisabled = ovr && !ovr.is_enabled;
               return (

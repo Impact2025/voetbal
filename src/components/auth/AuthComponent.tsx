@@ -17,6 +17,7 @@ interface AuthComponentProps {
   initialError?: string;
   onPasswordUpdated?: () => void;
   onBack?: () => void;
+  onParentLogin?: () => void;
 }
 
 type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'coachInviteWelcome' | 'forgotPassword' | 'resetPassword';
@@ -27,10 +28,12 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
   ]);
 
-const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPasswordUpdated, onBack }: AuthComponentProps) => {
+const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPasswordUpdated, onBack, onParentLogin }: AuthComponentProps) => {
   const [view, setView] = useState<View>(() => {
     if (isRecovering) return 'resetPassword';
     if (initialError) return 'forgotPassword';
+    // /coach opent direct de coach-login, net als /club dat voor ClubLogin doet.
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/coach')) return 'coachLogin';
     return 'playerLogin';
   });
   const [email, setEmail] = useState('');
@@ -452,6 +455,14 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
           {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
         </button>
         {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
+        <p className="text-center text-sm text-gray-500">
+          Ben je coach? <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
+        </p>
+        {onParentLogin && (
+          <p className="text-center text-sm text-gray-500">
+            Ben je ouder? <button type="button" onClick={onParentLogin} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
+          </p>
+        )}
       </form>
     );
 
@@ -560,9 +571,19 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
             </div>
           )}
           {view === 'coachLogin' && (
-            <p className="text-center text-sm mt-4 text-gray-500">
-              Nog geen account? <button onClick={() => setView('coachRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Registreer hier</button>
-            </p>
+            <>
+              <p className="text-center text-sm mt-4 text-gray-500">
+                Nog geen account? <button onClick={() => setView('coachRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Registreer hier</button>
+              </p>
+              <p className="text-center text-sm mt-1 text-gray-500">
+                Ben je speler? <button onClick={() => { setView('playerLogin'); setError(''); }} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
+              </p>
+              {onParentLogin && (
+                <p className="text-center text-sm mt-1 text-gray-500">
+                  Ben je ouder? <button onClick={onParentLogin} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
+                </p>
+              )}
+            </>
           )}
           {view === 'coachRegister' && (
             <p className="text-center text-sm mt-4 text-gray-500">
