@@ -18,6 +18,11 @@ interface VideoSubmissionCardProps {
 
 type Step = 'idle' | 'selected' | 'uploading' | 'extracting' | 'analyzing' | 'done' | 'error';
 
+// Tijdelijk uitgezet op verzoek — video's gaan direct naar de coach voor
+// beoordeling, zonder AI-framedanalyse via OpenRouter. Terugzetten: op true.
+const AI_VIDEO_FEEDBACK_ENABLED = false;
+const NO_AI_FEEDBACK_MESSAGE = 'Video ontvangen! Je coach bekijkt je inzending persoonlijk en keurt hem goed.';
+
 const STEPS = [
   { key: 'uploading',  label: 'Video uploaden…' },
   { key: 'extracting', label: 'Beelden analyseren…' },
@@ -129,17 +134,20 @@ const VideoSubmissionCard = ({
         .update({ video_url: videoUrl })
         .eq('id', submissionId);
 
-      // 3. Extract frames
-      setStep('extracting');
-      const frames = await extractVideoFrames(selectedFile, 6);
+      let feedback: string = NO_AI_FEEDBACK_MESSAGE;
+      if (AI_VIDEO_FEEDBACK_ENABLED) {
+        // 3. Extract frames
+        setStep('extracting');
+        const frames = await extractVideoFrames(selectedFile, 6);
 
-      // 4. AI analysis
-      setStep('analyzing');
-      const feedback = await analyzeMovementVideo({
-        homework: { title: homework.title, description: homework.description },
-        player: { name: player.name, age: player.age, position: player.position },
-        frames,
-      });
+        // 4. AI analysis
+        setStep('analyzing');
+        feedback = await analyzeMovementVideo({
+          homework: { title: homework.title, description: homework.description },
+          player: { name: player.name, age: player.age, position: player.position },
+          frames,
+        });
+      }
 
       // 5. Save feedback
       const { data: updated, error: updateError } = await supabase
@@ -311,7 +319,9 @@ const VideoSubmissionCard = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={15} className="text-green-600" />
-                <span className="text-xs font-bold text-green-600 uppercase tracking-wide">AI Feedback ontvangen</span>
+                <span className="text-xs font-bold text-green-600 uppercase tracking-wide">
+                  {AI_VIDEO_FEEDBACK_ENABLED ? 'AI Feedback ontvangen' : 'Video ingestuurd'}
+                </span>
               </div>
               {submission.video_url && (
                 <button
