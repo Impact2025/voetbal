@@ -13,6 +13,7 @@ import { CHALLENGES, CATEGORY_META } from '../../data/challenges';
 import { usePWA } from '../../lib/usePWA';
 import InstallModal from '../modals/InstallModal';
 import ParentGrowthChart from './ParentGrowthChart';
+import LoginCredentialsCard from './LoginCredentialsCard';
 import type {
   Player, PlayerStats, Streak, NotificationPrefs,
   StatAxis, UserData, AttendanceRecord,
@@ -933,6 +934,14 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
                   <Toggle on={pushSubscribed} />
                 </button>
               </div>
+
+              {/* Inloggegevens */}
+              <LoginCredentialsCard
+                playerId={player.id}
+                teamId={player.team_id}
+                playerName={player.name}
+                demo={demo}
+              />
 
               {/* Privacy */}
               <div className="rounded-2xl border border-gray-100 bg-white p-4">
