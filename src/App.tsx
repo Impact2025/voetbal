@@ -67,10 +67,6 @@ const getSessionSafe = () => {
   );
   if (!isRecoveryUrl && !hasRecoveryCode && !hasInviteHash && !hasStoredSession) return Promise.resolve({ data: { session: null }, error: null });
   // Give PKCE/invite flows more time than a normal session refresh.
-  // Must stay >= the boundedLock cap in supabase.ts (5000ms) — otherwise this
-  // race gives up on a legitimate, still-in-flight getSession() call before
-  // the lock-bounded operation ever gets to resolve, making a just-logged-in
-  // user appear signed out.
   const timeout = (hasRecoveryCode || hasInviteHash) ? 10000 : 6000;
   return Promise.race([
     supabase.auth.getSession(),

@@ -1,16 +1,7 @@
-import { createClient, navigatorLock } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Supabase's cross-tab auth lock (navigator.locks) waits forever by design
-// (acquireTimeout -1 for signIn/getSession/etc.). If one tab ever gets stuck
-// mid-auth-operation (crash, dead network request, ...), it holds the lock
-// forever and every other tab — even brand new ones — queues behind it and
-// hangs on login indefinitely. Cap the wait so a wedged tab can only ever
-// block others for a few seconds, not permanently.
-const boundedLock: typeof navigatorLock = (name, _acquireTimeout, fn) =>
-  navigatorLock(name, 5000, fn);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase omgevingsvariabelen ontbreken. Controleer je .env.local bestand.');
@@ -31,6 +22,4 @@ try {
   }
 } catch { /* ignore */ }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: { lock: boundedLock },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
