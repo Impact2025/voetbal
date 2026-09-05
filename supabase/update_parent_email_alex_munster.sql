@@ -80,33 +80,55 @@ END $$;
 COMMIT;
 
 -- ── FASE 2: UPDATE is_superadmin() functie (separately, los van data) ──
+-- NOTE: this matches the existing admin_superadmin.sql definition, which has
+-- already been updated to the new email. We replace it for parity / safety.
 CREATE OR REPLACE FUNCTION is_superadmin()
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public, auth
 AS $$
   SELECT
     coalesce(lower(auth.jwt() ->> 'email') = 'weareimpactnl@gmail.com', false)
     OR EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'superadmin'
+      SELECT 1
+        FROM profiles
+       WHERE id = auth.uid() AND role = 'superadmin'
     )
 $$;
 
 -- ================================================================
--- VERIFICATIE
+-- VERIFICATIE — run deze 3 SELECTs apart/individually voor duidelijkheid
 -- ================================================================
-SELECT 'profiles' AS tbl, id, email, role
+-- 1. auth.users (vereist service_role; anon fuser ziet deze tabel niet):
+SELECT id, email, email_confirmed_at IS NOT NULL AS confirmed
+  FROM auth.users
+  WHERE lower(email) = 'weareimpactnl@gmail.com';
+
+-- 2. profiles:
+SELECT id, email, role, team_id
   FROM profiles
-  WHERE lower(email) = 'weareimpactnl@gmail.com'
-UNION ALL
-SELECT 'parent_links', pl.player_id, p.email, pl.verified::text
+  WHERE lower(email) = 'weareimpactnl@gmail.com';
+
+-- 3. parent_link Alex ↔ ouder + notification_prefs:
+SELECT
+  pl.player_id,
+  pl.parent_id,
+  p.name           AS parent_name,
+  p.email          AS parent_email,
+  p.role           AS parent_role,
+  pl.team_id,
+  pl.verified,
+  pl.link_code
   FROM parent_links pl
   JOIN profiles p ON p.id = pl.parent_id
-  WHERE pl.player_id = 'dfa9df53-0eef-484d-9c84-ad681390908c'
-UNION ALL
-SELECT 'notification_prefs', np.parent_id, np.parent_id::text, np.weekly_digest::text
+  WHERE pl.player_id = 'dfa9df53-0eef-484d-9c84-ad681390908c';
+
+SELECT
+  np.parent_id,
+  np.weekly_digest,
+  np.critical_alerts,
+  np.channel,
+  np.detail_level
   FROM notification_prefs np
   WHERE np.parent_id = '7cfbea0a-816b-4019-a183-c2bd4b918d8c';
