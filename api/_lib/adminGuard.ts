@@ -1,6 +1,6 @@
 import { getAdminClient } from './supabaseAdmin.js';
 
-const SUPERADMIN_EMAIL = 'v.munster@weareimpact.nl';
+const SUPERADMIN_EMAIL = 'weareimpactnl@gmail.com';
 
 export interface AdminIdentity {
   id: string;

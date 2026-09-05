@@ -12,7 +12,7 @@ const ACCOUNTS = [
     demo: 'coach',
     icon: ShieldCheck,
     title: 'Coach — V. Munster',
-    detail: 'v.munster@weareimpact.nl · Demo1234',
+    detail: 'weareimpactnl@gmail.com · Demo1234',
   },
   {
     demo: 'player',

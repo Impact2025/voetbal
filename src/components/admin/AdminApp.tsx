@@ -176,7 +176,7 @@ const Cockpit = () => {
         <div className="text-sm text-gray-600 leading-relaxed">
           <span className="font-semibold text-gray-900">Dagelijks &amp; maandelijks rapport actief.</span>{' '}
           Een AI-managementanalyse van deze cijfers wordt automatisch naar{' '}
-          <span className="font-medium" style={{ color: ACCENT_INK }}>v.munster@weareimpact.nl</span> gemaild
+          <span className="font-medium" style={{ color: ACCENT_INK }}>weareimpactnl@gmail.com</span> gemaild
           (dagelijks 06:00, maandelijks de 1e).
         </div>
       </div>

@@ -2,7 +2,7 @@
 -- BUNDEL A — Platform Superadmin
 -- Uitvoeren in: Supabase Dashboard → SQL Editor
 -- ================================================================
--- Geeft v.munster@weareimpact.nl een platform-brede 'superadmin' rol,
+-- Geeft weareimpactnl@gmail.com een platform-brede 'superadmin' rol,
 -- een veilige cross-tenant metrics-RPC en een audit-log.
 -- ================================================================
 
@@ -23,13 +23,13 @@ UPDATE profiles p
 SET role = 'superadmin'
 FROM auth.users u
 WHERE p.id = u.id
-  AND lower(u.email) = 'v.munster@weareimpact.nl';
+  AND lower(u.email) = 'weareimpactnl@gmail.com';
 
 -- Veiligheidsnet: als er nog geen profielrij bestaat, maak er een aan.
 INSERT INTO profiles (id, role, email)
 SELECT u.id, 'superadmin', u.email
 FROM auth.users u
-WHERE lower(u.email) = 'v.munster@weareimpact.nl'
+WHERE lower(u.email) = 'weareimpactnl@gmail.com'
   AND NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = u.id);
 
 
@@ -46,7 +46,7 @@ SECURITY DEFINER
 SET search_path = public, auth
 AS $$
   SELECT
-    coalesce(lower(auth.jwt() ->> 'email') = 'v.munster@weareimpact.nl', false)
+    coalesce(lower(auth.jwt() ->> 'email') = 'weareimpactnl@gmail.com', false)
     OR EXISTS (
       SELECT 1 FROM profiles
       WHERE id = auth.uid() AND role = 'superadmin'
@@ -156,6 +156,6 @@ CREATE POLICY superadmin_read_audit ON admin_audit_log
 -- ================================================================
 -- Klaar! Controleer via:
 --   SELECT role FROM profiles p JOIN auth.users u ON u.id = p.id
---     WHERE lower(u.email) = 'v.munster@weareimpact.nl';
+--     WHERE lower(u.email) = 'weareimpactnl@gmail.com';
 --   SELECT admin_metrics();   -- als superadmin ingelogd
 -- ================================================================

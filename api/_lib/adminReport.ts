@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 import { getAdminClient } from './supabaseAdmin.js';
 import { MAIL_FROM } from './mailFrom.js';
 
-const REPORT_TO = 'v.munster@weareimpact.nl';
+const REPORT_TO = 'weareimpactnl@gmail.com';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const AI_MODEL = 'google/gemini-2.5-flash';
 

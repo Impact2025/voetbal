@@ -8,7 +8,7 @@ import { getAdminClient } from './supabaseAdmin.js';
 import { MAIL_FROM } from './mailFrom.js';
 import { callOpenRouter } from './openrouter.js';
 
-const REPORT_TO = 'v.munster@weareimpact.nl';
+const REPORT_TO = 'weareimpactnl@gmail.com';
 const PERIOD_DAYS = 7;
 
 interface ChatMessageRow {

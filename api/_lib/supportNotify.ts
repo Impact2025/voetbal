@@ -8,7 +8,7 @@ import { MAIL_FROM } from './mailFrom.js';
 import { getAdminClient } from './supabaseAdmin.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const PLATFORM_SUPPORT_EMAIL = 'v.munster@weareimpact.nl';
+const PLATFORM_SUPPORT_EMAIL = 'weareimpactnl@gmail.com';
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'https://skillkaart.nl';
 
 function escapeHtml(s: string): string {

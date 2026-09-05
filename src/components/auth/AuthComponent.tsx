@@ -71,7 +71,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
     window.history.replaceState({}, '', window.location.pathname);
     if (demo === 'coach') {
       localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false);
-      setView('coachLogin'); setEmail('v.munster@weareimpact.nl'); setPassword('Demo1234');
+      setView('coachLogin'); setEmail('weareimpactnl@gmail.com'); setPassword('Demo1234');
     } else if (demo === 'player') {
       localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); setRememberMe(false);
       setView('playerLogin'); setTeamId('IMPACT-JO10-1'); setPin('112233');

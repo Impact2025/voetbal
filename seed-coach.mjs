@@ -1,5 +1,5 @@
 /**
- * Demo coach seed — creates v.munster@weareimpact.nl as coach for Impact JO10-1
+ * Demo coach seed — creates weareimpactnl@gmail.com as coach for Impact JO10-1
  * Run with: node seed-coach.mjs
  */
 import { createClient } from '@supabase/supabase-js';
@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL   = 'https://ezbsychffwnavedwiqvw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6YnN5Y2hmZnduYXZlZHdpcXZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0OTcyNzgsImV4cCI6MjA5NDA3MzI3OH0.nDtUgUuTE9isLJlfNaBUnCI6WDRtbaJsiaV6jcv--ZE';
 
-const COACH_EMAIL    = 'v.munster@weareimpact.nl';
+const COACH_EMAIL    = 'weareimpactnl@gmail.com';
 const COACH_PASSWORD = 'Demo1234';
 const TEAM_ID        = 'IMPACT-JO10-1';
 const CLUB_ID        = 'IMPACT-FC';
