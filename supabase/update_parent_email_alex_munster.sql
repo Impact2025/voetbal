@@ -56,9 +56,10 @@ BEGIN
      WHERE player_id = 'dfa9df53-0eef-484d-9c84-ad681390908c'
        AND parent_id IS NOT NULL;
 
-    INSERT INTO parent_links (player_id, team_id, parent_id, link_code, verified)
+    -- link_code heeft een NOT NULL DEFAULT gen_random_uuid(); laten we die fired door de kolom weg te laten
+    INSERT INTO parent_links (player_id, team_id, parent_id, verified)
     VALUES ('dfa9df53-0eef-484d-9c84-ad681390908c', 'VVCO11-1',
-            '7cfbea0a-816b-4019-a183-c2bd4b918d8c', NULL, true);
+            '7cfbea0a-816b-4019-a183-c2bd4b918d8c', true);
     RAISE NOTICE 'parent_link inserted: 1';
 
     -- 3. notification_prefs (upsert)
