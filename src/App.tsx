@@ -17,6 +17,7 @@ import SupportWidget from './components/support/SupportWidget';
 import DemoPage from './components/DemoPage';
 
 const ClubAdminDashboard = lazy(() => import('./components/club/ClubAdminDashboard'));
+const ClubLogin         = lazy(() => import('./components/club/ClubLogin'));
 const ParentDashboard    = lazy(() => import('./components/parent/ParentDashboard'));
 const ParentAuthFlow     = lazy(() => import('./components/parent/ParentAuthFlow'));
 const AdminApp           = lazy(() => import('./components/admin/AdminApp'));
@@ -24,7 +25,9 @@ const AdminLogin         = lazy(() => import('./components/admin/AdminLogin'));
 
 // True wanneer de gebruiker /admin bezoekt — rol-gated platform-admin.
 const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-// True wanneer de gebruiker /demo bezoekt — publieke pagina met demo-accounts (voorheen op het loginscherm).
+// True wanneer de gebruiker /club bezoekt — club-admin login (alleen via skillkaart.nl/club).
+const isClubRoute = typeof window !== 'undefined' && window.location.pathname === '/club';
+// True wanneer de gebruiker /demo bezoigt — publieke pagina met demo-accounts (voorheen op het loginscherm).
 const isDemoRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/demo');
 
 // Redirect old domains to canonical domain, preserving hash (access_token, etc.) and search params.
@@ -289,6 +292,14 @@ export default function Skillkaart() {
 
   if (isDemoRoute) {
     return <DemoPage />;
+  }
+
+  if (isClubRoute) {
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10" style={{ color: NEON_COLOR }} /></div>}>
+        <ClubLogin />
+      </Suspense>
+    );
   }
 
   if (showPrivacy) {

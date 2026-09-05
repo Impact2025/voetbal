@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Menu, X, LogIn } from 'lucide-react'
+import { Menu, X, LogIn, Building2 } from 'lucide-react'
 
 const navItems = [
   { label: 'Product', href: '#features' },
@@ -58,6 +58,13 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
               </button>
             )}
             <button
+              onClick={() => window.location.href = '/club'}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700 hover:border-neon-ink/50 hover:text-neon-ink transition-all"
+            >
+              <Building2 size={15} />
+              Club login
+            </button>
+            <button
               onClick={onLogin}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700 hover:border-neon-ink/50 hover:text-neon-ink transition-all"
             >
@@ -104,6 +111,12 @@ export default function Navbar({ onLogin, onParentLogin }: { onLogin: () => void
                 ❤️ Ouder-portaal
               </button>
             )}
+            <button
+              onClick={() => { setMenuOpen(false); window.location.href = '/club'; }}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700 mt-1"
+            >
+              <Building2 size={15} /> Club login
+            </button>
             <button
               onClick={() => { setMenuOpen(false); onLogin(); }}
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border border-slate-300 text-slate-700"

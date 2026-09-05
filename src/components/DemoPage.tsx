@@ -36,7 +36,13 @@ const DemoPage = () => (
           <button
             key={demo}
             type="button"
-            onClick={() => { window.location.href = `/?demo=${demo}`; }}
+            onClick={() => {
+              if (demo === 'clubAdmin') {
+                window.location.href = '/club?demo=clubAdmin';
+              } else {
+                window.location.href = `/?demo=${demo}`;
+              }
+            }}
             className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left group bg-gray-800/40 border-gray-700/40 hover:bg-gray-800/70 hover:border-gray-600"
           >
             <Icon size={18} style={{ color: NEON_COLOR }} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, CheckCircle2, User, ShieldCheck, Building2 } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, User, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
@@ -19,7 +19,7 @@ interface AuthComponentProps {
   onBack?: () => void;
 }
 
-type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'coachInviteWelcome' | 'clubAdminLogin' | 'clubAdminRegister' | 'forgotPassword' | 'resetPassword';
+type View = 'playerLogin' | 'coachLogin' | 'coachRegister' | 'coachInviteWelcome' | 'forgotPassword' | 'resetPassword';
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, msg: string): Promise<T> =>
   Promise.race([
@@ -40,15 +40,13 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
   const [teamId, setTeamId] = useState('');
   const [newTeamId, setNewTeamId] = useState('');
   const [clubIdInput, setClubIdInput] = useState('');
-  const [newClubId, setNewClubId] = useState('');
-  const [clubName, setClubName] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState(initialError ?? '');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [rememberCoach, setRememberCoach] = useState(false);
-  const [forgotPasswordOrigin, setForgotPasswordOrigin] = useState<'coachLogin' | 'clubAdminLogin'>('coachLogin');
+  const [forgotPasswordOrigin, setForgotPasswordOrigin] = useState<'coachLogin'>('coachLogin');
   const [slowHint, setSlowHint] = useState(false);
   const [invite, setInvite] = useState<CoachInvite | null>(null);
   // Het token komt uit de URL en wordt niet meer door de server teruggegeven.
@@ -68,10 +66,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
     const demo = new URLSearchParams(window.location.search).get('demo');
     if (!demo) return;
     window.history.replaceState({}, '', window.location.pathname);
-    if (demo === 'clubAdmin') {
-      localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false);
-      setView('clubAdminLogin'); setEmail('chat@weareimpact.nl'); setPassword('Skillkaart2026!');
-    } else if (demo === 'coach') {
+    if (demo === 'coach') {
       localStorage.removeItem('rememberedCoachEmail'); setRememberCoach(false);
       setView('coachLogin'); setEmail('v.munster@weareimpact.nl'); setPassword('Demo1234');
     } else if (demo === 'player') {
@@ -287,29 +282,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
     }
   };
 
-  const handleClubAdminRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newClubId.trim()) { setError('Kies een unieke Club ID.'); return; }
-    if (!clubName.trim()) { setError('Vul een clubnaam in.'); return; }
-    if (password.length < 6) { setError('Wachtwoord moet minimaal 6 tekens zijn.'); return; }
-
-    setLoading(true); setError('');
-    try {
-      const { data: existing } = await supabase.from('clubs').select('id').eq('id', newClubId).single();
-      if (existing) throw new Error('Deze Club ID is al in gebruik. Kies een andere.');
-
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-
-      await supabase.from('clubs').insert({ id: newClubId, name: clubName.trim() });
-      await supabase.from('profiles').insert({ id: data.user!.id, role: 'club_admin', club_id: newClubId });
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handlePlayerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamId.trim() || !pin.trim()) { setError('Team ID en Pincode zijn beide verplicht.'); return; }
@@ -483,27 +455,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       </form>
     );
 
-    if (view === 'clubAdminLogin') return (
-      <form onSubmit={e => { e.preventDefault(); void handleCoachAuth(false); }} className="space-y-4">
-        <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB LOGIN</h2>
-        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
-        <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input id="remember-club" type="checkbox" checked={rememberCoach} onChange={e => setRememberCoach(e.target.checked)} className={`h-4 w-4 rounded ${isLightMode ? 'border-gray-300 bg-white' : 'border-gray-600 bg-gray-800'}`} />
-            <label htmlFor="remember-club" className="ml-2 block text-sm text-gray-400">Bewaar mijn e-mail</label>
-          </div>
-          <button type="button" onClick={() => { setForgotPasswordOrigin('clubAdminLogin'); setView('forgotPassword'); setError(''); }} className={`text-sm transition-colors ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
-            Vergeten?
-          </button>
-        </div>
-        <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
-          {loading ? <Loader2 className="animate-spin" /> : 'Inloggen'}
-        </button>
-        {slowHint && <p className="text-xs text-gray-500 text-center mt-2">Server start op na inactiviteit, dit kan tot 45 seconden duren...</p>}
-      </form>
-    );
-
     if (view === 'coachInviteWelcome' && invite) return (
       <CoachInviteWelcome
         invite={invite}
@@ -512,22 +463,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         onContinue={() => { void claimInvite(); }}
         onLogin={() => { setView('coachLogin'); setError(''); }}
       />
-    );
-
-    if (view === 'clubAdminRegister') return (
-      <form onSubmit={handleClubAdminRegister} className="space-y-4">
-        <button type="button" onClick={() => { setView('coachLogin'); setError(''); }} className={`flex items-center gap-1.5 text-sm transition-colors mb-2 ${isLightMode ? 'text-gray-500 hover:text-gray-700' : 'text-gray-400 hover:text-white'}`}>
-          <ArrowLeft size={14} /> Terug
-        </button>
-        <h2 className="text-2xl font-bold text-center mb-4" style={isLightMode ? {} : { textShadow: `0 0 8px ${NEON_COLOR}` }}>CLUB REGISTRATIE</h2>
-        <Input light={isLightMode} label="Clubnaam" value={clubName} onChange={e => setClubName(e.target.value)} placeholder="bv. VV Sportlust" />
-        <Input light={isLightMode} label="Kies een unieke Club ID" value={newClubId} onChange={e => setNewClubId(e.target.value)} placeholder="bv. VVS-CLUB" />
-        <Input light={isLightMode} label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@club.nl" />
-        <Input light={isLightMode} label="Wachtwoord" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimaal 6 tekens" />
-        <button type="submit" disabled={loading} className={btnClass} style={{ backgroundColor: NEON_COLOR }}>
-          {loading ? <Loader2 className="animate-spin" /> : 'Club Registreren'}
-        </button>
-      </form>
     );
 
     // Coach login / register
@@ -624,7 +559,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
         <Card light={isLightMode}>
           {view !== 'forgotPassword' && view !== 'resetPassword' && view !== 'coachInviteWelcome' && (
-            <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="grid grid-cols-2 gap-2 mb-6">
               <button
                 onClick={() => { setView('playerLogin'); setError(''); }}
                 className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'playerLogin' ? tabActive : tabInactive}`}
@@ -645,16 +580,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
                   <div className="text-[9px] text-gray-500 mt-0.5">Email + ww</div>
                 </div>
               </button>
-              <button
-                onClick={() => { setView('clubAdminLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'clubAdminLogin' || view === 'clubAdminRegister' ? tabActive : tabInactive}`}
-              >
-                <Building2 size={20} style={{ color: view === 'clubAdminLogin' || view === 'clubAdminRegister' ? (isLightMode ? '#16A34A' : NEON_COLOR) : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
-                <div className="text-center">
-                  <div className="font-bold text-xs leading-none">Club</div>
-                  <div className="text-[9px] text-gray-500 mt-0.5">Admin</div>
-                </div>
-              </button>
             </div>
           )}
           {renderForm()}
@@ -673,16 +598,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
           {view === 'coachRegister' && (
             <p className="text-center text-sm mt-4 text-gray-500">
               Al een account? <button onClick={() => setView('coachLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
-            </p>
-          )}
-          {view === 'clubAdminLogin' && (
-            <p className="text-center text-sm mt-4 text-gray-500">
-              Nog geen account? <button onClick={() => setView('clubAdminRegister')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Club registreren</button>
-            </p>
-          )}
-          {view === 'clubAdminRegister' && (
-            <p className="text-center text-sm mt-4 text-gray-500">
-              Al een account? <button onClick={() => setView('clubAdminLogin')} className="font-semibold hover:underline" style={{ color: NEON_COLOR }}>Log hier in</button>
             </p>
           )}
 
