@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, CheckCircle2, User, ShieldCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Card from '../ui/Card';
 import Input from '../ui/Input';
@@ -532,13 +532,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
     );
   };
 
-  const tabActive = isLightMode
-    ? 'border-green-600 bg-green-50 text-gray-900'
-    : 'border-[#00FF9D] bg-[#00FF9D]/[0.07] text-white';
-  const tabInactive = isLightMode
-    ? 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-    : 'border-gray-700 bg-gray-800/40 text-gray-400 hover:border-gray-600 hover:text-gray-200';
-
   return (
     <div className={`flex flex-col items-center justify-center min-h-screen px-4 gap-6${isLightMode ? ' bg-white text-gray-900' : ''}`}>
       {onBack && (
@@ -558,30 +551,6 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, delay: 0.1 }} className="w-full max-w-sm">
         <Card light={isLightMode}>
-          {view !== 'forgotPassword' && view !== 'resetPassword' && view !== 'coachInviteWelcome' && (
-            <div className="grid grid-cols-2 gap-2 mb-6">
-              <button
-                onClick={() => { setView('playerLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'playerLogin' ? tabActive : tabInactive}`}
-              >
-                <User size={20} style={{ color: view === 'playerLogin' ? (isLightMode ? '#16A34A' : NEON_COLOR) : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
-                <div className="text-center">
-                  <div className="font-bold text-xs leading-none">Speler</div>
-                  <div className="text-[9px] text-gray-500 mt-0.5">Team + PIN</div>
-                </div>
-              </button>
-              <button
-                onClick={() => { setView('coachLogin'); setError(''); }}
-                className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border-2 transition-all ${view === 'coachLogin' || view === 'coachRegister' ? tabActive : tabInactive}`}
-              >
-                <ShieldCheck size={20} style={{ color: view === 'coachLogin' || view === 'coachRegister' ? (isLightMode ? '#16A34A' : NEON_COLOR) : (isLightMode ? '#9CA3AF' : '#6b7280') }} />
-                <div className="text-center">
-                  <div className="font-bold text-xs leading-none">Coach</div>
-                  <div className="text-[9px] text-gray-500 mt-0.5">Email + ww</div>
-                </div>
-              </button>
-            </div>
-          )}
           {renderForm()}
           {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
           {view === 'resetPassword' && success && (

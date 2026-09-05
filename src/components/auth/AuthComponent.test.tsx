@@ -23,6 +23,7 @@ describe('AuthComponent', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.pushState({}, '', '/');
   });
 
   it('renders speler login tab by default', () => {
@@ -38,9 +39,9 @@ describe('AuthComponent', () => {
     });
   });
 
-  it('switches to coach login tab', () => {
+  it('opens coach login view via the ?demo=coach link', () => {
+    window.history.pushState({}, '', '/?demo=coach');
     render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
-    fireEvent.click(screen.getByText('Coach'));
     expect(screen.getByText('COACH LOGIN')).toBeInTheDocument();
   });
 
@@ -59,8 +60,8 @@ describe('AuthComponent', () => {
     (supabase.auth.signInWithPassword as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ error: { message: 'Email not confirmed' } });
 
+    window.history.pushState({}, '', '/?demo=coach');
     render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
-    fireEvent.click(screen.getByText('Coach'));
     fireEvent.change(screen.getByPlaceholderText('coach@email.com'), { target: { value: 'hans@fellow-travellers.com' } });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'wachtwoord123' } });
     fireEvent.click(screen.getByRole('button', { name: 'Inloggen' }));
@@ -88,8 +89,8 @@ describe('AuthComponent', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
+    window.history.pushState({}, '', '/?demo=coach');
     render(<AuthComponent onPlayerLogin={onPlayerLogin} />);
-    fireEvent.click(screen.getByText('Coach'));
     fireEvent.change(screen.getByPlaceholderText('coach@email.com'), { target: { value: 'wim@fellow-travellers.com' } });
 
     const magicBtn = screen.getByRole('button', { name: /Stuur inloglink/ });
