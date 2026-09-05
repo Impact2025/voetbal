@@ -162,20 +162,26 @@ export function ageToAgeGroup(age: string | number | undefined): string {
   return `O${clamped}`;
 }
 
-/** Haalt de challenge-tekst van de huidige trainingsweek op (gratis basisfeature, onafhankelijk van PRO-status). */
-export async function fetchCurrentWeekChallenge(
+/**
+ * Haalt het volledige weekplan (training + huiswerk + challenge) van de huidige
+ * trainingsweek op — huiswerk/challenge zijn gratis basisfeatures, onafhankelijk
+ * van PRO-status. `configured` geeft aan of dit team/deze leeftijdsgroep het
+ * seizoensprogramma actief volgt (los van of er deze specifieke week — bv. een
+ * vakantieweek — toevallig huiswerk/challenge-tekst is).
+ */
+export async function fetchCurrentWeekPlan(
   clubId: string,
   ageGroup: string,
-): Promise<SeasonWeekPlan | null> {
+): Promise<{ configured: boolean; weekPlan: SeasonWeekPlan | null }> {
   const configs = await fetchClubTrainingConfigs(clubId);
-  if (!configs.some(c => c.age_group === ageGroup)) return null;
+  if (!configs.some(c => c.age_group === ageGroup)) return { configured: false, weekPlan: null };
 
   const [plan, overrides] = await Promise.all([
     fetchSeasonPlan(ageGroup),
     fetchClubWeekOverrides(clubId, ageGroup),
   ]);
   const weekPlan = getCurrentSeasonWeek(plan, overrides);
-  return weekPlan?.challenge ? weekPlan : null;
+  return { configured: true, weekPlan };
 }
 
 /**

@@ -64,7 +64,7 @@ import {
 } from '../../lib/stats';
 import { getOrCreateStreak, incrementStreak, decrementStreak } from '../../lib/streaks';
 import { getActiveTeamChallenge } from '../../lib/teamChallenge';
-import { ageToAgeGroup, fetchCurrentWeekChallenge } from '../../lib/trainingLibrary';
+import { ageToAgeGroup, fetchCurrentWeekPlan } from '../../lib/trainingLibrary';
 import type { PlayerStats, CardTier, TeamChallenge } from '../../types';
 
 interface DashboardProps {
@@ -127,6 +127,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [teamChallengeCompletions, setTeamChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [weekChallenge, setWeekChallenge] = useState<SeasonWeekPlan | null>(null);
   const [weekChallengeCompletions, setWeekChallengeCompletions] = useState<WeekChallengeCompletion[]>([]);
+  // true als het team een actief seizoensprogramma volgt voor zijn leeftijdsgroep —
+  // dan komt huiswerk/challenge automatisch uit het Excel-seizoensplan (Voetbal app.xls)
+  // en hoeft de coach niets handmatig toe te wijzen.
+  const [seasonProgramConfigured, setSeasonProgramConfigured] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [mobileSection, setMobileSection] = useState(() => userData.role === 'player' ? 'vandaag' : 'overzicht');
@@ -328,14 +332,20 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     setPlayers(prev => prev.map(p => p.id === user.id ? { ...p, avatar_config: config } : p));
   };
 
-  // Basis-weekchallenge (gratis, uit het seizoensprogramma van deze week) voor de speler
+  // Basis-weekplan (gratis, uit het seizoensprogramma van deze week) voor speler én coach —
+  // levert zowel de challenge- als de huiswerk-tekst van deze week (of het lopende blok).
+  // Speler: leeftijdsgroep uit zijn eigen leeftijd. Coach: uit de team_class van het team.
   useEffect(() => {
-    if (userData.role !== 'player' || !activePlayer || !clubId) { setWeekChallenge(null); return; }
-    const ageGroup = ageToAgeGroup(activePlayer.age);
-    fetchCurrentWeekChallenge(clubId, ageGroup)
-      .then(setWeekChallenge)
-      .catch(() => setWeekChallenge(null));
-  }, [userData.role, activePlayer, clubId]);
+    const ageGroup = userData.role === 'player' && activePlayer
+      ? ageToAgeGroup(activePlayer.age)
+      : userData.role === 'coach' && teamData.team_class
+        ? teamData.team_class
+        : null;
+    if (!ageGroup || !clubId) { setWeekChallenge(null); setSeasonProgramConfigured(false); return; }
+    fetchCurrentWeekPlan(clubId, ageGroup)
+      .then(({ configured, weekPlan }) => { setSeasonProgramConfigured(configured); setWeekChallenge(weekPlan); })
+      .catch(() => { setWeekChallenge(null); setSeasonProgramConfigured(false); });
+  }, [userData.role, activePlayer, clubId, teamData.team_class]);
 
   const activeWeekChallengeText = useMemo(() => {
     if (!weekChallenge?.challenge) return null;
@@ -343,11 +353,32 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
     return alreadyDone ? null : weekChallenge.challenge;
   }, [weekChallenge, weekChallengeCompletions]);
 
+  // Automatisch weekhuiswerk uit het seizoensprogramma — vervangt de handmatige
+  // toewijzingslijst voor teams die het seizoensprogramma volgen.
+  const seasonWeekHomework = useMemo<CustomHomework | null>(() => {
+    if (!weekChallenge?.homework || !userData.teamId) return null;
+    return {
+      id: weekChallenge.id,
+      team_id: userData.teamId,
+      title: weekChallenge.homework,
+      description: weekChallenge.homework,
+    };
+  }, [weekChallenge, userData.teamId]);
+
+  const effectiveCustomHomework = useMemo(
+    () => seasonProgramConfigured ? (seasonWeekHomework ? [seasonWeekHomework] : []) : customHomework,
+    [seasonProgramConfigured, seasonWeekHomework, customHomework],
+  );
+  const effectiveAssignedHomeworkIds = useMemo(
+    () => seasonProgramConfigured ? (seasonWeekHomework ? [seasonWeekHomework.id] : []) : (teamData.assigned_homework_ids || []),
+    [seasonProgramConfigured, seasonWeekHomework, teamData.assigned_homework_ids],
+  );
+
   const focusedHomeworkId = useMemo(() => {
     if (!activePlayer) return undefined;
-    const assigned = customHomework.filter(hw => (teamData.assigned_homework_ids || []).includes(hw.id));
+    const assigned = effectiveCustomHomework.filter(hw => effectiveAssignedHomeworkIds.includes(hw.id));
     return assigned.find(hw => !activePlayer.completed_homework_ids?.includes(hw.id))?.id;
-  }, [customHomework, teamData.assigned_homework_ids, activePlayer]);
+  }, [effectiveCustomHomework, effectiveAssignedHomeworkIds, activePlayer]);
 
   const normalizedQuestions = useMemo(
     () => Array.from({ length: 3 }, (_, idx) => teamData?.weekly_questions?.[idx] || ''),
@@ -1079,6 +1110,24 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
             {mobileSection === 'huiswerk' && (
               <div className="space-y-5">
 
+                {seasonProgramConfigured ? (
+                  <Card light>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: `${COACH_COLOR}15` }}>
+                        <ClipboardList size={16} style={{ color: COACH_COLOR }} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 mb-1">Huiswerk komt automatisch uit het seizoensprogramma</h3>
+                        <p className="text-sm text-gray-500">
+                          Dit team ({teamData.team_class}) volgt het KNVB-seizoensprogramma. Het weekhuiswerk
+                          {seasonWeekHomework ? <> — <strong className="text-gray-900">{seasonWeekHomework.title}</strong></> : null}
+                          {' '}wordt elke week automatisch bijgewerkt uit het seizoensplan. Je hoeft hier zelf niets toe te wijzen.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ) : (
+                  <>
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -1176,6 +1225,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     })}
                   </div>
                 )}
+                  </>
+                )}
 
                 {/* Video inzendingen */}
                 {submissions.length > 0 && (
@@ -1186,8 +1237,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                     <div className="space-y-3">
                       {submissions.slice(0, 20).map(sub => {
                         const submPlayer = players.find(p => p.id === sub.player_id);
-                        const hw = customHomework.find(h => h.id === sub.homework_id);
-                        if (!submPlayer || !hw) return null;
+                        // Val terug op een generieke titel voor huiswerk uit het seizoensprogramma
+                        // (id = season_week_plan-rij, staat niet in customHomework) i.p.v. de inzending te verbergen.
+                        const hw = customHomework.find(h => h.id === sub.homework_id)
+                          ?? (seasonWeekHomework?.id === sub.homework_id
+                            ? seasonWeekHomework
+                            : { id: sub.homework_id, team_id: userData.teamId ?? '', title: 'Weekhuiswerk (seizoensprogramma)', description: '' });
+                        if (!submPlayer) return null;
                         const statusColor = sub.feedback_status === 'done' ? COACH_COLOR : sub.feedback_status === 'error' ? '#dc2626' : '#64748b';
                         const statusLabel = sub.feedback_status === 'done' ? 'Klaar' : sub.feedback_status === 'error' ? 'Mislukt' : 'Bezig…';
                         return (
@@ -1708,8 +1764,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
               <TodayScreen
                 player={activePlayer}
                 streak={streak}
-                customHomework={customHomework}
-                assignedHomeworkIds={teamData.assigned_homework_ids || []}
+                customHomework={effectiveCustomHomework}
+                assignedHomeworkIds={effectiveAssignedHomeworkIds}
                 hasOpenQuestions={visibleQuestions.some(({ idx }) => !responseDrafts[idx]?.trim())}
                 weekChallenge={activeWeekChallengeText}
                 onCompleteWeekChallenge={handleCompleteWeekChallenge}
@@ -1757,8 +1813,8 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                 <PlayerHomeworkCard
                   player={activePlayer}
                   teamId={userData.teamId ?? ''}
-                  customHomework={customHomework}
-                  assignedHomeworkIds={teamData.assigned_homework_ids || []}
+                  customHomework={effectiveCustomHomework}
+                  assignedHomeworkIds={effectiveAssignedHomeworkIds}
                   submissions={submissions}
                   onSubmissionComplete={handleSubmissionComplete}
                   focusedId={focusedHomeworkId}
