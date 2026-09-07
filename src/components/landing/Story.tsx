@@ -26,13 +26,19 @@ export default function Story() {
           <div className="space-y-8">
             <div>
               <p className="text-neon-ink text-sm font-semibold uppercase tracking-widest mb-3">
-                Over ons
+                Onze missie
               </p>
               <h2 className="text-3xl sm:text-4xl font-black leading-tight">
-                De perfecte match tussen{' '}
-                <span className="neon-text">code en grasmat</span>
+                Professionele begeleiding voor{' '}
+                <span className="neon-text">élk jeugdteam</span>, niet alleen de profclub
               </h2>
             </div>
+
+            <p className="text-slate-600 leading-relaxed">
+              Wij geloven dat elk kind recht heeft op zichtbare, persoonlijke groei — en dat elke
+              coach en club de tools verdienen om dat waar te maken zonder er avonden aan spreadsheets
+              en papierwerk voor op te offeren.
+            </p>
 
             <p className="text-slate-600 leading-relaxed">
               De basis van Skillkaart ligt in de <strong className="text-slate-900">Haarlemmermeer</strong>. Tijdens de

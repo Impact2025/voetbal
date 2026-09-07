@@ -1,4 +1,27 @@
-import PhoneMockup from './PhoneMockup'
+import HeroVisual from './HeroVisual'
+
+const trustBadges = [
+  {
+    icon: '🤝',
+    title: 'Methodiek Partner',
+    subtitle: 'Ultimate Football Academy',
+  },
+  {
+    icon: '⚽',
+    title: 'KNVB-jaarprogramma',
+    subtitle: 'Trainingscurriculum voor O7 t/m O12',
+  },
+  {
+    icon: '🔒',
+    title: 'AVG Jeugd-Proof',
+    subtitle: 'Verwerkersovereenkomst inbegrepen',
+  },
+  {
+    icon: '📱',
+    title: 'Mobile-first',
+    subtitle: 'Geen installatie, direct te gebruiken',
+  },
+]
 
 export default function Hero() {
   return (
@@ -72,12 +95,23 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Right: Phone mockup */}
-          <div className="relative flex justify-center lg:justify-end">
-            <div className="animate-float">
-              <PhoneMockup />
-            </div>
+          {/* Right: Illustrated match visual + player-card */}
+          <div className="flex justify-center lg:justify-end">
+            <HeroVisual />
           </div>
+        </div>
+
+        {/* Trust bar */}
+        <div className="relative mt-16 lg:mt-24 pt-8 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-6">
+          {trustBadges.map((b) => (
+            <div key={b.title} className="flex items-start gap-3">
+              <span className="text-xl flex-shrink-0">{b.icon}</span>
+              <div>
+                <p className="text-slate-900 text-sm font-bold leading-tight">{b.title}</p>
+                <p className="text-slate-400 text-xs mt-0.5">{b.subtitle}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

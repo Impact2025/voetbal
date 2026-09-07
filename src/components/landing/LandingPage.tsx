@@ -1,6 +1,7 @@
 import Navbar from './Navbar'
 import Hero from './Hero'
 import Problems from './Problems'
+import Audiences from './Audiences'
 import Features from './Features'
 import Stats from './Stats'
 import Story from './Story'
@@ -15,6 +16,7 @@ export default function LandingPage({ onLogin }: { onLogin: () => void }) {
       <main>
         <Hero />
         <Problems />
+        <Audiences />
         <Features />
         <Stats />
         <Story />

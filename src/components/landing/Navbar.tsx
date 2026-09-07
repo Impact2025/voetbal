@@ -3,6 +3,7 @@ import { Menu, X, LogIn, Building2 } from 'lucide-react'
 
 const navItems = [
   { label: 'Product', href: '#features' },
+  { label: 'Voor wie', href: '#voor-wie' },
   { label: 'Het Verhaal', href: '#verhaal' },
   { label: 'Tarieven', href: '#tarieven' },
   { label: 'Veelgestelde vragen', href: '/faq' },
