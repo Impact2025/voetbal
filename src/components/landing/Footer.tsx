@@ -62,6 +62,11 @@ export default function Footer() {
                 </a>
               </li>
               <li>
+                <a href="/blog" className="text-slate-500 hover:text-slate-900 text-sm transition-colors">
+                  Blog
+                </a>
+              </li>
+              <li>
                 <a
                   href="mailto:info@skillkaart.nl?subject=Demo aanvraag"
                   className="text-neon-ink hover:text-neon-dark text-sm font-semibold transition-colors"
@@ -79,13 +84,13 @@ export default function Footer() {
             © 2026 Skillkaart. Alle rechten voorbehouden.
           </p>
           <div className="flex items-center gap-4">
-            <a href="#" className="text-slate-400 hover:text-slate-600 text-xs transition-colors">
-              Privacy Statement
+            <a href="/privacy" className="text-slate-400 hover:text-slate-600 text-xs transition-colors">
+              Privacyverklaring
             </a>
-            <a href="#" className="text-slate-400 hover:text-slate-600 text-xs transition-colors">
-              Algemene Voorwaarden
-            </a>
-            <a href="#" className="text-slate-400 hover:text-slate-600 text-xs transition-colors">
+            <a
+              href="mailto:info@skillkaart.nl?subject=Verwerkersovereenkomst%20aanvragen"
+              className="text-slate-400 hover:text-slate-600 text-xs transition-colors"
+            >
               Verwerkersovereenkomst (AVG)
             </a>
           </div>

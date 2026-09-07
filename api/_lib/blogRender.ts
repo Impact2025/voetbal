@@ -29,15 +29,17 @@ function fmtViews(n: number): string {
   return String(n);
 }
 
+import { NAV_FOOTER_CSS, renderNavbar, renderFooter } from './siteChrome.js';
+
 const esc = (s: string) =>
   (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const SHELL_CSS = `
   *{box-sizing:border-box}
   body{margin:0;background:#fff;color:#334155;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.7}
-  a{color:#00FF9D;font-weight:500}
+  a{color:#009966;font-weight:500}
+  ${NAV_FOOTER_CSS}
   .wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px}
-  .brand{font-weight:900;letter-spacing:3px;color:#00FF9D;text-decoration:none;font-size:18px}
   .meta{color:#64748b;font-size:13px;margin:8px 0 24px}
   h1{font-size:34px;line-height:1.2;color:#0f172a;margin:24px 0 8px}
   h2{font-size:24px;color:#0f172a;margin:32px 0 8px}
@@ -138,8 +140,8 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
 <script type="application/ld+json">${postLd}</script>
 <script type="application/ld+json">${orgLd}</script>
 <body>
+${renderNavbar(baseUrl, `${baseUrl}/blog`)}
   <div class="wrap">
-    <a class="brand" href="${baseUrl}/blog">SKILLKAART</a>
     ${coverImageHtml}
     <h1>${esc(post.title)}</h1>
     <div class="meta">${metaBits}</div>
@@ -147,6 +149,7 @@ export function renderPostPage(post: BlogPost, baseUrl: string): string {
     <a class="cta" href="${baseUrl}/">Probeer Skillkaart →</a>
     <p style="margin-top:32px"><a href="${baseUrl}/blog">← Alle artikelen</a></p>
   </div>
+  ${renderFooter(baseUrl)}
   <script>
   // Leesteller: telt echte bezoekers (de HTML is edge-cached, dus server-side
   // tellen kan niet). sendBeacon overleeft ook het wegnavigeren. Eén keer per
@@ -255,7 +258,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .featured-body p{color:#475569;font-size:14px;margin:0 0 12px;line-height:1.6}
 .featured-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 4px}
 .featured-meta .dot{color:#cbd5e1}
-.read-more{display:inline-block;margin-top:8px;color:#00FF9D;font-weight:700;font-size:14px}
+.read-more{display:inline-block;margin-top:8px;color:#009966;font-weight:700;font-size:14px}
 .card{border:1px solid #e2e8f0;border-radius:14px;padding:20px;margin:14px 0;display:block;text-decoration:none;color:inherit;transition:border-color .2s,box-shadow .15s}
 .card:hover{border-color:#00FF9D88;box-shadow:0 2px 8px #00000008}
 .card h2{font-size:17px;margin:10px 0 8px;line-height:1.35}
@@ -268,7 +271,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 .sidebar-section h3{font-size:14px;margin:0 0 14px;color:#0f172a;text-transform:uppercase;letter-spacing:.5px}
 .popular-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;text-decoration:none;color:inherit;border-bottom:1px solid #f1f5f9}
 .popular-item:last-child{border:none}
-.popular-item:hover .popular-title{color:#00FF9D}
+.popular-item:hover .popular-title{color:#009966}
 .popular-num{font-size:20px;font-weight:900;color:#e2e8f0;line-height:1;min-width:24px;text-align:center}
 .popular-title{font-size:13px;font-weight:600;display:block;line-height:1.3;transition:color .15s}
 .sidebar-cta{background:#0D0D0D;border-radius:14px;padding:24px;text-align:center}
@@ -305,9 +308,8 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
 <script type="application/ld+json">${collectionLd}</script>
 <script type="application/ld+json">${orgLd}</script>
 <body>
+${renderNavbar(baseUrl, `${baseUrl}/blog`)}
   <div class="wrap">
-    <a class="brand" href="${baseUrl}/">SKILLKAART</a>
-
     <!-- Hero -->
     <div class="hero">
       <h1>Blog</h1>
@@ -359,6 +361,7 @@ export function renderIndexPage(posts: BlogPost[], baseUrl: string): string {
       </div>
     </div>
   </div>
+${renderFooter(baseUrl)}
 
 <script>
 var allItems;

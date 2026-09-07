@@ -3,6 +3,7 @@
 // soepele accordeon, per-categorie CTAs, en Google rich snippet markup.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { NAV_FOOTER_CSS, renderNavbar, renderFooter } from './siteChrome.js';
 
 export interface FaqItem {
   id: string;
@@ -19,9 +20,8 @@ const esc = (s: string) =>
 const SHELL_CSS = `
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:#334155;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.7}
-a{color:#00FF9D}
-.topbar{background:#0D0D0D;padding:18px 20px;text-align:center}
-.brand{font-weight:900;letter-spacing:3px;color:#00FF9D;text-decoration:none;font-size:18px}
+a{color:#009966}
+${NAV_FOOTER_CSS}
 .wrap{max-width:860px;margin:0 auto;padding:40px 20px 80px}
 h1{font-size:36px;line-height:1.15;color:#0f172a;margin:0 0 8px}
 .sub{color:#64748b;font-size:17px;margin:0 0 16px;max-width:640px}
@@ -85,15 +85,15 @@ h1{font-size:36px;line-height:1.15;color:#0f172a;margin:0 0 8px}
 .feedback-btn.active{border-color:#00FF9D;background:#00FF9D10;color:#0f172a}
 .feedback-btn .count{font-size:11px;color:#94a3b8;margin-left:2px}
 
-/* ─── CTA ─── */
-.cta{background:#0D0D0D;border-radius:18px;padding:36px;text-align:center;margin:48px 0 32px}
-.cta h2{color:#fff;font-size:22px;margin:0 0 8px}
-.cta p{color:#94a3b8;font-size:14px;margin:0 0 4px}
-.cta .small{color:#64748b;font-size:12px;margin:12px 0 0}
-.cta-btn{display:inline-block;background:#00FF9D;color:#000;font-weight:800;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:15px;margin-top:16px;transition:background .2s}
-.cta-btn:hover{background:#00e68a}
-.cta-btn.secondary{background:transparent;border:2px solid #334155;color:#e2e8f0;margin-left:8px}
-.cta-btn.secondary:hover{background:#1e293b}
+/* ─── CTA (zelfde kaartstijl als de homepage) ─── */
+.cta{background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:36px;text-align:center;margin:48px 0 32px}
+.cta h2{color:#0f172a;font-size:22px;margin:0 0 8px;font-weight:900}
+.cta p{color:#64748b;font-size:14px;margin:0 0 4px}
+.cta .small{color:#94a3b8;font-size:12px;margin:12px 0 0}
+.cta-btn{display:inline-block;background:#00FF9D;color:#06060e;font-weight:800;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:15px;margin-top:16px;transition:all .2s;box-shadow:0 0 20px #00FF9D55}
+.cta-btn:hover{background:#00cc7a;box-shadow:0 0 40px #00FF9D88}
+.cta-btn.secondary{background:transparent;border:1px solid #cbd5e1;color:#334155;margin-left:8px;box-shadow:none}
+.cta-btn.secondary:hover{background:#f1f5f9;box-shadow:none}
 .back{display:inline-block;margin-top:32px;color:#64748b;font-size:14px;text-decoration:none}
 .back:hover{color:#0f172a}
 
@@ -194,12 +194,12 @@ export const FALLBACK_FAQ: FaqItem[] = [
   { id: 'c1', question: 'Wat kost Skillkaart voor een voetbalclub?', category: 'club', sort_order: 1, published: true,
     answer: `<p>Onze tarieven zijn bewust laag gehouden zodat elke amateurvereniging kan profiteren van datagedreven jeugdontwikkeling. Een los team start al vanaf <strong>€150 per jaar</strong> — dat is €12,50 per maand. Voor complete jeugdafdelingen lopen de pakketten op tot €750 per jaar voor onbeperkt teams, inclusief dedicated onboarding en custom branding.</p>
 <p>Toen Danny en ik de prijsstructuur ontwierpen, was één ding leidend: de drempel moet weg. Geen dikke eenmalige licentiekosten, geen verborgen kosten per speler. Een helder jaarbedrag, opzegbaar per seizoen. Vergelijk het met de prijs van een paar trainingshesjes — alleen krijg je er een complete AI-gedreven skill tracking infrastructuur voor terug.</p>
-<p>Bekijk alle pakketten op <a href="/#tarieven" style="color:#00FF9D;text-decoration:underline">onze tarievenpagina</a> of mail me direct op <a href="mailto:info@skillkaart.nl" style="color:#00FF9D;text-decoration:underline">info@skillkaart.nl</a> voor een vrijblijvende offerte op maat.</p>` },
+<p>Bekijk alle pakketten op <a href="/#tarieven" style="color:#009966;text-decoration:underline">onze tarievenpagina</a> of mail me direct op <a href="mailto:info@skillkaart.nl" style="color:#009966;text-decoration:underline">info@skillkaart.nl</a> voor een vrijblijvende offerte op maat.</p>` },
   { id: 'c2', question: 'Hoeveel teams kan ik toevoegen en beheren?', category: 'club', sort_order: 2, published: true,
     answer: `<p>Dat hangt af van het pakket. Basis is voor 1 team — ideaal voor een enthousiaste trainer die wil proeven. Club S ondersteunt 2 tot 5 teams, Club M gaat tot 15 teams, en met Club L krijg je onbeperkt teams.</p>
 <p>Vanuit mijn ervaring met het bouwen van platformen weet ik: schaalbaarheid gaat niet alleen over het aantal teams, maar over gebruiksgemak. Daarom heeft elk team zijn eigen coach-dashboard, maar zie je als technisch coördinator alle teams in één overzicht. Danny's trainers bij UFA testen dit al met meerdere leeftijdsgroepen tegelijk — van JO7 tot JO12 — en de feedback is dat schakelen tussen teams in een paar klikken gaat.</p>` },
   { id: 'c3', question: 'Voldoet Skillkaart aan de AVG-privacywet voor jeugdspelers?', category: 'club', sort_order: 3, published: true,
-    answer: `<p>Absoluut. Privacy is geen bijzaak in mijn werk — het is een ontwerpvoorwaarde. Al mijn platformen, van <a href="https://bijeen.app" style="color:#00FF9D;text-decoration:underline">Bijeen.app</a> tot <a href="https://bewaardvoorjou.nl" style="color:#00FF9D;text-decoration:underline">BewaardVoorJou.nl</a>, zijn gebouwd met datzelfde principe: de gebruiker heeft controle, de data is veilig, en wetgeving is geen obstakel maar uitgangspunt.</p>
+    answer: `<p>Absoluut. Privacy is geen bijzaak in mijn werk — het is een ontwerpvoorwaarde. Al mijn platformen, van <a href="https://bijeen.app" style="color:#009966;text-decoration:underline">Bijeen.app</a> tot <a href="https://bewaardvoorjou.nl" style="color:#009966;text-decoration:underline">BewaardVoorJou.nl</a>, zijn gebouwd met datzelfde principe: de gebruiker heeft controle, de data is veilig, en wetgeving is geen obstakel maar uitgangspunt.</p>
 <p>Concreet: wij leveren bij elk abonnement een <strong>verwerkersovereenkomst</strong>. Het platform ondersteunt anonieme spelersnummers. Spelers loggen in met een eenvoudige PIN-code — geen e-mailadres, geen wachtwoord. Ouders krijgen alleen toegang via een beveiligde uitnodigingslink. En alle data wordt opgeslagen bij Supabase, een bewezen Europese cloud-infrastructuurpartner.</p>` },
   { id: 'c4', question: 'Hoe start ik een pilot met Skillkaart in mijn club?', category: 'club', sort_order: 4, published: true,
     answer: `<p>Door me gewoon een mailtje te sturen. Ik richt binnen 24 uur een demo-omgeving in met jullie teamnaam en dummy-spelers, zodat het jeugdbestuur en de trainers direct kunnen zien hoe het werkt op hun eigen telefoon. Geen praatje, geen salespitch — gewoon het product ervaren.</p>
@@ -364,9 +364,7 @@ export async function renderFaqPage(
 </head>
 <body>
 
-<div class="topbar">
-  <a class="brand" href="${baseUrl}/">SKILLKAART</a>
-</div>
+${renderNavbar(baseUrl, `${baseUrl}/faq`)}
 
 <div class="wrap">
   <h1>Veelgestelde vragen</h1>
@@ -395,9 +393,9 @@ export async function renderFaqPage(
     <a class="cta-btn" href="mailto:info@skillkaart.nl?subject=Vraag over Skillkaart">Mail me direct →</a>
     <a class="cta-btn secondary" href="${baseUrl}/">Terug naar Skillkaart</a>
   </div>
-
-  <a class="back" href="${baseUrl}/">← Terug naar Skillkaart</a>
 </div>
+
+${renderFooter(baseUrl)}
 
 <script>
 // ─── Accordeon toggle ─────────────────────────────────────────────────

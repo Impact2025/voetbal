@@ -29,6 +29,8 @@ const isAdminRoute = typeof window !== 'undefined' && window.location.pathname.s
 const isClubRoute = typeof window !== 'undefined' && window.location.pathname === '/club';
 // True wanneer de gebruiker /demo bezoigt — publieke pagina met demo-accounts (voorheen op het loginscherm).
 const isDemoRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/demo');
+// True wanneer de gebruiker /privacy bezoekt — direct linkbare privacyverklaring (o.a. vanuit de footer).
+const isPrivacyRoute = typeof window !== 'undefined' && window.location.pathname === '/privacy';
 
 // Redirect old domains to canonical domain, preserving hash (access_token, etc.) and search params.
 const OLD_HOSTNAMES = ['voetbal-flame.vercel.app', 'skills.weareimpact.nl'];
@@ -308,10 +310,10 @@ export default function Skillkaart() {
     );
   }
 
-  if (showPrivacy) {
+  if (showPrivacy || isPrivacyRoute) {
     return (
       <div style={{ '--neon-color': NEON_COLOR } as React.CSSProperties}>
-        <PrivacyPolicy onBack={() => setShowPrivacy(false)} />
+        <PrivacyPolicy onBack={() => (isPrivacyRoute ? (window.location.href = '/') : setShowPrivacy(false))} />
       </div>
     );
   }

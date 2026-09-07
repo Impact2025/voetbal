@@ -1,7 +1,7 @@
 const stats = [
   {
-    value: '17',
-    unit: 'Skills',
+    value: '7',
+    unit: 'Kernskills',
     description: 'Longitudinale voortgangsmeting met 2 vaste evaluaties per seizoen om de échte ontwikkeling in kaart te brengen.',
   },
   {
