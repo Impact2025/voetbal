@@ -127,6 +127,10 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
   const [teamChallengeCompletions, setTeamChallengeCompletions] = useState<ChallengeCompletion[]>([]);
   const [weekChallenge, setWeekChallenge] = useState<SeasonWeekPlan | null>(null);
   const [weekChallengeCompletions, setWeekChallengeCompletions] = useState<WeekChallengeCompletion[]>([]);
+  // Team-brede voltooiingen van de wekelijkse seizoensprogramma-challenge (bv. "10x
+  // hooghouden met ballon") — apart van teamChallengeCompletions (de video-challenge-
+  // bibliotheek), want dit is een simpel zelf-afvinkitem zonder coach-goedkeuring.
+  const [teamWeekChallengeCompletions, setTeamWeekChallengeCompletions] = useState<WeekChallengeCompletion[]>([]);
   // true als het team een actief seizoensprogramma volgt voor zijn leeftijdsgroep —
   // dan komt huiswerk/challenge automatisch uit het Excel-seizoensplan (Voetbal app.xls)
   // en hoeft de coach niets handmatig toe te wijzen.
@@ -156,6 +160,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         { data: attendanceData },
         { data: submissionsData },
         { data: teamCompletionsData },
+        { data: teamWeekCompletionsData },
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id', userData.teamId),
         supabase.from('teams').select('*').eq('id', userData.teamId).single(),
@@ -163,10 +168,12 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
         supabase.from('attendance').select('*').eq('team_id', userData.teamId),
         supabase.from('homework_submissions').select('*').eq('team_id', userData.teamId).order('created_at', { ascending: false }),
         supabase.from('challenge_completions').select('*').eq('team_id', userData.teamId).order('completed_at', { ascending: false }),
+        supabase.from('week_challenge_completions').select('*').eq('team_id', userData.teamId).order('completed_at', { ascending: false }),
       ]);
 
       setSubmissions((submissionsData || []) as HomeworkSubmission[]);
       setTeamChallengeCompletions((teamCompletionsData || []) as ChallengeCompletion[]);
+      setTeamWeekChallengeCompletions((teamWeekCompletionsData || []) as WeekChallengeCompletion[]);
 
       const normalizedPlayers = (playersData || []).map(player => ({
         ...player,
@@ -255,6 +262,13 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
           } else if (payload.eventType === 'UPDATE') {
             setTeamChallengeCompletions(prev => prev.map(c => c.id === (payload.new as ChallengeCompletion).id ? payload.new as ChallengeCompletion : c));
           }
+        })
+        .subscribe();
+
+      // Realtime voor week_challenge_completions (weekchallenge uit seizoensprogramma)
+      supabase.channel(`public:week_challenge_completions:team_id=eq.${userData.teamId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'week_challenge_completions' }, payload => {
+          setTeamWeekChallengeCompletions(prev => [payload.new as WeekChallengeCompletion, ...prev]);
         })
         .subscribe();
     }
@@ -1386,7 +1400,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-black text-gray-900">Challenges</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">{teamChallengeCompletions.length} voltooiing{teamChallengeCompletions.length !== 1 ? 'en' : ''}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{teamChallengeCompletions.length} video-challenge{teamChallengeCompletions.length !== 1 ? 's' : ''} voltooid</p>
                 </div>
 
                 {userData.teamId && userData.role === 'club_admin' && (
@@ -1398,10 +1412,40 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
                   />
                 )}
 
+                {weekChallenge?.challenge && (() => {
+                  const doneIds = new Set(
+                    teamWeekChallengeCompletions.filter(c => c.week_plan_id === weekChallenge.id).map(c => c.player_id)
+                  );
+                  const donePlayers = players.filter(p => doneIds.has(p.id));
+                  return (
+                    <div className="rounded-2xl border border-gray-200 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Weekchallenge — seizoensprogramma</p>
+                          <p className="text-sm font-semibold text-gray-900 mt-0.5">{weekChallenge.challenge}</p>
+                        </div>
+                        <span className="text-xs font-bold text-gray-500 shrink-0 ml-3">{donePlayers.length}/{players.length}</span>
+                      </div>
+                      {donePlayers.length === 0 ? (
+                        <p className="text-xs text-gray-400">Nog geen speler heeft deze afgevinkt.</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {donePlayers.map(p => (
+                            <div key={p.id} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full pl-1 pr-2.5 py-1">
+                              <img src={p.avatar_url} alt={p.name} className="w-5 h-5 rounded-full" />
+                              <span className="text-xs font-medium text-gray-700">{p.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {teamChallengeCompletions.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
                     <Trophy size={40} className="mx-auto mb-3 text-gray-300" />
-                    <p className="text-gray-500 font-medium">Nog geen challenges voltooid</p>
+                    <p className="text-gray-500 font-medium">Nog geen video-challenge voltooid</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
