@@ -1,3 +1,5 @@
+import { CircleDot } from 'lucide-react'
+
 const skills = [
   { label: 'Techniek & Balbeheersing', val: 8 },
   { label: 'Snelheid & Wendbaarheid', val: 8 },
@@ -28,7 +30,9 @@ export default function HeroVisual() {
 
           {/* Top labels */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-full pl-1.5 pr-3 py-1">
-            <span className="w-5 h-5 rounded-full bg-neon/90 flex items-center justify-center text-[10px]">⚽</span>
+            <span className="w-5 h-5 rounded-full bg-neon/90 flex items-center justify-center">
+              <CircleDot size={12} className="text-dark-900" />
+            </span>
             <span className="text-white text-[11px] font-semibold">Training &amp; Ontwikkeling · O11</span>
           </div>
           <div className="absolute top-3 right-3 bg-neon text-dark-900 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wide">

@@ -1,23 +1,24 @@
+import { Handshake, CircleDot, Lock, Smartphone } from 'lucide-react'
 import HeroVisual from './HeroVisual'
 
 const trustBadges = [
   {
-    icon: '🤝',
+    icon: Handshake,
     title: 'Methodiek Partner',
     subtitle: 'Ultimate Football Academy',
   },
   {
-    icon: '⚽',
+    icon: CircleDot,
     title: 'KNVB-jaarprogramma',
     subtitle: 'Trainingscurriculum voor O7 t/m O12',
   },
   {
-    icon: '🔒',
+    icon: Lock,
     title: 'AVG Jeugd-Proof',
     subtitle: 'Verwerkersovereenkomst inbegrepen',
   },
   {
-    icon: '📱',
+    icon: Smartphone,
     title: 'Mobile-first',
     subtitle: 'Geen installatie, direct te gebruiken',
   },
@@ -105,7 +106,7 @@ export default function Hero() {
         <div className="relative mt-16 lg:mt-24 pt-8 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-6">
           {trustBadges.map((b) => (
             <div key={b.title} className="flex items-start gap-3">
-              <span className="text-xl flex-shrink-0">{b.icon}</span>
+              <b.icon size={20} className="text-neon-ink flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-slate-900 text-sm font-bold leading-tight">{b.title}</p>
                 <p className="text-slate-400 text-xs mt-0.5">{b.subtitle}</p>
