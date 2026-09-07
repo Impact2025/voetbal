@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { NEON_COLOR, skillKeys, SKILL_GROUPS } from '../../utils/constants';
 import { copyToClipboard } from '../../utils/clipboard';
 import { fetchClubSubscriptionTier } from '../../lib/trainingLibrary';
+import { withComputedAge } from '../../lib/playerAge';
 import Card from '../ui/Card';
 import ParentLinkModal from '../parent/ParentLinkModal';
 import TrainersTab from './TrainersTab';
@@ -177,12 +178,12 @@ const ClubAdminDashboard = ({ userData, onLogout }: ClubAdminDashboardProps) => 
         const teamIds = rawTeams.map((t: { id: string }) => t.id);
         const [{ data: playersData }, { data: attendanceData }] = await Promise.all([
           supabase.from('players')
-            .select('id,name,team_id,age,preferred_foot,position,avatar_url,evaluations,completed_homework_ids')
+            .select('id,name,team_id,age,birth_year,preferred_foot,position,avatar_url,evaluations,completed_homework_ids')
             .in('team_id', teamIds),
           supabase.from('attendance').select('player_id,team_id,session_date,present').in('team_id', teamIds),
         ]);
 
-        const players = (playersData || []) as PlayerRow[];
+        const players = ((playersData || []) as PlayerRow[]).map(withComputedAge);
         const attendance = (attendanceData || []) as AttendanceRow[];
         setAllPlayers(players);
         setAttendanceRecords(attendance);

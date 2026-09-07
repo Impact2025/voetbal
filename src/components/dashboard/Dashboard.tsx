@@ -65,6 +65,7 @@ import {
 import { getOrCreateStreak, incrementStreak, decrementStreak } from '../../lib/streaks';
 import { getActiveTeamChallenge } from '../../lib/teamChallenge';
 import { ageToAgeGroup, fetchCurrentWeekPlan } from '../../lib/trainingLibrary';
+import { withComputedAge } from '../../lib/playerAge';
 import type { PlayerStats, CardTier, TeamChallenge } from '../../types';
 
 interface DashboardProps {
@@ -175,7 +176,7 @@ const Dashboard = ({ user, userData, onPlayerLogout }: DashboardProps) => {
       setTeamChallengeCompletions((teamCompletionsData || []) as ChallengeCompletion[]);
       setTeamWeekChallengeCompletions((teamWeekCompletionsData || []) as WeekChallengeCompletion[]);
 
-      const normalizedPlayers = (playersData || []).map(player => ({
+      const normalizedPlayers = (playersData || []).map(player => withComputedAge({
         ...player,
         weekly_question_responses: Array.from({ length: 3 }, (_, idx) => player.weekly_question_responses?.[idx] || ''),
       }));

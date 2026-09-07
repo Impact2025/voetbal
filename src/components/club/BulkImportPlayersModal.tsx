@@ -51,7 +51,8 @@ interface ImportRow {
   teamClass: string;
   teamName: string;
   playerName: string;
-  age: string;
+  birthYear: string;
+  age: string; // legacy kolom, alleen als fallback als geboortejaar ontbreekt
   preferredFoot: string;
   position: string;
   rowNumber: number;
@@ -61,6 +62,7 @@ const HEADER_ALIASES: Record<string, keyof Omit<ImportRow, 'rowNumber'>> = {
   team_klasse: 'teamClass', teamklasse: 'teamClass', team_class: 'teamClass', klasse: 'teamClass',
   team_naam: 'teamName', teamnaam: 'teamName', team_name: 'teamName',
   speler_naam: 'playerName', spelernaam: 'playerName', naam: 'playerName', name: 'playerName', player_name: 'playerName',
+  geboortejaar: 'birthYear', birth_year: 'birthYear', birthyear: 'birthYear',
   leeftijd: 'age', age: 'age',
   voorkeursvoet: 'preferredFoot', preferred_foot: 'preferredFoot', voet: 'preferredFoot',
   positie: 'position', position: 'position',
@@ -91,6 +93,7 @@ function rowsToImportRows(csvRows: string[][]): { rows: ImportRow[]; errors: str
       teamClass,
       teamName: get('teamName') || teamClass,
       playerName,
+      birthYear: get('birthYear'),
       age: get('age'),
       preferredFoot: get('preferredFoot') || 'Rechts',
       position: get('position'),
@@ -100,7 +103,7 @@ function rowsToImportRows(csvRows: string[][]): { rows: ImportRow[]; errors: str
   return { rows, errors };
 }
 
-const TEMPLATE_CSV = 'team_klasse,team_naam,speler_naam,leeftijd,voorkeursvoet,positie\nO11-1,VVC O11-1,Daan de Vries,10,Rechts,Aanvaller\nO11-1,VVC O11-1,Sem Jansen,11,Links,Verdediger\n';
+const TEMPLATE_CSV = `team_klasse,team_naam,speler_naam,geboortejaar,voorkeursvoet,positie\nO11-1,VVC O11-1,Daan de Vries,${new Date().getFullYear() - 10},Rechts,Aanvaller\nO11-1,VVC O11-1,Sem Jansen,${new Date().getFullYear() - 11},Links,Verdediger\n`;
 
 function downloadTextFile(filename: string, content: string) {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -170,10 +173,18 @@ const BulkImportPlayersModal = ({ clubId, existingTeams, onClose, onImported }: 
         const teamId = teamIdByClass.get(row.teamClass);
         if (!teamId) continue;
         const plainPin = Math.floor(100000 + Math.random() * 900000).toString();
+        const currentYear = new Date().getFullYear();
+        const parsedBirthYear = row.birthYear ? parseInt(row.birthYear, 10) : NaN;
+        const birthYear = Number.isFinite(parsedBirthYear)
+          ? parsedBirthYear
+          : row.age && Number.isFinite(parseInt(row.age, 10))
+            ? currentYear - parseInt(row.age, 10)
+            : null;
         const newPlayer = {
           name: row.playerName,
           team_id: teamId,
-          age: row.age,
+          birth_year: birthYear,
+          age: birthYear ? String(currentYear - birthYear) : (row.age || ''),
           preferred_foot: row.preferredFoot,
           position: row.position,
           pin_hash: 'pending',

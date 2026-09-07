@@ -7,6 +7,7 @@ import Input from '../ui/Input';
 import { NEON_COLOR } from '../../utils/constants';
 import type { UserData } from '../../types';
 import { hashPin } from '../../utils/crypto';
+import { withComputedAge } from '../../lib/playerAge';
 import { checkRateLimit, recordFailedAttempt, clearAttempts } from '../../utils/rateLimit';
 import { fetchInviteByToken, acceptCoachInvite, type CoachInvite } from '../../lib/teamManagement';
 import CoachInviteWelcome from './CoachInviteWelcome';
@@ -323,7 +324,7 @@ const AuthComponent = ({ onPlayerLogin, isRecovering = false, initialError, onPa
         else { localStorage.removeItem('rememberedTeamId'); localStorage.removeItem('rememberedPin'); }
 
         clearAttempts(teamId);
-        onPlayerLogin({ role: 'player', teamId, uid: matched.id, ...matched });
+        onPlayerLogin({ role: 'player', teamId, uid: matched.id, ...withComputedAge(matched) });
         return 'ok';
       } catch (err) {
         return (err as Error).message;

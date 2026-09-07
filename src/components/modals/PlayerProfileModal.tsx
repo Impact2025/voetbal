@@ -15,12 +15,14 @@ interface PlayerProfileModalProps {
   onClose: () => void;
   player: Player | null;
   teamId: string;
-  onSave: (playerId: string, data: { age: string; preferred_foot: string; position: string; avatar_url?: string }) => Promise<void>;
+  onSave: (playerId: string, data: { birth_year: number | null; preferred_foot: string; position: string; avatar_url?: string }) => Promise<void>;
   onResetPin?: (playerId: string) => Promise<string>;
 }
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onResetPin }: PlayerProfileModalProps) => {
-  const [age, setAge] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [preferredFoot, setPreferredFoot] = useState('Rechts');
   const [position, setPosition] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,14 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onRese
 
   useEffect(() => {
     if (player) {
-      setAge(player.age || '');
+      // Legacy spelers hebben nog geen birth_year — schat die dan uit het oude
+      // age-veld zodat het invoerveld niet leeg oogt terwijl er wél data is.
+      const estimated = player.birth_year
+        ? String(player.birth_year)
+        : player.age
+          ? String(CURRENT_YEAR - parseInt(player.age, 10))
+          : '';
+      setBirthYear(estimated);
       setPreferredFoot(player.preferred_foot || 'Rechts');
       setPosition(player.position || '');
       setNewPin(null);
@@ -39,9 +48,15 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onRese
   if (!isVisible || !player) return null;
 
   const handleSave = async () => {
+    const year = parseInt(birthYear, 10);
+    const validYear = birthYear.trim() && Number.isFinite(year) && year >= CURRENT_YEAR - 19 && year <= CURRENT_YEAR - 4;
+    if (birthYear.trim() && !validYear) {
+      toast.error(`Vul een geldig geboortejaar in (${CURRENT_YEAR - 19}-${CURRENT_YEAR - 4}).`);
+      return;
+    }
     setLoading(true);
     try {
-      await onSave(player.id, { age, preferred_foot: preferredFoot, position });
+      await onSave(player.id, { birth_year: validYear ? year : null, preferred_foot: preferredFoot, position });
       onClose();
     } catch (err) {
       toast.error((err as Error).message || 'Opslaan mislukt.');
@@ -93,7 +108,7 @@ const PlayerProfileModal = ({ isVisible, onClose, player, teamId, onSave, onRese
               </div>
 
               <div className="space-y-4">
-                <Input light label="Leeftijd" value={age} onChange={e => setAge(e.target.value)} placeholder="bv. 10" />
+                <Input light label="Geboortejaar" value={birthYear} onChange={e => setBirthYear(e.target.value)} placeholder={`bv. ${CURRENT_YEAR - 10}`} />
                 <Select light label="Voorkeursbeen" value={preferredFoot} onChange={e => setPreferredFoot(e.target.value)}>
                   <option>Rechts</option>
                   <option>Links</option>

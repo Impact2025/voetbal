@@ -9,6 +9,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { COACH_COLOR } from '../../utils/constants';
 import { TIER_CONFIG, tierProgress } from '../../lib/cardTier';
+import { withComputedAge } from '../../lib/playerAge';
 import { CHALLENGES, CATEGORY_META } from '../../data/challenges';
 import { usePWA } from '../../lib/usePWA';
 import InstallModal from '../modals/InstallModal';
@@ -200,7 +201,7 @@ const ParentDashboard = ({ userData, onLogout, demo = false }: ParentDashboardPr
       supabase.from('attendance').select('*').eq('player_id', pid).order('session_date', { ascending: false }).limit(20),
       supabase.from('stat_events').select('axis, xp, created_at').eq('player_id', pid).gte('created_at', twelveWeeksAgo).order('created_at'),
     ]).then(([pR, sR, stR, nR, aR, gR]) => {
-      if (pR.status  === 'fulfilled' && pR.value.data)  setPlayer(pR.value.data as Player);
+      if (pR.status  === 'fulfilled' && pR.value.data)  setPlayer(withComputedAge(pR.value.data as Player));
       if (sR.status  === 'fulfilled' && sR.value.data)  setStats(sR.value.data as PlayerStats);
       if (stR.status === 'fulfilled' && stR.value.data) setStreak(stR.value.data as Streak);
       if (nR.status  === 'fulfilled' && nR.value.data)  setNotifPrefs(nR.value.data as NotificationPrefs);

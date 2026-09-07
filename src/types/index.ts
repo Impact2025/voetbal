@@ -80,6 +80,7 @@ export interface Player {
   name: string;
   team_id: string;
   age: string;
+  birth_year?: number | null;
   preferred_foot: string;
   position: string;
   pin: string;
